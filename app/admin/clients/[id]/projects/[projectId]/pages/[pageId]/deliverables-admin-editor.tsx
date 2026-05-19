@@ -39,7 +39,14 @@ export type AdminMediaOption = {
   filename: string;
   mime_type: string;
   public_url: string;
+  folder_id: string | null;
   folder_name: string | null;
+};
+
+export type AdminFolderOption = {
+  id: string;
+  name: string;
+  position: number;
 };
 
 const FORMAT_SUGGESTIONS = [
@@ -56,10 +63,12 @@ export function DeliverablesAdminEditor({
   ctx,
   initialDeliverables,
   availableMedia,
+  availableFolders,
 }: {
   ctx: DeliverableActionContext;
   initialDeliverables: AdminDeliverable[];
   availableMedia: AdminMediaOption[];
+  availableFolders: AdminFolderOption[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -166,6 +175,7 @@ export function DeliverablesAdminEditor({
       <MediaPickerModal
         open={pickerOpen}
         media={availableMedia}
+        folders={availableFolders}
         onClose={() => setPickerOpen(false)}
         onPick={handleAdd}
       />
@@ -582,29 +592,57 @@ function OwnerThread({
 
 // ─── Modal sélecteur de média ───────────────────────────────────────────────
 
+type FolderSelection =
+  | { kind: "all" }
+  | { kind: "loose" }
+  | { kind: "folder"; id: string };
+
 function MediaPickerModal({
   open,
   media,
+  folders,
   onClose,
   onPick,
 }: {
   open: boolean;
   media: AdminMediaOption[];
+  folders: AdminFolderOption[];
   onClose: () => void;
   onPick: (mediaId: string) => void;
 }) {
   const [filter, setFilter] = useState("");
+  const [selection, setSelection] = useState<FolderSelection>({ kind: "all" });
   if (!open) return null;
 
+  // Pré-filtre par dossier sélectionné.
+  const filteredByFolder = (() => {
+    if (selection.kind === "all") return media;
+    if (selection.kind === "loose") {
+      return media.filter((m) => m.folder_id === null);
+    }
+    return media.filter((m) => m.folder_id === selection.id);
+  })();
+
+  // Filtre texte (par dessus le filtre dossier).
   const filtered = filter.trim()
-    ? media.filter((m) => {
+    ? filteredByFolder.filter((m) => {
         const q = filter.toLowerCase();
         return (
           m.filename.toLowerCase().includes(q) ||
           (m.folder_name?.toLowerCase().includes(q) ?? false)
         );
       })
-    : media;
+    : filteredByFolder;
+
+  // Counts pour la sidebar.
+  const counts = (() => {
+    const byFolder = new Map<string | null, number>();
+    for (const m of media) {
+      const k = m.folder_id;
+      byFolder.set(k, (byFolder.get(k) ?? 0) + 1);
+    }
+    return byFolder;
+  })();
 
   return (
     <div
@@ -614,7 +652,7 @@ function MediaPickerModal({
       onClick={onClose}
     >
       <div
-        className="relative flex max-h-[90svh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl"
+        className="relative flex max-h-[90svh] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#0a0a0a] shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="flex items-center justify-between gap-6 border-b border-white/10 px-6 py-5">
@@ -647,66 +685,136 @@ function MediaPickerModal({
           />
         </div>
 
-        <div className="flex-1 overflow-auto p-6">
-          {filtered.length === 0 ? (
-            <p className="py-12 text-center font-serif italic text-white/40">
-              {media.length === 0
-                ? "Aucun média dans la médiathèque. Uploade des fichiers dans /admin/clients/[id]/media."
-                : "Aucun média ne correspond au filtre."}
+        <div className="flex flex-1 min-h-0">
+          {/* Sidebar dossiers */}
+          <aside className="w-56 shrink-0 overflow-y-auto border-r border-white/10 p-4">
+            <p className="px-2 text-[10px] uppercase tracking-[0.4em] text-white/40">
+              Dossiers
             </p>
-          ) : (
-            <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-              {filtered.map((m) => (
-                <li key={m.id}>
-                  <button
-                    type="button"
-                    onClick={() => onPick(m.id)}
-                    className="group flex w-full flex-col gap-2 text-left transition-colors"
-                  >
-                    <span className="relative block aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all group-hover:border-white/35">
-                      {m.mime_type.startsWith("image/") ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={m.public_url}
-                          alt={m.filename}
-                          loading="lazy"
-                          className="absolute inset-0 h-full w-full object-cover"
-                        />
-                      ) : m.mime_type.startsWith("video/") ? (
-                        <>
-                          <video
-                            src={m.public_url}
-                            preload="metadata"
-                            muted
-                            playsInline
-                            className="absolute inset-0 h-full w-full object-cover"
-                          />
-                          <span className="absolute bottom-2 left-2 rounded-full bg-black/65 px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-white/80 backdrop-blur-sm">
-                            Vidéo
-                          </span>
-                        </>
-                      ) : (
-                        <span className="absolute inset-0 flex items-center justify-center px-2 text-center font-mono text-[10px] uppercase tracking-[0.28em] text-white/40">
-                          {m.mime_type}
-                        </span>
-                      )}
-                    </span>
-                    <span className="px-1 truncate font-mono text-[10px] text-white/55">
-                      {m.filename}
-                    </span>
-                    {m.folder_name && (
-                      <span className="px-1 truncate text-[9px] uppercase tracking-[0.32em] text-white/30">
-                        {m.folder_name}
-                      </span>
-                    )}
-                  </button>
-                </li>
+            <ul className="mt-3 flex flex-col gap-1">
+              <FolderRow
+                label="Tous"
+                count={media.length}
+                active={selection.kind === "all"}
+                onClick={() => setSelection({ kind: "all" })}
+              />
+              <FolderRow
+                label="Hors dossier"
+                count={counts.get(null) ?? 0}
+                active={selection.kind === "loose"}
+                onClick={() => setSelection({ kind: "loose" })}
+              />
+              {folders.length > 0 && (
+                <li className="my-2 h-px bg-white/10" aria-hidden />
+              )}
+              {folders.map((f) => (
+                <FolderRow
+                  key={f.id}
+                  label={f.name}
+                  count={counts.get(f.id) ?? 0}
+                  active={
+                    selection.kind === "folder" && selection.id === f.id
+                  }
+                  onClick={() => setSelection({ kind: "folder", id: f.id })}
+                />
               ))}
             </ul>
-          )}
+          </aside>
+
+          {/* Grille médias */}
+          <div className="flex-1 overflow-auto p-6">
+            {filtered.length === 0 ? (
+              <p className="py-12 text-center font-serif italic text-white/40">
+                {media.length === 0
+                  ? "Aucun média dans la médiathèque. Uploade des fichiers dans /admin/clients/[id]/media."
+                  : "Aucun média ne correspond au filtre."}
+              </p>
+            ) : (
+              <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+                {filtered.map((m) => (
+                  <li key={m.id}>
+                    <button
+                      type="button"
+                      onClick={() => onPick(m.id)}
+                      className="group flex w-full flex-col gap-2 text-left transition-colors"
+                    >
+                      <span className="relative block aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all group-hover:border-white/35">
+                        {m.mime_type.startsWith("image/") ? (
+                          // eslint-disable-next-line @next/next/no-img-element
+                          <img
+                            src={m.public_url}
+                            alt={m.filename}
+                            loading="lazy"
+                            className="absolute inset-0 h-full w-full object-cover"
+                          />
+                        ) : m.mime_type.startsWith("video/") ? (
+                          <>
+                            <video
+                              src={m.public_url}
+                              preload="metadata"
+                              muted
+                              playsInline
+                              className="absolute inset-0 h-full w-full object-cover"
+                            />
+                            <span className="absolute bottom-2 left-2 rounded-full bg-black/65 px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-white/80 backdrop-blur-sm">
+                              Vidéo
+                            </span>
+                          </>
+                        ) : (
+                          <span className="absolute inset-0 flex items-center justify-center px-2 text-center font-mono text-[10px] uppercase tracking-[0.28em] text-white/40">
+                            {m.mime_type}
+                          </span>
+                        )}
+                      </span>
+                      <span className="px-1 truncate font-mono text-[10px] text-white/55">
+                        {m.filename}
+                      </span>
+                      {m.folder_name && (
+                        <span className="px-1 truncate text-[9px] uppercase tracking-[0.32em] text-white/30">
+                          {m.folder_name}
+                        </span>
+                      )}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function FolderRow({
+  label,
+  count,
+  active,
+  onClick,
+}: {
+  label: string;
+  count: number;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className={cn(
+          "flex w-full items-center justify-between gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors",
+          active
+            ? "bg-white/[0.06] text-white"
+            : "text-white/55 hover:bg-white/[0.03] hover:text-white/85",
+        )}
+      >
+        <span className="truncate">{label}</span>
+        <span className="shrink-0 font-mono text-[10px] text-white/35">
+          {count}
+        </span>
+      </button>
+    </li>
   );
 }
 

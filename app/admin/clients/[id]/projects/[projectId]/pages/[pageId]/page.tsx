@@ -154,9 +154,10 @@ export default async function EditPagePage({
 
   // Mode "Livrables" : on précharge la liste des livrables + leurs feedbacks
   // + tous les médias disponibles dans la médiathèque du client pour le
-  // picker.
+  // picker + la liste des dossiers (sidebar de navigation du picker).
   let initialDeliverables: import("./deliverables-admin-editor").AdminDeliverable[] | null = null;
   let availableMedia: import("./deliverables-admin-editor").AdminMediaOption[] = [];
+  let availableFolders: import("./deliverables-admin-editor").AdminFolderOption[] = [];
   if (isDeliverables) {
     const { data: delivRows } = await admin
       .from("client_page_deliverables" as never)
@@ -247,6 +248,7 @@ export default async function EditPagePage({
           filename: m.filename,
           mime_type: m.mime_type,
           public_url: pub.publicUrl,
+          folder_id: m.folder_id,
           folder_name: folder?.name ?? null,
         });
       }
@@ -299,9 +301,23 @@ export default async function EditPagePage({
         filename: m.filename,
         mime_type: m.mime_type,
         public_url: pub.publicUrl,
+        folder_id: m.folder_id,
         folder_name: folder?.name ?? null,
       };
     });
+
+    // Liste des dossiers de la médiathèque pour la sidebar du picker.
+    const { data: foldersData } = await admin
+      .from("client_media_folders" as never)
+      .select("id, name, position")
+      .eq("profile_id", id)
+      .order("position", { ascending: true })
+      .returns<Array<{ id: string; name: string; position: number }>>();
+    availableFolders = (foldersData ?? []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      position: f.position,
+    }));
   }
 
   return (
@@ -314,6 +330,7 @@ export default async function EditPagePage({
       publicHref={publicHref}
       initialDeliverables={initialDeliverables}
       availableMedia={availableMedia}
+      availableFolders={availableFolders}
     />
   );
 }

@@ -24,6 +24,7 @@ import type { ActionContext } from "./actions-types";
 import {
   DeliverablesAdminEditor,
   type AdminDeliverable,
+  type AdminFolderOption,
   type AdminMediaOption,
 } from "./deliverables-admin-editor";
 
@@ -36,6 +37,7 @@ export function PageEditor({
   publicHref,
   initialDeliverables,
   availableMedia,
+  availableFolders,
 }: {
   initialPage: Page;
   clientId: string;
@@ -47,6 +49,8 @@ export function PageEditor({
   initialDeliverables: AdminDeliverable[] | null;
   /** Médias dispo dans la médiathèque client pour le picker. */
   availableMedia: AdminMediaOption[];
+  /** Dossiers de la médiathèque pour la sidebar du picker. */
+  availableFolders: AdminFolderOption[];
 }) {
   const [page, setPage] = useState<Page>(initialPage);
   const [pending, startTransition] = useTransition();
@@ -329,6 +333,7 @@ export function PageEditor({
               ctx={context}
               initialDeliverables={initialDeliverables ?? []}
               availableMedia={availableMedia}
+              availableFolders={availableFolders}
             />
           </div>
         ) : (
