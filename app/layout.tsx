@@ -40,7 +40,7 @@ const cormorant = Cormorant_Garamond({
 });
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://speetch.fr"),
+  metadataBase: new URL("https://speetch.com"),
   title: {
     default: "Speetch — Agence de Communication · Paris",
     template: "%s · Speetch",
@@ -54,7 +54,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Speetch — Agence de Communication",
     description: "Paris · 25 ans d'expérience.",
-    url: "https://speetch.fr",
+    url: "https://speetch.com",
     siteName: "Speetch",
     locale: "fr_FR",
     type: "website",
