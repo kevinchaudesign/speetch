@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ConfirmDialog } from "@/lib/ds";
-import { deletePersona, updatePersona } from "../actions";
+import { cn } from "@/lib/utils";
+import {
+  deletePersona,
+  setPersonaCover,
+  updatePersona,
+} from "../actions";
 import type { PersonaItem, PersonaMedia } from "../_lib/persona-types";
 
 type PatchableField = Exclude<keyof PersonaItem, "id" | "media">;
@@ -49,6 +54,24 @@ export function PersonaDetailEditor({
     });
   }
 
+  // Cover : toggle. Si on clique sur la card actuelle → on retire (null).
+  function handleToggleCover(mediaId: string) {
+    setTopError(null);
+    const nextMediaId = persona.cover_media_id === mediaId ? null : mediaId;
+    startTransition(async () => {
+      const res = await setPersonaCover({
+        profileId,
+        personaId: persona.id,
+        mediaId: nextMediaId,
+      });
+      if (!res.ok) {
+        setTopError(res.error);
+        return;
+      }
+      router.refresh();
+    });
+  }
+
   return (
     <div className="flex flex-col gap-10">
       {topError && (
@@ -72,7 +95,12 @@ export function PersonaDetailEditor({
         />
       </div>
 
-      <PersonaMediaStrip media={persona.media} />
+      <PersonaMediaStrip
+        media={persona.media}
+        coverMediaId={persona.cover_media_id}
+        onToggleCover={handleToggleCover}
+        pending={pending}
+      />
 
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <FieldBlock label="Rôle">
@@ -243,7 +271,17 @@ export function PersonaDetailEditor({
 
 // ─── Sous-composants ────────────────────────────────────────────────────────
 
-function PersonaMediaStrip({ media }: { media: PersonaMedia[] }) {
+function PersonaMediaStrip({
+  media,
+  coverMediaId,
+  onToggleCover,
+  pending,
+}: {
+  media: PersonaMedia[];
+  coverMediaId: string | null;
+  onToggleCover: (mediaId: string) => void;
+  pending: boolean;
+}) {
   if (media.length === 0) {
     return (
       <p className="text-[11px] uppercase tracking-[0.32em] text-white/30">
@@ -256,48 +294,96 @@ function PersonaMediaStrip({ media }: { media: PersonaMedia[] }) {
     );
   }
 
+  // Cover orphelin = cover_media_id pointe vers un média plus taggé sur ce
+  // persona (peut arriver si on a re-tagué le média ailleurs). On l'ignore
+  // côté affichage pour rester cohérent avec la liste.
+  const activeCoverId = coverMediaId && media.some((m) => m.id === coverMediaId)
+    ? coverMediaId
+    : null;
+
   return (
     <div className="flex flex-col gap-3">
-      <span className={FIELD_LABEL_CLASS}>Visuels ({media.length})</span>
+      <span className={FIELD_LABEL_CLASS}>
+        Visuels ({media.length})
+        <span className="mx-2 text-white/15">·</span>
+        <span className="normal-case tracking-normal text-white/35">
+          {activeCoverId
+            ? "click ★ pour retirer la card"
+            : "click ☆ pour définir la card preview"}
+        </span>
+      </span>
       <ul className="flex flex-wrap gap-3">
-        {media.map((m) => (
-          <li key={m.id}>
-            <a
-              href={m.public_url}
-              target="_blank"
-              rel="noopener noreferrer"
-              title={m.filename}
-              className="group relative block h-28 w-28 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all hover:border-white/35"
-            >
-              {m.mime_type.startsWith("image/") ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={m.public_url}
-                  alt={m.filename}
-                  loading="lazy"
-                  className="absolute inset-0 h-full w-full object-cover"
-                />
-              ) : m.mime_type.startsWith("video/") ? (
-                <>
-                  <video
+        {media.map((m) => {
+          const isCover = m.id === activeCoverId;
+          return (
+            <li key={m.id} className="group relative h-28 w-28">
+              <a
+                href={m.public_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                title={m.filename}
+                className={cn(
+                  "relative block h-full w-full overflow-hidden rounded-xl border bg-white/[0.02] transition-all",
+                  isCover
+                    ? "border-white/50 ring-2 ring-white/30"
+                    : "border-white/10 hover:border-white/35",
+                )}
+              >
+                {m.mime_type.startsWith("image/") ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
                     src={m.public_url}
-                    preload="metadata"
-                    muted
-                    playsInline
+                    alt={m.filename}
+                    loading="lazy"
                     className="absolute inset-0 h-full w-full object-cover"
                   />
-                  <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/65 px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-white/80 backdrop-blur-sm">
-                    Vidéo
+                ) : m.mime_type.startsWith("video/") ? (
+                  <>
+                    <video
+                      src={m.public_url}
+                      preload="metadata"
+                      muted
+                      playsInline
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/65 px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-white/80 backdrop-blur-sm">
+                      Vidéo
+                    </span>
+                  </>
+                ) : (
+                  <span className="absolute inset-0 flex items-center justify-center px-2 text-center font-mono text-[9px] uppercase tracking-[0.28em] text-white/40">
+                    {m.mime_type}
                   </span>
-                </>
-              ) : (
-                <span className="absolute inset-0 flex items-center justify-center px-2 text-center font-mono text-[9px] uppercase tracking-[0.28em] text-white/40">
-                  {m.mime_type}
-                </span>
-              )}
-            </a>
-          </li>
-        ))}
+                )}
+              </a>
+
+              <button
+                type="button"
+                onClick={() => onToggleCover(m.id)}
+                disabled={pending}
+                aria-label={
+                  isCover
+                    ? "Retirer comme card preview"
+                    : "Définir comme card preview"
+                }
+                aria-pressed={isCover}
+                title={
+                  isCover
+                    ? "Card preview actuelle — click pour retirer"
+                    : "Définir comme card preview"
+                }
+                className={cn(
+                  "absolute right-1.5 top-1.5 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border bg-black/60 text-[14px] backdrop-blur-sm transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50",
+                  isCover
+                    ? "border-white/70 text-amber-200 opacity-100 hover:border-white"
+                    : "border-white/35 text-white/65 opacity-0 hover:border-white hover:text-white group-hover:opacity-100 focus-visible:opacity-100",
+                )}
+              >
+                {isCover ? "★" : "☆"}
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </div>
   );

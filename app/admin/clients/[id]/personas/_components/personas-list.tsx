@@ -114,9 +114,17 @@ function PersonaPreviewCard({
   pending: boolean;
   onMove: (direction: "up" | "down") => void;
 }) {
-  const hero = persona.media.find((m) => m.mime_type.startsWith("image/"))
-    ?? persona.media[0]
-    ?? null;
+  // Priorité au cover choisi explicitement par l'utilisateur. On vérifie
+  // qu'il est toujours dans la liste des médias taggés (sinon orphelin →
+  // fallback heuristique).
+  const explicitCover = persona.cover_media_id
+    ? persona.media.find((m) => m.id === persona.cover_media_id) ?? null
+    : null;
+  const hero =
+    explicitCover ??
+    persona.media.find((m) => m.mime_type.startsWith("image/")) ??
+    persona.media[0] ??
+    null;
   const initials = computeInitials(persona.name);
 
   return (

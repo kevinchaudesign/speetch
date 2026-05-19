@@ -233,6 +233,73 @@ export async function deletePersona(input: {
   return { ok: true };
 }
 
+export type SetPersonaCoverResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Définit (ou retire si mediaId = null) le visuel affiché en card preview
+ * du persona dans la liste.
+ *
+ * Validations :
+ * - le persona appartient au client (filtre profile_id côté update)
+ * - le média existe, appartient au même client, ET est actuellement tagué
+ *   sur ce persona (sinon ça n'a pas de sens de l'utiliser comme cover)
+ */
+export async function setPersonaCover(input: {
+  profileId: string;
+  personaId: string;
+  mediaId: string | null;
+}): Promise<SetPersonaCoverResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  if (!UUID_REGEX.test(input.personaId)) {
+    return { ok: false, error: "Persona invalide." };
+  }
+  if (input.mediaId !== null && !UUID_REGEX.test(input.mediaId)) {
+    return { ok: false, error: "Média invalide." };
+  }
+
+  if (input.mediaId !== null) {
+    const { data: media } = await auth.admin
+      .from("client_media" as never)
+      .select("id, profile_id, persona_id")
+      .eq("id", input.mediaId)
+      .maybeSingle<{
+        id: string;
+        profile_id: string;
+        persona_id: string | null;
+      }>();
+    if (!media || media.profile_id !== input.profileId) {
+      return { ok: false, error: "Média introuvable pour ce client." };
+    }
+    if (media.persona_id !== input.personaId) {
+      return {
+        ok: false,
+        error: "Le média doit d'abord être taggé sur ce persona.",
+      };
+    }
+  }
+
+  const { error } = await auth.admin
+    .from("client_personas" as never)
+    .update({ cover_media_id: input.mediaId } as never)
+    .eq("id", input.personaId)
+    .eq("profile_id", input.profileId);
+  if (error) {
+    console.error("[setPersonaCover] update error:", error);
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  revalidatePath(
+    `/admin/clients/${input.profileId}/personas/${input.personaId}`,
+  );
+  return { ok: true };
+}
+
 export type ReorderPersonasResult =
   | { ok: true }
   | { ok: false; error: string };

@@ -55,7 +55,7 @@ export default async function ClientPersonasPage({
   const { data: personasData } = await admin
     .from("client_personas" as never)
     .select(
-      "id, name, role, age, location, quote, bio, goals, frustrations, motivations, behaviors, tech_comfort, notes, position",
+      "id, name, role, age, location, quote, bio, goals, frustrations, motivations, behaviors, tech_comfort, notes, cover_media_id, position",
     )
     .eq("profile_id", id)
     .order("position", { ascending: true })
@@ -77,6 +77,7 @@ export default async function ClientPersonasPage({
           | "behaviors"
           | "tech_comfort"
           | "notes"
+          | "cover_media_id"
           | "position"
         >
       >
@@ -139,6 +140,7 @@ export default async function ClientPersonasPage({
     behaviors: p.behaviors,
     tech_comfort: p.tech_comfort,
     notes: p.notes,
+    cover_media_id: p.cover_media_id,
     media: mediaByPersona.get(p.id) ?? [],
   }));
 

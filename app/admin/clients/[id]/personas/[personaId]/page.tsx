@@ -57,7 +57,7 @@ export default async function PersonaDetailPage({
   const { data: personaRow } = await admin
     .from("client_personas" as never)
     .select(
-      "id, name, role, age, location, quote, bio, goals, frustrations, motivations, behaviors, tech_comfort, notes, profile_id",
+      "id, name, role, age, location, quote, bio, goals, frustrations, motivations, behaviors, tech_comfort, notes, cover_media_id, profile_id",
     )
     .eq("id", personaId)
     .eq("profile_id", id)
@@ -77,6 +77,7 @@ export default async function PersonaDetailPage({
         | "behaviors"
         | "tech_comfort"
         | "notes"
+        | "cover_media_id"
         | "profile_id"
       >
     >();
@@ -130,6 +131,7 @@ export default async function PersonaDetailPage({
     behaviors: personaRow.behaviors,
     tech_comfort: personaRow.tech_comfort,
     notes: personaRow.notes,
+    cover_media_id: personaRow.cover_media_id,
     media,
   };
 

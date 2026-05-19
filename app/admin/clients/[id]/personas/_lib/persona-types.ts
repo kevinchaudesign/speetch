@@ -19,6 +19,8 @@ export type ClientPersonaRow = {
   behaviors: string | null;
   tech_comfort: string | null;
   notes: string | null;
+  /** FK vers client_media.id — image choisie comme card preview, optionnel. */
+  cover_media_id: string | null;
   position: number;
   created_at: string;
   updated_at: string;
@@ -98,6 +100,7 @@ export type PersonaItem = Pick<
   | "behaviors"
   | "tech_comfort"
   | "notes"
+  | "cover_media_id"
 > & {
   media: PersonaMedia[];
 };
