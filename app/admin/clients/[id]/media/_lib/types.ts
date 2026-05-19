@@ -15,6 +15,8 @@ export type MediaRow = {
   id: string;
   profile_id: string;
   folder_id: string | null;
+  /** FK vers client_personas.id — tag persona, optionnel. */
+  persona_id: string | null;
   filename: string;
   storage_path: string;
   mime_type: string;

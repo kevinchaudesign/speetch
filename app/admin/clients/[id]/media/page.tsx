@@ -7,8 +7,10 @@ import {
   MediaLibraryView,
   type MediaItem,
   type MediaFolder,
+  type PersonaOption,
 } from "./_components/media-library-view";
 import type { MediaFolderRow, MediaRow } from "./_lib/types";
+import type { ClientPersonaRow } from "../personas/_lib/persona-types";
 
 export const metadata: Metadata = {
   title: "Médiathèque",
@@ -63,7 +65,7 @@ export default async function ClientMediaPage({
   const { data: mediaData } = await admin
     .from("client_media" as never)
     .select(
-      "id, folder_id, filename, storage_path, mime_type, size_bytes, width, height, duration_seconds, position, created_at",
+      "id, folder_id, persona_id, filename, storage_path, mime_type, size_bytes, width, height, duration_seconds, position, created_at",
     )
     .eq("profile_id", id)
     .order("position", { ascending: true })
@@ -74,6 +76,7 @@ export default async function ClientMediaPage({
           MediaRow,
           | "id"
           | "folder_id"
+          | "persona_id"
           | "filename"
           | "storage_path"
           | "mime_type"
@@ -86,6 +89,13 @@ export default async function ClientMediaPage({
         >
       >
     >();
+
+  const { data: personasData } = await admin
+    .from("client_personas" as never)
+    .select("id, name, position")
+    .eq("profile_id", id)
+    .order("position", { ascending: true })
+    .returns<Array<Pick<ClientPersonaRow, "id" | "name" | "position">>>();
 
   const folders: MediaFolder[] = (foldersData ?? []).map((f) => ({
     id: f.id,
@@ -100,6 +110,7 @@ export default async function ClientMediaPage({
     return {
       id: m.id,
       folder_id: m.folder_id,
+      persona_id: m.persona_id,
       filename: m.filename,
       mime_type: m.mime_type,
       size_bytes: m.size_bytes,
@@ -110,6 +121,11 @@ export default async function ClientMediaPage({
       public_url: pub.publicUrl,
     };
   });
+
+  const personas: PersonaOption[] = (personasData ?? []).map((p) => ({
+    id: p.id,
+    name: p.name,
+  }));
 
   const clientName = profile.full_name ?? "Client";
 
@@ -153,6 +169,7 @@ export default async function ClientMediaPage({
           profileId={id}
           initialFolders={folders}
           initialItems={items}
+          personas={personas}
         />
 
         <div className="flex items-center pt-4">

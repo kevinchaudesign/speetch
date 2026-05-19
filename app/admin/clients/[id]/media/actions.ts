@@ -605,6 +605,56 @@ export async function moveClientMediaBatch(input: {
   return { ok: true, count: count ?? ids.length };
 }
 
+export type SetMediaPersonaResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Tagge un média avec un persona (ou retire le tag si personaId = null).
+ * Vérifie côté serveur que le persona appartient bien au même client — la FK
+ * DB ne contraint pas cette cohérence cross-table.
+ */
+export async function setMediaPersona(input: {
+  profileId: string;
+  mediaId: string;
+  personaId: string | null;
+}): Promise<SetMediaPersonaResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  if (!UUID_REGEX.test(input.mediaId)) {
+    return { ok: false, error: "Média invalide." };
+  }
+  if (input.personaId !== null && !UUID_REGEX.test(input.personaId)) {
+    return { ok: false, error: "Persona invalide." };
+  }
+
+  if (input.personaId !== null) {
+    const { data: persona } = await auth.admin
+      .from("client_personas" as never)
+      .select("id, profile_id")
+      .eq("id", input.personaId)
+      .maybeSingle<{ id: string; profile_id: string }>();
+    if (!persona || persona.profile_id !== input.profileId) {
+      return { ok: false, error: "Persona introuvable pour ce client." };
+    }
+  }
+
+  const { error } = await auth.admin
+    .from("client_media" as never)
+    .update({ persona_id: input.personaId } as never)
+    .eq("id", input.mediaId)
+    .eq("profile_id", input.profileId);
+  if (error) {
+    console.error("[setMediaPersona] update error:", error);
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  return { ok: true };
+}
+
 export type RenameClientMediaResult =
   | { ok: true }
   | { ok: false; error: string };

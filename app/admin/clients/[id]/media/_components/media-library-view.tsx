@@ -22,7 +22,16 @@ import {
   moveMediaToFolder,
   moveClientMediaBatch,
   renameClientMedia,
+  setMediaPersona,
 } from "../actions";
+
+// Nom (case-insensitive) qu'un dossier doit avoir pour qu'on expose le tag
+// persona sur ses médias. Centralisé pour pouvoir bouger ça plus tard.
+const PERSONA_FOLDER_NAME = "personas";
+
+function isPersonaFolderName(name: string): boolean {
+  return name.trim().toLowerCase() === PERSONA_FOLDER_NAME;
+}
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -35,6 +44,7 @@ export type MediaFolder = {
 export type MediaItem = {
   id: string;
   folder_id: string | null;
+  persona_id: string | null;
   filename: string;
   mime_type: string;
   size_bytes: number;
@@ -43,6 +53,11 @@ export type MediaItem = {
   duration_seconds: number | null;
   created_at: string;
   public_url: string;
+};
+
+export type PersonaOption = {
+  id: string;
+  name: string;
 };
 
 type Selection =
@@ -67,10 +82,12 @@ export function MediaLibraryView({
   profileId,
   initialFolders,
   initialItems,
+  personas,
 }: {
   profileId: string;
   initialFolders: MediaFolder[];
   initialItems: MediaItem[];
+  personas: PersonaOption[];
 }) {
   const router = useRouter();
   const [selection, setSelection] = useState<Selection>({ kind: "all" });
@@ -114,6 +131,33 @@ export function MediaLibraryView({
   // Lecture seule du state — page server fournit toujours la source de vérité.
   const folders = initialFolders;
   const items = initialItems;
+
+  // ── Tag persona ──────────────────────────────────────────────────────────
+  const personaFolderIds = useMemo(() => {
+    const set = new Set<string>();
+    for (const f of folders) {
+      if (isPersonaFolderName(f.name)) set.add(f.id);
+    }
+    return set;
+  }, [folders]);
+
+  const personaById = useMemo(() => {
+    const map = new Map<string, PersonaOption>();
+    for (const p of personas) map.set(p.id, p);
+    return map;
+  }, [personas]);
+
+  const handleSetPersona = useCallback(
+    async (mediaId: string, personaId: string | null) => {
+      const res = await setMediaPersona({ profileId, mediaId, personaId });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      startTransition(() => router.refresh());
+    },
+    [profileId, router],
+  );
 
   const filtered = useMemo(() => {
     if (selection.kind === "all") return items;
@@ -407,32 +451,45 @@ export function MediaLibraryView({
               </p>
             ) : (
               <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
-                {filtered.map((m) => (
-                  <MediaTile
-                    key={m.id}
-                    item={m}
-                    menuOpen={openMenuId === m.id}
-                    selected={selectedIds.has(m.id)}
-                    anySelected={hasSelection}
-                    onMenuToggle={() =>
-                      setOpenMenuId((prev) => (prev === m.id ? null : m.id))
-                    }
-                    onPreview={() => setPreviewItem(m)}
-                    onToggleSelect={(mode) => toggleSelection(m.id, mode)}
-                    onRename={() => {
-                      setOpenMenuId(null);
-                      setRenameMediaState(m);
-                    }}
-                    onMove={() => {
-                      setOpenMenuId(null);
-                      setMoveMediaState(m);
-                    }}
-                    onDelete={() => {
-                      setOpenMenuId(null);
-                      setDeleteMediaState(m);
-                    }}
-                  />
-                ))}
+                {filtered.map((m) => {
+                  const inPersonaFolder =
+                    m.folder_id !== null && personaFolderIds.has(m.folder_id);
+                  return (
+                    <MediaTile
+                      key={m.id}
+                      item={m}
+                      menuOpen={openMenuId === m.id}
+                      selected={selectedIds.has(m.id)}
+                      anySelected={hasSelection}
+                      personaOptions={inPersonaFolder ? personas : null}
+                      currentPersonaName={
+                        m.persona_id
+                          ? (personaById.get(m.persona_id)?.name ?? null)
+                          : null
+                      }
+                      onSetPersona={(personaId) =>
+                        handleSetPersona(m.id, personaId)
+                      }
+                      onMenuToggle={() =>
+                        setOpenMenuId((prev) => (prev === m.id ? null : m.id))
+                      }
+                      onPreview={() => setPreviewItem(m)}
+                      onToggleSelect={(mode) => toggleSelection(m.id, mode)}
+                      onRename={() => {
+                        setOpenMenuId(null);
+                        setRenameMediaState(m);
+                      }}
+                      onMove={() => {
+                        setOpenMenuId(null);
+                        setMoveMediaState(m);
+                      }}
+                      onDelete={() => {
+                        setOpenMenuId(null);
+                        setDeleteMediaState(m);
+                      }}
+                    />
+                  );
+                })}
               </ul>
             )}
           </div>
@@ -743,6 +800,9 @@ function MediaTile({
   menuOpen,
   selected,
   anySelected,
+  personaOptions,
+  currentPersonaName,
+  onSetPersona,
   onMenuToggle,
   onPreview,
   onToggleSelect,
@@ -754,6 +814,10 @@ function MediaTile({
   menuOpen: boolean;
   selected: boolean;
   anySelected: boolean;
+  /** null = média hors dossier "Personas" → ne pas afficher de select. */
+  personaOptions: PersonaOption[] | null;
+  currentPersonaName: string | null;
+  onSetPersona: (personaId: string | null) => void;
   onMenuToggle: () => void;
   onPreview: () => void;
   onToggleSelect: (mode: "toggle" | "range") => void;
@@ -932,7 +996,63 @@ function MediaTile({
       <span className="px-1 font-mono text-[10px] text-white/30">
         {formatSize(item.size_bytes)}
       </span>
+
+      {personaOptions !== null && (
+        <PersonaTagSelect
+          options={personaOptions}
+          value={item.persona_id}
+          currentName={currentPersonaName}
+          onChange={onSetPersona}
+        />
+      )}
     </li>
+  );
+}
+
+function PersonaTagSelect({
+  options,
+  value,
+  currentName,
+  onChange,
+}: {
+  options: PersonaOption[];
+  value: string | null;
+  currentName: string | null;
+  onChange: (personaId: string | null) => void;
+}) {
+  if (options.length === 0) {
+    return (
+      <span className="block px-1 font-mono text-[10px] italic text-white/30">
+        Aucun persona — créer dans /personas
+      </span>
+    );
+  }
+  return (
+    <label className="flex items-center gap-2 px-1">
+      <span className="shrink-0 text-[9px] uppercase tracking-[0.32em] text-white/35">
+        Persona
+      </span>
+      <select
+        value={value ?? ""}
+        onChange={(e) => onChange(e.target.value === "" ? null : e.target.value)}
+        aria-label={
+          currentName ? `Persona : ${currentName}` : "Choisir un persona"
+        }
+        className={cn(
+          "min-w-0 flex-1 cursor-pointer truncate border-0 border-b border-white/15 bg-transparent py-0.5 text-[11px] outline-none transition-colors hover:border-white/35 focus:border-white/45",
+          value ? "text-white/85" : "text-white/45",
+        )}
+      >
+        <option value="" className="bg-[#0a0a0a] text-white/55">
+          — Aucun —
+        </option>
+        {options.map((p) => (
+          <option key={p.id} value={p.id} className="bg-[#0a0a0a] text-white">
+            {p.name}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 
