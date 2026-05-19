@@ -110,7 +110,7 @@ export function LoginForm({
               autoFocus
               inputMode="email"
               spellCheck={false}
-              placeholder="nom@speetch.fr"
+              placeholder="nom@speetch.com"
               className="border-b border-white/20 bg-transparent pb-3 font-sans text-xl font-light text-[#F5F5F7] caret-[#F5F5F7] placeholder:text-white/25 focus:border-white/80 focus:outline-none focus:ring-0 md:text-2xl"
             />
           </label>

@@ -7645,7 +7645,7 @@ réservé aux actions live réelles`}
 
             <ComponentRow title="Caret blink — input focus, terminal">
               <span className="inline-flex items-baseline gap-1 font-mono text-[14px] text-white/85">
-                <span>speetch.fr</span>
+                <span>speetch.com</span>
                 <span className="inline-block h-4 w-px animate-pulse bg-[#F5F5F7]" />
               </span>
               <Snippet>

@@ -511,7 +511,7 @@ export async function fetchHtmlFromUrl(url: string): Promise<FetchHtmlResult> {
       redirect: "follow",
       headers: {
         "User-Agent":
-          "Mozilla/5.0 (compatible; SpeetchContextBot/1.0; +https://speetch.fr)",
+          "Mozilla/5.0 (compatible; SpeetchContextBot/1.0; +https://speetch.com)",
         Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
       },
     });

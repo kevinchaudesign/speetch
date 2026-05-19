@@ -51,7 +51,7 @@ Règles d'extraction :
 
 4. URLs :
    - Garde absolues (https://…) telles quelles.
-   - Pour les URLs relatives ou data:, mets l'URL placeholder "https://placeholder.speetch.fr/à-remplacer" pour signaler à l'admin qu'il doit la mettre à jour.
+   - Pour les URLs relatives ou data:, mets l'URL placeholder "https://placeholder.speetch.com/à-remplacer" pour signaler à l'admin qu'il doit la mettre à jour.
 
 5. Filtre — IGNORE complètement :
    - <nav>, <header>, <footer>, breadcrumbs
