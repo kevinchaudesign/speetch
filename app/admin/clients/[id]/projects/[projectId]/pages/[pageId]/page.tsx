@@ -51,7 +51,7 @@ export default async function EditPagePage({
   const { data: pageData } = await admin
     .from("pages")
     .select(
-      "id, project_id, name, slug, template_id, content, position, is_published, created_at, updated_at, projects!inner(id, name, slug, is_published, profile_id, profiles!inner(id, full_name, slug, is_published))",
+      "id, project_id, name, slug, template_id, content, position, is_published, created_at, updated_at, projects!inner(id, name, slug, is_published, profile_id, profiles!profile_id(id, full_name, slug, is_published))",
     )
     .eq("id", pageId)
     .eq("project_id", projectId)
