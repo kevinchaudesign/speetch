@@ -410,9 +410,18 @@ function MediaPreview({
   media: PublicDeliverable["media"];
   format: string | null;
 }) {
+  // Largeur cible : 50% du parent à partir de md, full sur mobile (sinon
+  // illisible). Cohérent avec la demande « afficher les visuels à 50% ».
+  const widthClass = "w-full md:w-1/2";
+
   if (!media) {
     return (
-      <div className="flex aspect-[4/3] w-full max-w-2xl items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[11px] uppercase tracking-[0.32em] text-white/40">
+      <div
+        className={cn(
+          "flex aspect-[4/3] items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[11px] uppercase tracking-[0.32em] text-white/40",
+          widthClass,
+        )}
+      >
         Média indisponible
       </div>
     );
@@ -425,7 +434,10 @@ function MediaPreview({
   if (media.mime_type.startsWith("image/")) {
     return (
       <div
-        className="relative w-full max-w-3xl overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]"
+        className={cn(
+          "relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]",
+          widthClass,
+        )}
         style={{ aspectRatio: aspect }}
       >
         {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -441,7 +453,10 @@ function MediaPreview({
   if (media.mime_type.startsWith("video/")) {
     return (
       <div
-        className="relative w-full max-w-3xl overflow-hidden rounded-xl border border-white/10 bg-black"
+        className={cn(
+          "relative overflow-hidden rounded-xl border border-white/10 bg-black",
+          widthClass,
+        )}
         style={{ aspectRatio: aspect }}
       >
         <video
@@ -455,7 +470,12 @@ function MediaPreview({
     );
   }
   return (
-    <div className="flex aspect-[4/3] w-full max-w-2xl items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[10px] uppercase tracking-[0.32em] text-white/40">
+    <div
+      className={cn(
+        "flex aspect-[4/3] items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[10px] uppercase tracking-[0.32em] text-white/40",
+        widthClass,
+      )}
+    >
       {media.mime_type}
     </div>
   );
