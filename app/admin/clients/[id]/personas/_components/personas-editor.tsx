@@ -11,6 +11,13 @@ import {
 } from "../actions";
 import type { ClientPersonaRow } from "../_lib/persona-types";
 
+export type PersonaMedia = {
+  id: string;
+  filename: string;
+  mime_type: string;
+  public_url: string;
+};
+
 export type PersonaItem = Pick<
   ClientPersonaRow,
   | "id"
@@ -26,9 +33,13 @@ export type PersonaItem = Pick<
   | "behaviors"
   | "tech_comfort"
   | "notes"
->;
+> & {
+  /** Médias de la médiathèque taggés sur ce persona — lecture seule ici,
+   *  l'assignment se fait depuis /admin/clients/:id/media. */
+  media: PersonaMedia[];
+};
 
-type PatchableField = Exclude<keyof PersonaItem, "id">;
+type PatchableField = Exclude<keyof PersonaItem, "id" | "media">;
 
 // ─── Styles input/textarea — alignés sur le reste de l'admin ────────────────
 const INPUT_CLASS =
@@ -240,6 +251,8 @@ function PersonaCard({
         </div>
       </div>
 
+      <PersonaMediaStrip media={persona.media} />
+
       <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
         <FieldBlock label="Rôle">
           <AutosaveTextInput
@@ -377,6 +390,68 @@ function PersonaCard({
           rows={4}
         />
       </FieldBlock>
+    </div>
+  );
+}
+
+function PersonaMediaStrip({ media }: { media: PersonaMedia[] }) {
+  if (media.length === 0) {
+    return (
+      <p className="text-[11px] uppercase tracking-[0.32em] text-white/30">
+        Aucun visuel taggé
+        <span className="mx-2 text-white/15">·</span>
+        <span className="font-serif italic normal-case tracking-normal text-white/40">
+          assigne des images depuis la médiathèque, dossier « Personas »
+        </span>
+      </p>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-3">
+      <span className={FIELD_LABEL_CLASS}>
+        Visuels ({media.length})
+      </span>
+      <ul className="flex flex-wrap gap-3">
+        {media.map((m) => (
+          <li key={m.id}>
+            <a
+              href={m.public_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={m.filename}
+              className="group relative block h-28 w-28 overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all hover:border-white/35"
+            >
+              {m.mime_type.startsWith("image/") ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={m.public_url}
+                  alt={m.filename}
+                  loading="lazy"
+                  className="absolute inset-0 h-full w-full object-cover"
+                />
+              ) : m.mime_type.startsWith("video/") ? (
+                <>
+                  <video
+                    src={m.public_url}
+                    preload="metadata"
+                    muted
+                    playsInline
+                    className="absolute inset-0 h-full w-full object-cover"
+                  />
+                  <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/65 px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-white/80 backdrop-blur-sm">
+                    Vidéo
+                  </span>
+                </>
+              ) : (
+                <span className="absolute inset-0 flex items-center justify-center px-2 text-center font-mono text-[9px] uppercase tracking-[0.28em] text-white/40">
+                  {m.mime_type}
+                </span>
+              )}
+            </a>
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

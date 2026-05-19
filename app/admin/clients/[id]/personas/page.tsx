@@ -3,8 +3,15 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button } from "@/lib/ds";
-import { PersonasEditor, type PersonaItem } from "./_components/personas-editor";
+import {
+  PersonasEditor,
+  type PersonaItem,
+  type PersonaMedia,
+} from "./_components/personas-editor";
 import type { ClientPersonaRow } from "./_lib/persona-types";
+import type { MediaRow } from "../media/_lib/types";
+
+const MEDIA_BUCKET = "page-media";
 
 export const metadata: Metadata = {
   title: "Personas",
@@ -75,6 +82,49 @@ export default async function ClientPersonasPage({
       >
     >();
 
+  // Médias du client taggés sur un persona. Le filtre persona_id non null
+  // est fait en TS — le builder Supabase ne combine pas proprement `.not()`
+  // et `.returns<>()`, on récupère tout et on filtre ici.
+  const { data: allMediaData } = await admin
+    .from("client_media" as never)
+    .select(
+      "id, persona_id, filename, storage_path, mime_type, position, created_at",
+    )
+    .eq("profile_id", id)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true })
+    .returns<
+      Array<
+        Pick<
+          MediaRow,
+          | "id"
+          | "persona_id"
+          | "filename"
+          | "storage_path"
+          | "mime_type"
+          | "position"
+          | "created_at"
+        >
+      >
+    >();
+
+  const mediaByPersona = new Map<string, PersonaMedia[]>();
+  for (const m of allMediaData ?? []) {
+    if (!m.persona_id) continue;
+    const { data: pub } = admin.storage
+      .from(MEDIA_BUCKET)
+      .getPublicUrl(m.storage_path);
+    const entry: PersonaMedia = {
+      id: m.id,
+      filename: m.filename,
+      mime_type: m.mime_type,
+      public_url: pub.publicUrl,
+    };
+    const arr = mediaByPersona.get(m.persona_id);
+    if (arr) arr.push(entry);
+    else mediaByPersona.set(m.persona_id, [entry]);
+  }
+
   const personas: PersonaItem[] = (personasData ?? []).map((p) => ({
     id: p.id,
     name: p.name,
@@ -89,6 +139,7 @@ export default async function ClientPersonasPage({
     behaviors: p.behaviors,
     tech_comfort: p.tech_comfort,
     notes: p.notes,
+    media: mediaByPersona.get(p.id) ?? [],
   }));
 
   const clientName = profile.full_name ?? "Client";
