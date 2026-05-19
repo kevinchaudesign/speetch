@@ -137,6 +137,23 @@ export const PAGE_TEMPLATES: readonly PageTemplate[] = [
     },
   },
   {
+    id: "deliverables_review",
+    label: "Livrables (validation)",
+    tagline: "Galerie de livrables avec retours et statut par item",
+    description:
+      "Idéal pour présenter un set de visuels (campagne ads, formats variés, etc.) à un client. Chaque livrable affiche son média, son format, et le client peut commenter + changer le statut (approuvé / modif demandée). Les livrables ne sont PAS stockés dans le content de la page mais dans la table client_page_deliverables.",
+    source: "code",
+    projectType: null,
+    defaultContent: {
+      intro:
+        "Présentation des livrables. Pour chaque visuel : laisse un retour ou valide.",
+      sections: [],
+      meta: {
+        style: "deliverables",
+      },
+    },
+  },
+  {
     id: "process",
     label: "Process",
     tagline: "Trois étapes numérotées pour décrire une démarche",

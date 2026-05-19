@@ -417,8 +417,12 @@ export type ProjectContent = {
      * - `"fwa"` : rendu FWA Grade — palette noir/blanc cassé Speetch, typo monumentale,
      *   chapitres numérotés, scroll progress, custom cursor. Lit `PageContent.sections`
      *   comme du contenu éditorial structuré. Compatible avec l'éditeur PageEditor standard.
+     * - `"deliverables"` : rendu galerie de livrables — chaque livrable est une
+     *   ligne de la table `client_page_deliverables` rattachée à la page. Le
+     *   contenu `sections` est ignoré. Le client peut commenter et changer le
+     *   statut (pending/approved/changes_requested) par livrable.
      */
-    style?: "default" | "document" | "raw_html" | "fwa";
+    style?: "default" | "document" | "raw_html" | "fwa" | "deliverables";
     /**
      * HTML brut conservé pour le mode reproduction fidèle (style="raw_html").
      * Le `<head>` + `<body>` complet du document uploadé.

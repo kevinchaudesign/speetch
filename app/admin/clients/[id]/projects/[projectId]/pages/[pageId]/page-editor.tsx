@@ -21,6 +21,11 @@ import {
   updatePagePublished,
 } from "./actions";
 import type { ActionContext } from "./actions-types";
+import {
+  DeliverablesAdminEditor,
+  type AdminDeliverable,
+  type AdminMediaOption,
+} from "./deliverables-admin-editor";
 
 export function PageEditor({
   initialPage,
@@ -29,6 +34,8 @@ export function PageEditor({
   projectName,
   clientName,
   publicHref,
+  initialDeliverables,
+  availableMedia,
 }: {
   initialPage: Page;
   clientId: string;
@@ -36,6 +43,10 @@ export function PageEditor({
   projectName: string;
   clientName: string;
   publicHref: string | null;
+  /** Non-null UNIQUEMENT si la page est en mode style="deliverables". */
+  initialDeliverables: AdminDeliverable[] | null;
+  /** Médias dispo dans la médiathèque client pour le picker. */
+  availableMedia: AdminMediaOption[];
 }) {
   const [page, setPage] = useState<Page>(initialPage);
   const [pending, startTransition] = useTransition();
@@ -45,6 +56,7 @@ export function PageEditor({
   const content: PageContent = (page.content as PageContent) ?? {};
   const sections: Section[] = content.sections ?? [];
   const isRawHtml = content.meta?.style === "raw_html";
+  const isDeliverables = content.meta?.style === "deliverables";
   const context: ActionContext = {
     profileId: clientId,
     projectId,
@@ -278,6 +290,21 @@ export function PageEditor({
               </p>
             </div>
           )}
+
+          {isDeliverables && (
+            <div className="rounded-md border border-white/15 bg-white/[0.03] px-5 py-4">
+              <Eyebrow tracking="md" intensity="strong">
+                Livrables (validation)
+              </Eyebrow>
+              <p className="mt-2 font-serif text-sm italic text-white/55 md:text-base">
+                Cette page affiche une galerie de livrables piochés dans la
+                médiathèque du client. Pour chaque livrable, le client pourra
+                laisser un retour et changer le statut (approuvé / modif
+                demandée). L&apos;intro ci-dessous est rendue en tête de page,
+                les livrables se gèrent dans le bloc « Livrables » plus bas.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Intro */}
@@ -294,35 +321,46 @@ export function PageEditor({
           />
         </div>
 
-        {/* Sections */}
-        <div className="flex flex-col gap-6">
-          <div className="flex items-baseline justify-between">
-            <Eyebrow tracking="md">Sections · {sections.length}</Eyebrow>
+        {/* Sections OU livrables, selon style */}
+        {isDeliverables ? (
+          <div className="flex flex-col gap-6">
+            <Eyebrow tracking="md">Livrables</Eyebrow>
+            <DeliverablesAdminEditor
+              ctx={context}
+              initialDeliverables={initialDeliverables ?? []}
+              availableMedia={availableMedia}
+            />
           </div>
-
-          {sections.length === 0 ? (
-            <p className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-8 text-center font-serif italic text-white/45">
-              Cette page n&apos;a aucune section. Ajoute-en une ci-dessous.
-            </p>
-          ) : (
-            <div className="flex flex-col gap-5">
-              {sections.map((s, i) => (
-                <SectionEditor
-                  key={s.id}
-                  section={s}
-                  index={i}
-                  total={sections.length}
-                  context={context}
-                  onReplace={handleReplaceSection}
-                  onRemove={() => handleRemoveSection(s.id)}
-                  onMove={(d) => handleMoveSection(s.id, d)}
-                />
-              ))}
+        ) : (
+          <div className="flex flex-col gap-6">
+            <div className="flex items-baseline justify-between">
+              <Eyebrow tracking="md">Sections · {sections.length}</Eyebrow>
             </div>
-          )}
 
-          <AddSectionBar onAdd={handleAddSection} disabled={pending} />
-        </div>
+            {sections.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-8 text-center font-serif italic text-white/45">
+                Cette page n&apos;a aucune section. Ajoute-en une ci-dessous.
+              </p>
+            ) : (
+              <div className="flex flex-col gap-5">
+                {sections.map((s, i) => (
+                  <SectionEditor
+                    key={s.id}
+                    section={s}
+                    index={i}
+                    total={sections.length}
+                    context={context}
+                    onReplace={handleReplaceSection}
+                    onRemove={() => handleRemoveSection(s.id)}
+                    onMove={(d) => handleMoveSection(s.id, d)}
+                  />
+                ))}
+              </div>
+            )}
+
+            <AddSectionBar onAdd={handleAddSection} disabled={pending} />
+          </div>
+        )}
 
         <div className="flex items-center pt-4">
           <Button

@@ -9,6 +9,13 @@ import { PublicPageView } from "./public-page-view";
 import { DocumentPageView } from "./document-page-view";
 import { RawHtmlPageView } from "./raw-html-page-view";
 import { FwaPageView } from "./fwa-page-view";
+import {
+  DeliverablesPageView,
+  type PublicDeliverable,
+  type PublicDeliverableFeedback,
+} from "./deliverables-page-view";
+
+const MEDIA_BUCKET = "page-media";
 
 export const dynamic = "force-dynamic";
 
@@ -113,6 +120,97 @@ export default async function PublicPageRoute({ params }: Props) {
         !!p.page_slug && !!p.page_name,
     )
     .map((p) => ({ slug: p.page_slug, name: p.page_name }));
+
+  if (style === "deliverables") {
+    // Fetch livrables + feedbacks via les vues publiques (filtre déjà
+    // is_published + slug not null côté DB).
+    const { data: delivRows } = await supabase
+      .from("client_page_deliverables_public" as never)
+      .select(
+        "id, position, format, title, description, status, media_id, media_filename, media_mime_type, media_storage_path",
+      )
+      .eq("page_id", page.page_id)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: true })
+      .returns<
+        Array<{
+          id: string;
+          position: number;
+          format: string | null;
+          title: string | null;
+          description: string | null;
+          status: "pending" | "approved" | "changes_requested";
+          media_id: string | null;
+          media_filename: string | null;
+          media_mime_type: string | null;
+          media_storage_path: string | null;
+        }>
+      >();
+
+    const { data: feedbackRows } = await supabase
+      .from("client_deliverable_feedback_public" as never)
+      .select("id, deliverable_id, author_kind, body, created_at")
+      .eq("page_id", page.page_id)
+      .order("created_at", { ascending: true })
+      .returns<
+        Array<{
+          id: string;
+          deliverable_id: string;
+          author_kind: "owner" | "client";
+          body: string;
+          created_at: string;
+        }>
+      >();
+
+    const feedbacksByDeliverable = new Map<string, PublicDeliverableFeedback[]>();
+    for (const f of feedbackRows ?? []) {
+      const entry: PublicDeliverableFeedback = {
+        id: f.id,
+        author_kind: f.author_kind,
+        body: f.body,
+        created_at: f.created_at,
+      };
+      const arr = feedbacksByDeliverable.get(f.deliverable_id);
+      if (arr) arr.push(entry);
+      else feedbacksByDeliverable.set(f.deliverable_id, [entry]);
+    }
+
+    const deliverables: PublicDeliverable[] = (delivRows ?? []).map((d) => {
+      let media: PublicDeliverable["media"] = null;
+      if (d.media_id && d.media_storage_path && d.media_mime_type) {
+        const { data: pub } = supabase.storage
+          .from(MEDIA_BUCKET)
+          .getPublicUrl(d.media_storage_path);
+        media = {
+          filename: d.media_filename ?? "media",
+          mime_type: d.media_mime_type,
+          public_url: pub.publicUrl,
+        };
+      }
+      return {
+        id: d.id,
+        position: d.position,
+        format: d.format,
+        title: d.title,
+        description: d.description,
+        status: d.status,
+        media,
+        feedbacks: feedbacksByDeliverable.get(d.id) ?? [],
+      };
+    });
+
+    return (
+      <DeliverablesPageView
+        clientSlug={page.client_slug}
+        clientName={page.client_name ?? "Espace client"}
+        projectSlug={page.project_slug}
+        projectName={page.project_name ?? "Projet"}
+        pageName={page.page_name ?? "Page"}
+        intro={content.intro ?? null}
+        deliverables={deliverables}
+      />
+    );
+  }
 
   if (style === "raw_html" && typeof content.meta?.raw_html === "string") {
     const applySpeetchDs =
