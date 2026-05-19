@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
@@ -231,9 +231,9 @@ function DeliverableBlock({
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-10%" }}
       transition={{ duration: 0.9, ease: EASE_OUT_EXPO }}
-      className="flex flex-col gap-10 border-t border-white/10 pt-12 md:pt-16"
+      className="flex flex-col gap-10 border-t border-white/10 pt-12 md:gap-14 md:pt-16"
     >
-      {/* Header livrable */}
+      {/* Header livrable — pleine largeur */}
       <header className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-col gap-2">
           <p className="text-[10px] uppercase tracking-[0.4em] text-white/30">
@@ -256,120 +256,123 @@ function DeliverableBlock({
         <StatusBadge status={deliverable.status} />
       </header>
 
-      {/* Média */}
-      <MediaPreview media={deliverable.media} format={deliverable.format} />
-
-      {/* Description */}
-      {deliverable.description && (
-        <p className="max-w-2xl text-balance font-serif text-base leading-relaxed text-white/65 md:text-lg">
-          {deliverable.description}
-        </p>
-      )}
-
-      {/* Boutons statut rapide */}
-      <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-t border-white/10 pt-6">
-        <span className="text-[10px] uppercase tracking-[0.32em] text-white/40">
-          Statut rapide
-        </span>
-        <button
-          type="button"
-          onClick={() => handleStatusOnly("approved")}
-          disabled={pending}
-          className={cn(
-            "text-[11px] uppercase tracking-[0.32em] transition-colors disabled:cursor-wait",
-            deliverable.status === "approved"
-              ? "text-emerald-200/85"
-              : "text-white/45 hover:text-emerald-200/85",
-          )}
-        >
-          ✓ Approuver
-        </button>
-        <button
-          type="button"
-          onClick={() => handleStatusOnly("changes_requested")}
-          disabled={pending}
-          className={cn(
-            "text-[11px] uppercase tracking-[0.32em] transition-colors disabled:cursor-wait",
-            deliverable.status === "changes_requested"
-              ? "text-amber-200/85"
-              : "text-white/45 hover:text-amber-200/85",
-          )}
-        >
-          ↻ Demander une modif
-        </button>
-      </div>
-
-      {/* Thread de feedback */}
-      <div className="flex flex-col gap-6 border-t border-white/10 pt-8">
-        <p className="text-[10px] uppercase tracking-[0.4em] text-white/40">
-          Retours ({deliverable.feedbacks.length})
-        </p>
-
-        {deliverable.feedbacks.length > 0 && (
-          <ul className="flex flex-col gap-5">
-            {deliverable.feedbacks.map((f) => (
-              <FeedbackBubble key={f.id} feedback={f} />
-            ))}
-          </ul>
-        )}
-
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col gap-3">
-          <textarea
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-            placeholder="Ton retour ou ta demande de modification…"
-            rows={3}
-            className="w-full resize-y border border-white/15 bg-white/[0.02] px-4 py-3 text-sm text-[#F5F5F7] outline-none transition-colors placeholder:text-white/30 focus:border-white/35"
-          />
-          <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
-            <label className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-white/55">
-              <input
-                type="radio"
-                name={`status-${deliverable.id}`}
-                checked={intendedStatus === null}
-                onChange={() => setIntendedStatus(null)}
-                className="accent-white"
-              />
-              Sans changer le statut
-            </label>
-            <label className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-emerald-200/75">
-              <input
-                type="radio"
-                name={`status-${deliverable.id}`}
-                checked={intendedStatus === "approved"}
-                onChange={() => setIntendedStatus("approved")}
-                className="accent-emerald-300"
-              />
-              + Approuver
-            </label>
-            <label className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-amber-200/75">
-              <input
-                type="radio"
-                name={`status-${deliverable.id}`}
-                checked={intendedStatus === "changes_requested"}
-                onChange={() => setIntendedStatus("changes_requested")}
-                className="accent-amber-300"
-              />
-              + Demander une modif
-            </label>
-            <div className="ml-auto">
-              <button
-                type="submit"
-                disabled={pending || draft.trim().length === 0}
-                className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/75 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                <span>{pending ? "Envoi…" : "Envoyer"}</span>
-                <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-16" />
-              </button>
-            </div>
-          </div>
-          {error && (
-            <p className="text-[11px] uppercase tracking-[0.32em] text-red-300/80">
-              {error}
+      {/* Corps deux colonnes sur desktop : média à gauche, retours à droite */}
+      <div className="md:grid md:grid-cols-2 md:items-start md:gap-x-12 lg:gap-x-20">
+        {/* Colonne gauche — média + description */}
+        <div className="flex flex-col gap-8">
+          <MediaPreview media={deliverable.media} />
+          {deliverable.description && (
+            <p className="max-w-2xl text-balance font-serif text-base leading-relaxed text-white/65 md:text-lg">
+              {deliverable.description}
             </p>
           )}
-        </form>
+        </div>
+
+        {/* Colonne droite — statut rapide + thread de retours */}
+        <div className="mt-10 flex flex-col gap-10 md:mt-0">
+          <div className="flex flex-wrap items-center gap-x-8 gap-y-2 border-t border-white/10 pt-6">
+            <span className="text-[10px] uppercase tracking-[0.32em] text-white/40">
+              Statut rapide
+            </span>
+            <button
+              type="button"
+              onClick={() => handleStatusOnly("approved")}
+              disabled={pending}
+              className={cn(
+                "text-[11px] uppercase tracking-[0.32em] transition-colors disabled:cursor-wait",
+                deliverable.status === "approved"
+                  ? "text-emerald-200/85"
+                  : "text-white/45 hover:text-emerald-200/85",
+              )}
+            >
+              ✓ Approuver
+            </button>
+            <button
+              type="button"
+              onClick={() => handleStatusOnly("changes_requested")}
+              disabled={pending}
+              className={cn(
+                "text-[11px] uppercase tracking-[0.32em] transition-colors disabled:cursor-wait",
+                deliverable.status === "changes_requested"
+                  ? "text-amber-200/85"
+                  : "text-white/45 hover:text-amber-200/85",
+              )}
+            >
+              ↻ Demander une modif
+            </button>
+          </div>
+
+          <div className="flex flex-col gap-6 border-t border-white/10 pt-8">
+            <p className="text-[10px] uppercase tracking-[0.4em] text-white/40">
+              Retours ({deliverable.feedbacks.length})
+            </p>
+
+            {deliverable.feedbacks.length > 0 && (
+              <ul className="flex flex-col gap-5">
+                {deliverable.feedbacks.map((f) => (
+                  <FeedbackBubble key={f.id} feedback={f} />
+                ))}
+              </ul>
+            )}
+
+            <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+              <textarea
+                value={draft}
+                onChange={(e) => setDraft(e.target.value)}
+                placeholder="Ton retour ou ta demande de modification…"
+                rows={3}
+                className="w-full resize-y border border-white/15 bg-white/[0.02] px-4 py-3 text-sm text-[#F5F5F7] outline-none transition-colors placeholder:text-white/30 focus:border-white/35"
+              />
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
+                <label className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-white/55">
+                  <input
+                    type="radio"
+                    name={`status-${deliverable.id}`}
+                    checked={intendedStatus === null}
+                    onChange={() => setIntendedStatus(null)}
+                    className="accent-white"
+                  />
+                  Sans changer le statut
+                </label>
+                <label className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-emerald-200/75">
+                  <input
+                    type="radio"
+                    name={`status-${deliverable.id}`}
+                    checked={intendedStatus === "approved"}
+                    onChange={() => setIntendedStatus("approved")}
+                    className="accent-emerald-300"
+                  />
+                  + Approuver
+                </label>
+                <label className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.32em] text-amber-200/75">
+                  <input
+                    type="radio"
+                    name={`status-${deliverable.id}`}
+                    checked={intendedStatus === "changes_requested"}
+                    onChange={() => setIntendedStatus("changes_requested")}
+                    className="accent-amber-300"
+                  />
+                  + Demander une modif
+                </label>
+                <div className="ml-auto">
+                  <button
+                    type="submit"
+                    disabled={pending || draft.trim().length === 0}
+                    className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/75 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-40"
+                  >
+                    <span>{pending ? "Envoi…" : "Envoyer"}</span>
+                    <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-16" />
+                  </button>
+                </div>
+              </div>
+              {error && (
+                <p className="text-[11px] uppercase tracking-[0.32em] text-red-300/80">
+                  {error}
+                </p>
+              )}
+            </form>
+          </div>
+        </div>
       </div>
     </motion.li>
   );
@@ -403,101 +406,176 @@ function StatusBadge({ status }: { status: DeliverableStatus }) {
   );
 }
 
-function MediaPreview({
-  media,
-  format,
-}: {
-  media: PublicDeliverable["media"];
-  format: string | null;
-}) {
-  // Largeur cible : 50% du parent à partir de md, full sur mobile (sinon
-  // illisible). Cohérent avec la demande « afficher les visuels à 50% ».
-  const widthClass = "w-full md:w-1/2";
+// ─── Média : 50% des dimensions naturelles sur desktop, clic → lightbox 100% ──
+
+function MediaPreview({ media }: { media: PublicDeliverable["media"] }) {
+  const [natural, setNatural] = useState<{ w: number; h: number } | null>(null);
+  const [open, setOpen] = useState(false);
 
   if (!media) {
     return (
-      <div
-        className={cn(
-          "flex aspect-[4/3] items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[11px] uppercase tracking-[0.32em] text-white/40",
-          widthClass,
-        )}
-      >
+      <div className="flex aspect-[4/3] w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[11px] uppercase tracking-[0.32em] text-white/40">
         Média indisponible
       </div>
     );
   }
 
-  // Heuristique de cadrage : on respecte les formats Meta usuels si déclarés.
-  // Sinon ratio 4:3 par défaut (sera "contain" pour les images de toute façon).
-  const aspect = aspectFromFormat(format);
+  const isImage = media.mime_type.startsWith("image/");
+  const isVideo = media.mime_type.startsWith("video/");
 
-  if (media.mime_type.startsWith("image/")) {
+  // Cap la largeur à 50% de la largeur naturelle sur desktop, clampé à 100% du
+  // parent pour ne pas déborder de la colonne. Sur mobile on reste w-full.
+  const halfWidthStyle = natural
+    ? ({ ["--mw" as string]: `${natural.w / 2}px` } as React.CSSProperties)
+    : undefined;
+
+  const mediaSizingClass =
+    "block h-auto w-full max-w-full md:w-auto md:max-w-[min(var(--mw,100%),100%)]";
+
+  if (isImage) {
     return (
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]",
-          widthClass,
-        )}
-        style={{ aspectRatio: aspect }}
-      >
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src={media.public_url}
-          alt={media.filename}
-          loading="lazy"
-          className="absolute inset-0 h-full w-full object-contain"
-        />
-      </div>
+      <>
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label="Agrandir l'image"
+          className="block self-start text-left"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={media.public_url}
+            alt={media.filename}
+            loading="lazy"
+            onLoad={(e) => {
+              const img = e.currentTarget;
+              setNatural({ w: img.naturalWidth, h: img.naturalHeight });
+            }}
+            className={cn(
+              "cursor-zoom-in rounded-xl border border-white/10 bg-white/[0.02]",
+              mediaSizingClass,
+            )}
+            style={halfWidthStyle}
+          />
+        </button>
+        {open && <Lightbox media={media} onClose={() => setOpen(false)} />}
+      </>
     );
   }
-  if (media.mime_type.startsWith("video/")) {
+
+  if (isVideo) {
     return (
-      <div
-        className={cn(
-          "relative overflow-hidden rounded-xl border border-white/10 bg-black",
-          widthClass,
-        )}
-        style={{ aspectRatio: aspect }}
-      >
-        <video
-          src={media.public_url}
-          controls
-          preload="metadata"
-          playsInline
-          className="absolute inset-0 h-full w-full object-contain"
-        />
-      </div>
+      <>
+        <div className="flex flex-col gap-3 self-start">
+          <video
+            src={media.public_url}
+            controls
+            preload="metadata"
+            playsInline
+            onLoadedMetadata={(e) => {
+              const v = e.currentTarget;
+              if (v.videoWidth && v.videoHeight) {
+                setNatural({ w: v.videoWidth, h: v.videoHeight });
+              }
+            }}
+            className={cn(
+              "rounded-xl border border-white/10 bg-black",
+              mediaSizingClass,
+            )}
+            style={halfWidthStyle}
+          />
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="inline-flex items-center gap-3 text-[10px] uppercase tracking-[0.32em] text-white/45 transition-colors hover:text-white"
+          >
+            <span>Voir en grand</span>
+            <span className="inline-block h-px w-6 bg-current" />
+          </button>
+        </div>
+        {open && <Lightbox media={media} onClose={() => setOpen(false)} />}
+      </>
     );
   }
+
   return (
-    <div
-      className={cn(
-        "flex aspect-[4/3] items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[10px] uppercase tracking-[0.32em] text-white/40",
-        widthClass,
-      )}
-    >
+    <div className="flex aspect-[4/3] w-full items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[10px] uppercase tracking-[0.32em] text-white/40">
       {media.mime_type}
     </div>
   );
 }
 
-/**
- * Mapping doux des labels de format communs vers un aspect-ratio CSS.
- * Si le user tape autre chose (ex: « Carrousel 6 cartes »), on retombe sur
- * un 4:3 neutre.
- */
-function aspectFromFormat(format: string | null): string {
-  if (!format) return "4 / 3";
-  const f = format.toLowerCase();
-  if (f.includes("9:16") || f.includes("story") || f.includes("reel"))
-    return "9 / 16";
-  if (f.includes("4:5") || f.includes("feed") || f.includes("post"))
-    return "4 / 5";
-  if (f.includes("1:1") || f.includes("carré") || f.includes("square"))
-    return "1 / 1";
-  if (f.includes("16:9") || f.includes("paysage") || f.includes("landscape"))
-    return "16 / 9";
-  return "4 / 3";
+// ─── Lightbox : média rendu à 100% de ses dimensions naturelles ──────────
+
+function Lightbox({
+  media,
+  onClose,
+}: {
+  media: NonNullable<PublicDeliverable["media"]>;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
+  }, [onClose]);
+
+  const isImage = media.mime_type.startsWith("image/");
+  const isVideo = media.mime_type.startsWith("video/");
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+      className="fixed inset-0 z-[80] flex items-start justify-center overflow-auto bg-black/92 p-6 backdrop-blur-sm md:p-12"
+    >
+      <button
+        type="button"
+        onClick={(e) => {
+          e.stopPropagation();
+          onClose();
+        }}
+        className="group fixed right-6 top-6 z-10 inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/70 transition-colors hover:text-white md:right-12 md:top-8"
+      >
+        <span>Fermer</span>
+        <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-12" />
+      </button>
+
+      <div
+        onClick={(e) => e.stopPropagation()}
+        className="m-auto flex flex-col items-center gap-4"
+      >
+        {isImage && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={media.public_url}
+            alt={media.filename}
+            onClick={onClose}
+            className="block max-w-none cursor-zoom-out"
+          />
+        )}
+        {isVideo && (
+          <video
+            src={media.public_url}
+            controls
+            autoPlay
+            playsInline
+            className="block max-w-none"
+          />
+        )}
+        <p className="font-mono text-[10px] uppercase tracking-[0.32em] text-white/40">
+          {media.filename}
+        </p>
+      </div>
+    </div>
+  );
 }
 
 function FeedbackBubble({ feedback }: { feedback: PublicDeliverableFeedback }) {
