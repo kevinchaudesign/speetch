@@ -90,10 +90,12 @@ export default async function PublicPageRoute({ params }: Props) {
   // Précédent / Suivant — fetch des autres pages publiées du même projet.
   // Ordre : lot.position d'abord (NULLS LAST → pages hors lot en fin), puis
   // page.position (renumérotée 0..N-1 par lot côté admin). On cast via
-  // .returns<>() le temps que les types Supabase régénèrent lot_position.
+  // .returns<>() le temps que les types Supabase régénèrent lot_*.
   const { data: siblings } = await supabase
     .from("client_pages")
-    .select("page_id, page_slug, page_name, page_position, lot_position")
+    .select(
+      "page_id, page_slug, page_name, page_position, lot_id, lot_position, lot_name",
+    )
     .eq("project_id", page.project_id)
     .order("lot_position", { ascending: true, nullsFirst: false })
     .order("page_position", { ascending: true })
@@ -103,7 +105,9 @@ export default async function PublicPageRoute({ params }: Props) {
         page_slug: string | null;
         page_name: string | null;
         page_position: number | null;
+        lot_id: string | null;
         lot_position: number | null;
+        lot_name: string | null;
       }>
     >();
 
@@ -134,10 +138,18 @@ export default async function PublicPageRoute({ params }: Props) {
         page_slug: string;
         page_name: string;
         page_position: number | null;
+        lot_id: string | null;
         lot_position: number | null;
+        lot_name: string | null;
       } => !!p.page_slug && !!p.page_name,
     )
-    .map((p) => ({ slug: p.page_slug, name: p.page_name }));
+    .map((p) => ({
+      slug: p.page_slug,
+      name: p.page_name,
+      lot_id: p.lot_id,
+      lot_name: p.lot_name,
+      lot_position: p.lot_position,
+    }));
 
   if (style === "deliverables") {
     // Fetch livrables + feedbacks via les vues publiques (filtre déjà
