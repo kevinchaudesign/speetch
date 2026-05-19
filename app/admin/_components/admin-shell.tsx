@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { AdminSidebar } from "./admin-sidebar";
+import { AdminAssistant } from "./admin-assistant";
 
 const COOKIE_NAME = "speetch_admin_sidebar_collapsed";
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
@@ -42,6 +43,7 @@ export function AdminShell({
       >
         {children}
       </div>
+      <AdminAssistant email={email} />
     </div>
   );
 }

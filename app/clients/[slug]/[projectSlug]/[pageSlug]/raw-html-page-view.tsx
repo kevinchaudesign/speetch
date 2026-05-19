@@ -10,6 +10,14 @@ import {
   type AnnotationData,
 } from "./_annotations/annotations-overlay";
 import { injectAnnotationsBundle } from "./_annotations/iframe-script";
+import {
+  injectEditModeBundle,
+  injectOriginalsMarker,
+} from "@/lib/admin/edit-mode-script";
+import {
+  MediaPickerModal,
+  type ImagePickerTarget,
+} from "@/app/clients/[slug]/_admin/media-picker-modal";
 
 /**
  * Rendu "raw HTML" — utilisé pour les pages dont content.meta.style = "raw_html".
@@ -60,32 +68,141 @@ export function RawHtmlPageView({
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
   const [height, setHeight] = useState<number>(0);
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [editMode, setEditMode] = useState(false);
+  const [pickerTarget, setPickerTarget] = useState<ImagePickerTarget | null>(
+    null,
+  );
+
+  // Détecte le flag posé par AdminEditModeFlag (layout) au montage et sur
+  // changement (admin se logge/déconnecte → le flag bouge).
+  useEffect(() => {
+    const root = document.documentElement;
+    const check = () => setIsAdmin(root.dataset.speetchAdmin === "true");
+    check();
+    const obs = new MutationObserver(check);
+    obs.observe(root, { attributes: true, attributeFilter: ["data-speetch-admin"] });
+    return () => obs.disconnect();
+  }, []);
+
+  // Écoute le toggle « Éditer » du layout et forward à l'iframe.
+  useEffect(() => {
+    function onToggle(e: Event) {
+      const detail = (e as CustomEvent<{ active?: boolean }>).detail;
+      setEditMode(Boolean(detail?.active));
+    }
+    window.addEventListener("speetch:edit-mode", onToggle);
+    // État initial : lit le flag root au montage (utile si l'iframe est
+    // monté APRÈS un toggle déjà actif).
+    setEditMode(document.documentElement.dataset.speetchEditMode === "true");
+    return () => window.removeEventListener("speetch:edit-mode", onToggle);
+  }, []);
+
+  // Forward l'état edit-mode à l'iframe via postMessage à chaque changement
+  // (et au load de l'iframe si on est déjà actif).
+  useEffect(() => {
+    const iframe = iframeRef.current;
+    if (!iframe) return;
+    const post = () => {
+      iframe.contentWindow?.postMessage(
+        { type: "speetch-edit-mode", active: editMode },
+        "*",
+      );
+    };
+    post();
+  }, [editMode]);
 
   const srcDoc = useMemo(() => {
-    let result = injectOverridesScript(rawHtml, textOverrides, imageOverrides);
+    // Marker du src d'origine pour TOUS les <img> — doit tourner avant les
+    // overrides et avant le mode édition pour que ce dernier connaisse la clé
+    // exacte à utiliser dans `image_overrides`.
+    let result = isAdmin ? injectOriginalsMarker(rawHtml) : rawHtml;
+    result = injectOverridesScript(result, textOverrides, imageOverrides);
     if (applySpeetchDs) {
       result = injectSpeetchOverlay(result);
     }
     result = injectExternalLinksScript(result);
     result = injectAnnotationsBundle(result);
+    if (isAdmin) {
+      result = injectEditModeBundle(result);
+    }
     return result;
-  }, [rawHtml, textOverrides, imageOverrides, applySpeetchDs]);
+  }, [rawHtml, textOverrides, imageOverrides, applySpeetchDs, isAdmin]);
 
   // Reçoit les demandes d'ouverture de lien depuis l'iframe (cf.
   // injectExternalLinksScript) et ouvre dans un nouvel onglet depuis
   // le parent.
   useEffect(() => {
     function onMessage(e: MessageEvent) {
-      const data = e.data as { type?: string; href?: string } | null;
-      if (!data || data.type !== "speetch-open-link" || !data.href) return;
-      const href = String(data.href);
-      const lower = href.toLowerCase();
-      if (lower.startsWith("javascript:")) return;
-      window.open(href, "_blank", "noopener,noreferrer");
+      const data = e.data as
+        | {
+            type?: string;
+            href?: string;
+            kind?: "image" | "text";
+            original_src?: string;
+            current_src?: string;
+            alt?: string;
+            text?: string;
+          }
+        | null;
+      if (!data) return;
+
+      if (data.type === "speetch-open-link" && data.href) {
+        const href = String(data.href);
+        const lower = href.toLowerCase();
+        if (lower.startsWith("javascript:")) return;
+        window.open(href, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      // L'iframe vient de booter son edit-mode script (mais désarmé) :
+      // on lui renvoie l'état courant pour qu'il s'arme si déjà ON.
+      if (data.type === "speetch-edit-ready") {
+        iframeRef.current?.contentWindow?.postMessage(
+          {
+            type: "speetch-edit-mode",
+            active:
+              document.documentElement.dataset.speetchEditMode === "true",
+          },
+          "*",
+        );
+        return;
+      }
+
+      // Sélection admin depuis le mode édition de l'iframe.
+      if (data.type === "speetch-edit-select" && data.kind) {
+        if (data.kind === "image") {
+          // Click sur une image → ouvre directement le picker médiathèque
+          // (UX rapide pour tester des formats publicitaires).
+          setPickerTarget({
+            clientSlug,
+            pageId,
+            pageName,
+            originalSrc: data.original_src ?? "",
+            currentSrc: data.current_src ?? "",
+            alt: data.alt ?? "",
+          });
+        } else {
+          // Click sur un texte → passe par le chatbot (réécriture éditoriale).
+          window.dispatchEvent(
+            new CustomEvent("speetch:assistant-prompt", {
+              detail: {
+                kind: "text",
+                page_kind: "raw_html",
+                page_id: pageId,
+                page_name: pageName,
+                project_slug: projectSlug,
+                project_name: projectName,
+                original_text: data.text ?? "",
+              },
+            }),
+          );
+        }
+      }
     }
     window.addEventListener("message", onMessage);
     return () => window.removeEventListener("message", onMessage);
-  }, []);
+  }, [clientSlug, pageId, pageName, projectName, projectSlug]);
 
   useEffect(() => {
     const iframe = iframeRef.current;
@@ -213,6 +330,14 @@ export function RawHtmlPageView({
         <span>Paris · 2026</span>
         <span>Speetch · Confidentiel</span>
       </footer>
+
+      {/* Picker médiathèque admin — ouvert au clic sur une image de l'iframe */}
+      {isAdmin && (
+        <MediaPickerModal
+          target={pickerTarget}
+          onClose={() => setPickerTarget(null)}
+        />
+      )}
     </div>
   );
 }
