@@ -56,7 +56,7 @@ export default async function ProjectDetailPage({
   const { data: project } = await admin
     .from("projects")
     .select(
-      "id, name, subtitle, project_type, is_published, profile_id, profiles(full_name, slug)",
+      "id, name, subtitle, project_type, is_published, profile_id, profiles!profile_id(full_name, slug)",
     )
     .eq("id", projectId)
     .eq("profile_id", id)

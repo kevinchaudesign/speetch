@@ -47,12 +47,15 @@ export default async function ClientsListPage() {
     redirect("/admin");
   }
 
-  // On joint les projets via le système de relation Supabase (FK).
+  // On joint les projets via la FK historique projects.profile_id. Le `!`
+  // désambigue : depuis l'ajout de profiles.personas_project_id (autre FK
+  // vers projects), PostgREST refuse l'embed implicite tant qu'on ne lui
+  // précise pas la colonne sur laquelle s'appuyer.
   const admin = createAdminClient();
   const { data, error } = await admin
     .from("profiles")
     .select(
-      "id, full_name, slug, client_email, is_published, created_at, projects(id, name, is_published, project_type, position, created_at)",
+      "id, full_name, slug, client_email, is_published, created_at, projects!profile_id(id, name, is_published, project_type, position, created_at)",
     )
     .eq("is_owner", false)
     .order("created_at", { ascending: false });
