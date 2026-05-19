@@ -146,11 +146,11 @@ export function PersonasEditor({
           créer un.
         </p>
       ) : (
-        <ul className="flex flex-col gap-10">
+        <ul className="flex flex-col gap-8">
           {initialPersonas.map((persona, index) => (
             <li
               key={persona.id}
-              className="flex flex-col gap-8 border-t border-white/10 pt-10"
+              className="flex flex-col gap-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6 md:p-10"
             >
               <PersonaCard
                 profileId={profileId}
