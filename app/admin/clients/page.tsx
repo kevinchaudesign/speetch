@@ -205,6 +205,13 @@ function ClientListRow({ client }: { client: ClientRow }) {
             Contexte
           </Button>
           <Button
+            href={`/admin/clients/${client.id}/personas`}
+            variant="primary"
+            className="text-white/55"
+          >
+            Personas
+          </Button>
+          <Button
             href={`/admin/clients/${client.id}/media`}
             variant="primary"
             className="text-white/55"
