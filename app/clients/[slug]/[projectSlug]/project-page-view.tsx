@@ -133,9 +133,9 @@ export function ProjectPageView({
             Aucune page publiée pour ce projet.
           </p>
         ) : useLotLayout ? (
-          <div className="flex flex-col gap-16">
+          <div className="flex flex-col gap-6 md:gap-8">
             {lotsWithPages.map((entry, lotIndex) => (
-              <LotBlock
+              <LotCard
                 key={entry.lot.id}
                 lot={entry.lot}
                 index={lotIndex}
@@ -145,7 +145,7 @@ export function ProjectPageView({
               />
             ))}
             {orphanPages.length > 0 && (
-              <LotBlock
+              <LotCard
                 lot={null}
                 index={lotsWithPages.length}
                 pages={orphanPages}
@@ -154,23 +154,7 @@ export function ProjectPageView({
               />
             )}
             {hasPersonas && (
-              <section className="flex flex-col">
-                <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-white/10 pb-5 pt-6">
-                  <p className="font-mono text-[11px] uppercase tracking-[0.4em] text-white/55">
-                    Insights
-                  </p>
-                  <p className="text-[11px] uppercase tracking-[0.32em] text-white/30">
-                    1 page
-                  </p>
-                </header>
-                <ul className="flex flex-col border-t border-white/10">
-                  <PersonasPageRow
-                    clientSlug={clientSlug}
-                    index={0}
-                    count={personasCount}
-                  />
-                </ul>
-              </section>
+              <InsightsCard clientSlug={clientSlug} count={personasCount} />
             )}
           </div>
         ) : (
@@ -203,7 +187,7 @@ export function ProjectPageView({
   );
 }
 
-function LotBlock({
+function LotCard({
   lot,
   index,
   pages,
@@ -221,14 +205,14 @@ function LotBlock({
     : "Hors lot";
 
   return (
-    <motion.section
+    <motion.article
       initial={{ opacity: 0, y: 12 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: "-10%" }}
       transition={{ duration: 0.9, delay: 0.05, ease: EASE_OUT_EXPO }}
-      className="flex flex-col"
+      className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-7 transition-colors hover:border-white/20 md:px-10 md:py-9"
     >
-      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-white/10 pb-5 pt-6">
+      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 pb-5">
         <p className="font-mono text-[11px] uppercase tracking-[0.4em] text-white/55">
           {label}
         </p>
@@ -247,7 +231,37 @@ function LotBlock({
           />
         ))}
       </ul>
-    </motion.section>
+    </motion.article>
+  );
+}
+
+function InsightsCard({
+  clientSlug,
+  count,
+}: {
+  clientSlug: string;
+  count: number;
+}) {
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 12 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true, margin: "-10%" }}
+      transition={{ duration: 0.9, delay: 0.05, ease: EASE_OUT_EXPO }}
+      className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.02] px-6 py-7 transition-colors hover:border-white/20 md:px-10 md:py-9"
+    >
+      <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 pb-5">
+        <p className="font-mono text-[11px] uppercase tracking-[0.4em] text-white/55">
+          Insights
+        </p>
+        <p className="text-[11px] uppercase tracking-[0.32em] text-white/30">
+          1 page
+        </p>
+      </header>
+      <ul className="flex flex-col border-t border-white/10">
+        <PersonasPageRow clientSlug={clientSlug} index={0} count={count} />
+      </ul>
+    </motion.article>
   );
 }
 
@@ -263,10 +277,10 @@ function PageRow({
   clientSlug: string;
 }) {
   return (
-    <li className="border-b border-white/10">
+    <li className="border-b border-white/10 last:border-b-0">
       <Link
         href={`/clients/${clientSlug}/${projectSlug}/${page.slug}`}
-        className="group flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2 py-7 transition-colors md:py-9"
+        className="group flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2 py-6 transition-colors md:py-8"
       >
         <div className="flex min-w-0 flex-1 items-baseline gap-x-6 gap-y-1">
           <span className="font-mono text-[11px] text-white/30 transition-colors group-hover:text-white/55">
@@ -274,7 +288,7 @@ function PageRow({
           </span>
           <h3
             className="font-sans font-extralight leading-[0.95] tracking-[-0.03em] text-white/80 transition-colors group-hover:text-[#F5F5F7]"
-            style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}
+            style={{ fontSize: "clamp(1.5rem, 3.5vw, 2.5rem)" }}
           >
             {page.name}
           </h3>
@@ -298,10 +312,10 @@ function PersonasPageRow({
   count: number;
 }) {
   return (
-    <li className="border-b border-white/10">
+    <li className="border-b border-white/10 last:border-b-0">
       <Link
         href={`/clients/${clientSlug}/personas`}
-        className="group flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2 py-7 transition-colors md:py-9"
+        className="group flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2 py-6 transition-colors md:py-8"
       >
         <div className="flex min-w-0 flex-1 items-baseline gap-x-6 gap-y-1">
           <span className="font-mono text-[11px] text-white/30 transition-colors group-hover:text-white/55">
@@ -309,7 +323,7 @@ function PersonasPageRow({
           </span>
           <h3
             className="font-sans font-extralight leading-[0.95] tracking-[-0.03em] text-white/80 transition-colors group-hover:text-[#F5F5F7]"
-            style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}
+            style={{ fontSize: "clamp(1.5rem, 3.5vw, 2.5rem)" }}
           >
             Personas{" "}
             <span className="font-serif italic text-white/45">
