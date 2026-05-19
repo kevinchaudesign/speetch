@@ -20,6 +20,7 @@ export function ClientSpaceView({
   avatarUrl,
   createdAt,
   projects,
+  personasCount,
 }: {
   profileId: string;
   slug: string;
@@ -27,6 +28,7 @@ export function ClientSpaceView({
   avatarUrl: string | null;
   createdAt: string;
   projects: ProjectInSpace[];
+  personasCount: number;
 }) {
   const formattedDate = new Date(createdAt).toLocaleDateString("fr-FR", {
     year: "numeric",
@@ -113,6 +115,47 @@ export function ClientSpaceView({
               className="object-cover"
               sizes="(min-width: 1280px) 1280px, 100vw"
             />
+          </motion.div>
+        </section>
+      )}
+
+      {/* Personas — section nav, n'apparaît que si au moins un persona est publié */}
+      {personasCount > 0 && (
+        <section className="mt-20 border-t border-white/10 px-6 pt-12 md:mt-28 md:px-12 md:pt-16">
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-15%" }}
+            transition={{ duration: 0.9, ease: EASE_OUT_EXPO }}
+            className="flex flex-wrap items-end justify-between gap-x-12 gap-y-6"
+          >
+            <div className="flex max-w-2xl flex-col gap-4">
+              <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
+                Personas
+                <span className="mx-3 text-white/20">·</span>
+                <span className="text-white/55">
+                  {personasCount} fiche{personasCount > 1 ? "s" : ""}
+                </span>
+              </p>
+              <h2
+                className="font-sans font-extralight leading-[0.9] tracking-[-0.04em] text-[#F5F5F7]"
+                style={{ fontSize: "clamp(2rem, 5vw, 3.5rem)" }}
+              >
+                Utilisateurs cibles
+              </h2>
+              <p className="text-balance font-serif text-base italic text-white/45 md:text-lg">
+                Fiches détaillées des personnes pour qui ce projet est pensé :
+                contexte, objectifs, frustrations, citations.
+              </p>
+            </div>
+
+            <Link
+              href={`/clients/${slug}/personas`}
+              className="group inline-flex items-center gap-4 text-2xl font-light text-[#F5F5F7] transition-colors md:text-3xl"
+            >
+              <span>Consulter</span>
+              <span className="inline-block h-px w-12 bg-white/55 transition-all duration-500 ease-out group-hover:w-24 group-hover:bg-white" />
+            </Link>
           </motion.div>
         </section>
       )}

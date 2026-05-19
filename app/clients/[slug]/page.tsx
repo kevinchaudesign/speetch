@@ -78,6 +78,14 @@ export default async function ClientSpacePage({ params }: Props) {
     Array.isArray(space.projects) ? space.projects : []
   ) as ProjectInSpace[];
 
+  // Nombre de personas publiés pour ce client — sert juste à décider si la
+  // section "Personas" est rendue sur la home espace. Vue pas (encore)
+  // dans types/database.ts → cast `as never`.
+  const { count: personasCount } = await supabase
+    .from("client_personas_public" as never)
+    .select("id", { count: "exact", head: true })
+    .eq("profile_id", profileId);
+
   return (
     <ClientSpaceView
       profileId={profileId}
@@ -86,6 +94,7 @@ export default async function ClientSpacePage({ params }: Props) {
       avatarUrl={space.avatar_url}
       createdAt={createdAt}
       projects={projects}
+      personasCount={personasCount ?? 0}
     />
   );
 }
