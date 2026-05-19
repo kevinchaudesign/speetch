@@ -466,6 +466,145 @@ export async function moveMediaToFolder(input: {
   return { ok: true };
 }
 
+// ============================================================================
+// Actions groupées (multi-sélection)
+// ============================================================================
+
+export type BatchMediaResult =
+  | { ok: true; count: number }
+  | { ok: false; error: string };
+
+const MAX_BATCH_SIZE = 200;
+
+function validateMediaIds(
+  mediaIds: unknown,
+): { ok: true; ids: string[] } | { ok: false; error: string } {
+  if (!Array.isArray(mediaIds) || mediaIds.length === 0) {
+    return { ok: false, error: "Aucun média sélectionné." };
+  }
+  if (mediaIds.length > MAX_BATCH_SIZE) {
+    return { ok: false, error: `Trop de médias (max ${MAX_BATCH_SIZE}).` };
+  }
+  const ids: string[] = [];
+  for (const id of mediaIds) {
+    if (typeof id !== "string" || !UUID_REGEX.test(id)) {
+      return { ok: false, error: "Identifiant invalide dans la sélection." };
+    }
+    ids.push(id);
+  }
+  // Déduplique au cas où.
+  return { ok: true, ids: Array.from(new Set(ids)) };
+}
+
+/**
+ * Supprime plusieurs médias en une fois. Effectue d'abord la suppression
+ * dans le bucket Storage (en une seule requête `.remove([paths])`), puis
+ * la suppression DB en une seule requête `.delete().in("id", ids)`.
+ *
+ * On filtre côté DB sur `profile_id` pour empêcher la suppression croisée
+ * — même si un media_id appartient à un autre client, il ne sera pas
+ * supprimé.
+ */
+export async function deleteClientMediaBatch(input: {
+  profileId: string;
+  mediaIds: string[];
+}): Promise<BatchMediaResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  const validated = validateMediaIds(input.mediaIds);
+  if (!validated.ok) return validated;
+  const ids = validated.ids;
+
+  // Récupère les storage_path uniquement pour les médias qui appartiennent
+  // vraiment au client.
+  const { data: rows, error: fetchError } = await auth.admin
+    .from("client_media" as never)
+    .select("id, storage_path")
+    .in("id", ids)
+    .eq("profile_id", input.profileId)
+    .returns<Array<Pick<MediaRow, "id" | "storage_path">>>();
+  if (fetchError) {
+    console.error("[deleteClientMediaBatch] fetch error:", fetchError);
+    return { ok: false, error: fetchError.message };
+  }
+  if (!rows || rows.length === 0) {
+    return { ok: false, error: "Aucun média trouvé pour ce client." };
+  }
+
+  const validIds = rows.map((r) => r.id);
+  const paths = rows.map((r) => r.storage_path);
+
+  // Supprime du Storage (échec non bloquant : on préfère un orphelin storage
+  // qu'une ligne DB cassée).
+  const { error: storageError } = await auth.admin.storage
+    .from(BUCKET)
+    .remove(paths);
+  if (storageError) {
+    console.error("[deleteClientMediaBatch] storage error:", storageError);
+  }
+
+  const { error: dbError } = await auth.admin
+    .from("client_media" as never)
+    .delete()
+    .in("id", validIds)
+    .eq("profile_id", input.profileId);
+  if (dbError) {
+    console.error("[deleteClientMediaBatch] db error:", dbError);
+    return { ok: false, error: dbError.message };
+  }
+
+  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  return { ok: true, count: validIds.length };
+}
+
+/**
+ * Déplace plusieurs médias vers un dossier (ou « hors dossier » si null)
+ * en une seule requête DB.
+ */
+export async function moveClientMediaBatch(input: {
+  profileId: string;
+  mediaIds: string[];
+  folderId: string | null;
+}): Promise<BatchMediaResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  const validated = validateMediaIds(input.mediaIds);
+  if (!validated.ok) return validated;
+  const ids = validated.ids;
+
+  if (input.folderId !== null) {
+    if (!UUID_REGEX.test(input.folderId)) {
+      return { ok: false, error: "Dossier invalide." };
+    }
+    const { data: folder } = await auth.admin
+      .from("client_media_folders" as never)
+      .select("id, profile_id")
+      .eq("id", input.folderId)
+      .maybeSingle<Pick<MediaFolderRow, "id" | "profile_id">>();
+    if (!folder || folder.profile_id !== input.profileId) {
+      return { ok: false, error: "Dossier introuvable pour ce client." };
+    }
+  }
+
+  const { error, count } = await auth.admin
+    .from("client_media" as never)
+    .update({ folder_id: input.folderId } as never, { count: "exact" })
+    .in("id", ids)
+    .eq("profile_id", input.profileId);
+  if (error) {
+    console.error("[moveClientMediaBatch] update error:", error);
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  return { ok: true, count: count ?? ids.length };
+}
+
 export type RenameClientMediaResult =
   | { ok: true }
   | { ok: false; error: string };

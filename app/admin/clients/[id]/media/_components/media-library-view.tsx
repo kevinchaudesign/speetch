@@ -18,7 +18,9 @@ import {
   deleteMediaFolder,
   uploadClientMedia,
   deleteClientMedia,
+  deleteClientMediaBatch,
   moveMediaToFolder,
+  moveClientMediaBatch,
   renameClientMedia,
 } from "../actions";
 
@@ -100,6 +102,15 @@ export function MediaLibraryView({
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
 
+  // ── Sélection multiple ────────────────────────────────────────────────────
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  // Dernier ID coché par clic direct — sert d'ancre pour Shift+click range.
+  const [anchorId, setAnchorId] = useState<string | null>(null);
+  const [batchDeleteOpen, setBatchDeleteOpen] = useState(false);
+  const [batchMoveOpen, setBatchMoveOpen] = useState(false);
+  const [batchPending, setBatchPending] = useState(false);
+  const hasSelection = selectedIds.size > 0;
+
   // Lecture seule du state — page server fournit toujours la source de vérité.
   const folders = initialFolders;
   const items = initialItems;
@@ -137,6 +148,92 @@ export function MediaLibraryView({
       document.removeEventListener("keydown", onKey);
     };
   }, [openMenuId]);
+
+  // Esc → vide la sélection (si aucun menu / modale n'est ouvert)
+  useEffect(() => {
+    if (!hasSelection) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== "Escape") return;
+      // Si une modale est ouverte, on la laisse capturer son propre Esc.
+      if (
+        batchDeleteOpen ||
+        batchMoveOpen ||
+        renameFolderState ||
+        deleteFolderState ||
+        renameMediaState ||
+        deleteMediaState ||
+        moveMediaState ||
+        previewItem ||
+        createFolderOpen
+      ) {
+        return;
+      }
+      setSelectedIds(new Set());
+      setAnchorId(null);
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [
+    hasSelection,
+    batchDeleteOpen,
+    batchMoveOpen,
+    renameFolderState,
+    deleteFolderState,
+    renameMediaState,
+    deleteMediaState,
+    moveMediaState,
+    previewItem,
+    createFolderOpen,
+  ]);
+
+  // Si la sélection courante (filtrage par dossier) change, on purge la
+  // sélection des IDs qui ne sont plus visibles — évite des actions silencieuses
+  // sur des items invisibles.
+  useEffect(() => {
+    if (selectedIds.size === 0) return;
+    const visible = new Set(filtered.map((m) => m.id));
+    let changed = false;
+    const next = new Set<string>();
+    for (const id of selectedIds) {
+      if (visible.has(id)) next.add(id);
+      else changed = true;
+    }
+    if (changed) setSelectedIds(next);
+  }, [filtered, selectedIds]);
+
+  const toggleSelection = useCallback(
+    (id: string, mode: "toggle" | "range") => {
+      setSelectedIds((prev) => {
+        const next = new Set(prev);
+        if (mode === "range" && anchorId && anchorId !== id) {
+          const ids = filtered.map((m) => m.id);
+          const fromIdx = ids.indexOf(anchorId);
+          const toIdx = ids.indexOf(id);
+          if (fromIdx !== -1 && toIdx !== -1) {
+            const [lo, hi] =
+              fromIdx < toIdx ? [fromIdx, toIdx] : [toIdx, fromIdx];
+            for (let i = lo; i <= hi; i += 1) next.add(ids[i]);
+            return next;
+          }
+        }
+        if (next.has(id)) next.delete(id);
+        else next.add(id);
+        return next;
+      });
+      if (mode === "toggle") setAnchorId(id);
+    },
+    [filtered, anchorId],
+  );
+
+  const clearSelection = useCallback(() => {
+    setSelectedIds(new Set());
+    setAnchorId(null);
+  }, []);
+
+  const selectAllVisible = useCallback(() => {
+    setSelectedIds(new Set(filtered.map((m) => m.id)));
+    setAnchorId(null);
+  }, [filtered]);
 
   const uploadFiles = useCallback(
     async (files: File[]) => {
@@ -315,10 +412,13 @@ export function MediaLibraryView({
                     key={m.id}
                     item={m}
                     menuOpen={openMenuId === m.id}
+                    selected={selectedIds.has(m.id)}
+                    anySelected={hasSelection}
                     onMenuToggle={() =>
                       setOpenMenuId((prev) => (prev === m.id ? null : m.id))
                     }
                     onPreview={() => setPreviewItem(m)}
+                    onToggleSelect={(mode) => toggleSelection(m.id, mode)}
                     onRename={() => {
                       setOpenMenuId(null);
                       setRenameMediaState(m);
@@ -502,6 +602,69 @@ export function MediaLibraryView({
         description={error ?? ""}
         onClose={() => setError(null)}
       />
+
+      {/* === Sélection multiple : action bar flottante + modales batch === */}
+      <BatchActionBar
+        count={selectedIds.size}
+        allVisibleCount={filtered.length}
+        onMove={() => setBatchMoveOpen(true)}
+        onDelete={() => setBatchDeleteOpen(true)}
+        onSelectAll={selectAllVisible}
+        onClear={clearSelection}
+      />
+
+      <MoveBatchModal
+        open={batchMoveOpen}
+        count={selectedIds.size}
+        folders={folders}
+        pending={batchPending}
+        onClose={() => setBatchMoveOpen(false)}
+        onSubmit={async (folderId) => {
+          setBatchPending(true);
+          const res = await moveClientMediaBatch({
+            profileId,
+            mediaIds: Array.from(selectedIds),
+            folderId,
+          });
+          setBatchPending(false);
+          if (!res.ok) {
+            setError(res.error);
+            return;
+          }
+          setBatchMoveOpen(false);
+          clearSelection();
+          refresh();
+        }}
+      />
+
+      <ConfirmDialog
+        open={batchDeleteOpen}
+        title={
+          selectedIds.size === 1
+            ? "Supprimer le média sélectionné ?"
+            : `Supprimer ${selectedIds.size} médias sélectionnés ?`
+        }
+        description="Les fichiers seront retirés du stockage. Les pages qui les utilisent verront des références cassées."
+        confirmLabel="Supprimer"
+        tone="danger"
+        pending={batchPending}
+        onCancel={() => setBatchDeleteOpen(false)}
+        onConfirm={async () => {
+          setBatchPending(true);
+          const res = await deleteClientMediaBatch({
+            profileId,
+            mediaIds: Array.from(selectedIds),
+          });
+          setBatchPending(false);
+          if (!res.ok) {
+            setError(res.error);
+            return;
+          }
+          setBatchDeleteOpen(false);
+          clearSelection();
+          refresh();
+        }}
+      />
     </div>
   );
 }
@@ -578,22 +741,51 @@ function FolderRow({
 function MediaTile({
   item,
   menuOpen,
+  selected,
+  anySelected,
   onMenuToggle,
   onPreview,
+  onToggleSelect,
   onRename,
   onMove,
   onDelete,
 }: {
   item: MediaItem;
   menuOpen: boolean;
+  selected: boolean;
+  anySelected: boolean;
   onMenuToggle: () => void;
   onPreview: () => void;
+  onToggleSelect: (mode: "toggle" | "range") => void;
   onRename: () => void;
   onMove: () => void;
   onDelete: () => void;
 }) {
   const img = isImage(item.mime_type);
   const vid = isVideo(item.mime_type);
+
+  const handleTileClick = (e: React.MouseEvent) => {
+    const meta = e.metaKey || e.ctrlKey;
+    const shift = e.shiftKey;
+    // Cmd/Ctrl ou Shift : sélection multiple en raccourci power-user.
+    if (meta) {
+      e.preventDefault();
+      onToggleSelect("toggle");
+      return;
+    }
+    if (shift) {
+      e.preventDefault();
+      onToggleSelect("range");
+      return;
+    }
+    // Si une sélection est déjà active, un clic simple toggle (mode batch).
+    if (anySelected) {
+      e.preventDefault();
+      onToggleSelect("toggle");
+      return;
+    }
+    onPreview();
+  };
 
   return (
     <li
@@ -606,8 +798,13 @@ function MediaTile({
     >
       <button
         type="button"
-        onClick={onPreview}
-        className="relative block aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all hover:border-white/25"
+        onClick={handleTileClick}
+        className={cn(
+          "relative block aspect-square w-full overflow-hidden rounded-xl border bg-white/[0.02] transition-all",
+          selected
+            ? "border-white/80 ring-2 ring-white/40"
+            : "border-white/10 hover:border-white/25",
+        )}
       >
         {img && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -637,6 +834,52 @@ function MediaTile({
             {item.mime_type}
           </span>
         )}
+
+        {/* Checkbox de sélection — toujours visible quand une sélection
+            existe, sinon apparaît au hover (group-hover). Clic dédié pour
+            toggle sans déclencher le preview. */}
+        <span
+          role="checkbox"
+          aria-checked={selected}
+          aria-label={selected ? "Désélectionner" : "Sélectionner"}
+          tabIndex={0}
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            onToggleSelect(e.shiftKey ? "range" : "toggle");
+          }}
+          onKeyDown={(e) => {
+            if (e.key === " " || e.key === "Enter") {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleSelect("toggle");
+            }
+          }}
+          className={cn(
+            "absolute left-2 top-2 z-10 inline-flex h-5 w-5 cursor-pointer items-center justify-center rounded-full border bg-black/55 backdrop-blur-sm transition-all duration-200 ease-out",
+            selected
+              ? "border-white bg-white text-black opacity-100"
+              : anySelected
+                ? "border-white/55 text-transparent opacity-100 hover:border-white"
+                : "border-white/45 text-transparent opacity-0 group-hover:opacity-100 hover:border-white",
+          )}
+        >
+          {selected && (
+            <svg
+              width="11"
+              height="11"
+              viewBox="0 0 11 11"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.6"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden
+            >
+              <path d="M2 5.5 L4.5 8 L9 3" />
+            </svg>
+          )}
+        </span>
       </button>
 
       <div className="flex items-center justify-between gap-2 px-1">
@@ -1084,6 +1327,182 @@ function PreviewModal({
                   Aperçu non disponible pour ce format.
                 </p>
               )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ============================================================================
+// Sélection multiple — action bar + modale de déplacement batch
+// ============================================================================
+
+function BatchActionBar({
+  count,
+  allVisibleCount,
+  onMove,
+  onDelete,
+  onSelectAll,
+  onClear,
+}: {
+  count: number;
+  allVisibleCount: number;
+  onMove: () => void;
+  onDelete: () => void;
+  onSelectAll: () => void;
+  onClear: () => void;
+}) {
+  const allSelected = count > 0 && count === allVisibleCount;
+  return (
+    <AnimatePresence>
+      {count > 0 && (
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: 12 }}
+          transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
+          className="fixed inset-x-0 bottom-6 z-[70] flex justify-center px-4"
+          role="region"
+          aria-label="Actions sur la sélection"
+        >
+          <div
+            className={cn(
+              "pointer-events-auto flex flex-wrap items-center gap-x-6 gap-y-3 rounded-2xl border border-white/[0.12] px-5 py-3.5",
+              "bg-gradient-to-br from-white/[0.08] via-[#0a0a0a]/95 to-[#0a0a0a]/95 backdrop-blur-2xl",
+              "shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85),inset_1px_1px_0_0_rgba(255,255,255,0.06)]",
+            )}
+          >
+            <span className="text-[10px] uppercase tracking-[0.4em] text-white/85">
+              <span className="font-mono not-italic">{count}</span>
+              <span className="ml-1.5 text-white/45">
+                sélectionné{count > 1 ? "s" : ""}
+              </span>
+            </span>
+
+            <span aria-hidden className="inline-block h-3 w-px bg-white/15" />
+
+            {!allSelected && (
+              <button
+                type="button"
+                onClick={onSelectAll}
+                className="text-[10px] uppercase tracking-[0.32em] text-white/45 transition-colors hover:text-white"
+              >
+                Tout sélectionner ({allVisibleCount})
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={onMove}
+              className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/85 transition-colors hover:text-white"
+            >
+              <span>Déplacer dans…</span>
+              <span
+                aria-hidden
+                className="inline-block h-px w-4 bg-current transition-all duration-500 group-hover:w-10"
+              />
+            </button>
+
+            <button
+              type="button"
+              onClick={onDelete}
+              className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/75 transition-colors hover:text-red-300/85"
+            >
+              <span>Supprimer</span>
+              <span
+                aria-hidden
+                className="inline-block h-px w-4 bg-current transition-all duration-500 group-hover:w-10"
+              />
+            </button>
+
+            <span aria-hidden className="inline-block h-3 w-px bg-white/15" />
+
+            <button
+              type="button"
+              onClick={onClear}
+              className="text-[10px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white"
+            >
+              Effacer
+            </button>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+function MoveBatchModal({
+  open,
+  count,
+  folders,
+  pending,
+  onClose,
+  onSubmit,
+}: {
+  open: boolean;
+  count: number;
+  folders: MediaFolder[];
+  pending: boolean;
+  onClose: () => void;
+  onSubmit: (folderId: string | null) => void | Promise<void>;
+}) {
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[88] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm md:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !pending) onClose();
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
+            className="relative flex w-full max-w-md flex-col gap-6 rounded-2xl border border-white/10 bg-[#0a0a0a] px-6 py-8 md:px-8 md:py-10"
+          >
+            <Eyebrow tracking="md" intensity="strong">
+              Déplacer la sélection
+            </Eyebrow>
+            <p className="font-serif text-sm italic text-white/55">
+              {count} média{count > 1 ? "s" : ""} sélectionné
+              {count > 1 ? "s" : ""}
+            </p>
+            <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
+              <MoveTarget
+                label="Hors dossier"
+                disabled={pending}
+                pending={false}
+                onClick={() => onSubmit(null)}
+              />
+              {folders.length > 0 && (
+                <li className="my-1 h-px bg-white/10" aria-hidden />
+              )}
+              {folders.map((f) => (
+                <MoveTarget
+                  key={f.id}
+                  label={f.name}
+                  disabled={pending}
+                  pending={false}
+                  onClick={() => onSubmit(f.id)}
+                />
+              ))}
+            </ul>
+            <div className="mt-2 flex items-center justify-end border-t border-white/10 pt-6">
+              <Button
+                variant="ghost"
+                onClick={onClose}
+                disabled={pending}
+              >
+                {pending ? "Déplacement…" : "Fermer"}
+              </Button>
             </div>
           </motion.div>
         </motion.div>
