@@ -3,7 +3,11 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { setPersonasProject, setPersonasPublished } from "../actions";
+import {
+  addPersonasProjectPin,
+  removePersonasProjectPin,
+  setPersonasPublished,
+} from "../actions";
 
 export type ProjectOption = {
   id: string;
@@ -13,17 +17,20 @@ export type ProjectOption = {
 export function PersonasSettingsPanel({
   profileId,
   published,
-  projectId,
+  pinnedProjectIds,
   projects,
 }: {
   profileId: string;
   published: boolean;
-  projectId: string | null;
+  pinnedProjectIds: string[];
   projects: ProjectOption[];
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+
+  const pinnedSet = new Set(pinnedProjectIds);
+  const pinnedCount = pinnedSet.size;
 
   function handleTogglePublished() {
     setError(null);
@@ -40,14 +47,13 @@ export function PersonasSettingsPanel({
     });
   }
 
-  function handleChangeProject(value: string) {
+  function handleTogglePin(projectId: string) {
     setError(null);
-    const nextProjectId = value === "" ? null : value;
+    const isPinned = pinnedSet.has(projectId);
     startTransition(async () => {
-      const res = await setPersonasProject({
-        profileId,
-        projectId: nextProjectId,
-      });
+      const res = isPinned
+        ? await removePersonasProjectPin({ profileId, projectId })
+        : await addPersonasProjectPin({ profileId, projectId });
       if (!res.ok) {
         setError(res.error);
         return;
@@ -56,10 +62,15 @@ export function PersonasSettingsPanel({
     });
   }
 
-  const projectLabel =
-    projectId && projects.length > 0
-      ? projects.find((p) => p.id === projectId)?.name ?? null
-      : null;
+  const statusText = (() => {
+    if (!published) return "Masquée côté client";
+    if (pinnedCount === 0) return "Visible · section top-level";
+    if (pinnedCount === 1) {
+      const name = projects.find((p) => pinnedSet.has(p.id))?.name;
+      return name ? `Visible · rangée dans « ${name} »` : "Visible · rangée dans 1 projet";
+    }
+    return `Visible · rangée dans ${pinnedCount} projets`;
+  })();
 
   return (
     <section className="flex flex-col gap-6 rounded-2xl border border-white/10 bg-white/[0.02] p-6 md:p-8">
@@ -68,11 +79,7 @@ export function PersonasSettingsPanel({
           Publication
         </p>
         <p className="text-[11px] uppercase tracking-[0.32em] text-white/30">
-          {published
-            ? projectLabel
-              ? `Visible · rangée dans « ${projectLabel} »`
-              : "Visible · section top-level"
-            : "Masquée côté client"}
+          {statusText}
         </p>
       </header>
 
@@ -119,34 +126,78 @@ export function PersonasSettingsPanel({
         </button>
       </div>
 
-      <div className="flex flex-col gap-2 border-t border-white/10 pt-6">
+      <div className="flex flex-col gap-3 border-t border-white/10 pt-6">
         <span className="text-[10px] uppercase tracking-[0.32em] text-white/45">
-          Ranger dans un projet
+          Ranger dans des projets
         </span>
         <p className="font-serif text-sm italic text-white/45">
           {projects.length === 0
             ? "Aucun projet pour ce client — la page restera en section top-level."
-            : "Si un projet est sélectionné, le lien « Personas » apparaît dans la liste de pages de ce projet. Sinon, en section top-level sur la home espace."}
+            : "Coche un ou plusieurs projets : le lien « Personas » apparaîtra dans la liste de pages de chacun. Si aucun n'est coché, la page reste en section top-level sur la home espace."}
         </p>
-        <select
-          value={projectId ?? ""}
-          onChange={(e) => handleChangeProject(e.target.value)}
-          disabled={pending || projects.length === 0}
-          aria-label="Projet où ranger la page Personas"
-          className={cn(
-            "mt-2 cursor-pointer border-0 border-b border-white/15 bg-transparent py-2 text-sm outline-none transition-colors hover:border-white/35 focus:border-white/45 disabled:cursor-not-allowed disabled:opacity-50",
-            projectId ? "text-white/85" : "text-white/45",
-          )}
-        >
-          <option value="" className="bg-[#0a0a0a] text-white/65">
-            — Aucun · section top-level —
-          </option>
-          {projects.map((p) => (
-            <option key={p.id} value={p.id} className="bg-[#0a0a0a] text-white">
-              {p.name}
-            </option>
-          ))}
-        </select>
+
+        {projects.length > 0 && (
+          <ul className="mt-2 flex flex-col gap-1">
+            {projects.map((p) => {
+              const checked = pinnedSet.has(p.id);
+              return (
+                <li key={p.id}>
+                  <label
+                    className={cn(
+                      "flex cursor-pointer items-center gap-3 rounded-md px-2 py-2 transition-colors",
+                      pending
+                        ? "cursor-wait opacity-60"
+                        : "hover:bg-white/[0.03]",
+                    )}
+                  >
+                    <span
+                      role="checkbox"
+                      aria-checked={checked}
+                      tabIndex={-1}
+                      className={cn(
+                        "inline-flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-all duration-200 ease-out",
+                        checked
+                          ? "border-white bg-white text-black"
+                          : "border-white/35 text-transparent hover:border-white/70",
+                      )}
+                    >
+                      {checked && (
+                        <svg
+                          width="10"
+                          height="10"
+                          viewBox="0 0 11 11"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="1.6"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden
+                        >
+                          <path d="M2 5.5 L4.5 8 L9 3" />
+                        </svg>
+                      )}
+                    </span>
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={() => handleTogglePin(p.id)}
+                      disabled={pending}
+                      className="sr-only"
+                    />
+                    <span
+                      className={cn(
+                        "text-sm transition-colors",
+                        checked ? "text-[#F5F5F7]" : "text-white/65",
+                      )}
+                    >
+                      {p.name}
+                    </span>
+                  </label>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </section>
   );

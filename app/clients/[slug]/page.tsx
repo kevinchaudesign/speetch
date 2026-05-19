@@ -46,13 +46,13 @@ export default async function ClientSpacePage({ params }: Props) {
   if (!isValidSlug(slug)) notFound();
 
   // Lecture via la vue publique (anon a `select`). On caste sur le select
-  // pour récupérer personas_published / personas_project_id, qui ne sont
-  // pas encore régénérés dans types/database.ts.
+  // pour récupérer personas_published / personas_project_ids, pas encore
+  // régénérés dans types/database.ts.
   const supabase = await createClient();
   const { data: space } = await supabase
     .from("client_spaces")
     .select(
-      "id, slug, full_name, avatar_url, created_at, projects, personas_published, personas_project_id",
+      "id, slug, full_name, avatar_url, created_at, projects, personas_published, personas_project_ids",
     )
     .eq("slug", slug)
     .maybeSingle<{
@@ -63,7 +63,7 @@ export default async function ClientSpacePage({ params }: Props) {
       created_at: string;
       projects: unknown;
       personas_published: boolean | null;
-      personas_project_id: string | null;
+      personas_project_ids: string[] | null;
     }>();
 
   if (!space || !space.id || !space.slug || !space.created_at) notFound();
@@ -100,6 +100,13 @@ export default async function ClientSpacePage({ params }: Props) {
     .select("id", { count: "exact", head: true })
     .eq("profile_id", profileId);
 
+  // Si la publication est désactivée, on ignore les pins (la home espace
+  // ne doit montrer aucun lien personas).
+  const personasProjectIds: string[] =
+    space.personas_published && Array.isArray(space.personas_project_ids)
+      ? space.personas_project_ids.filter((id): id is string => typeof id === "string")
+      : [];
+
   return (
     <ClientSpaceView
       profileId={profileId}
@@ -109,9 +116,7 @@ export default async function ClientSpacePage({ params }: Props) {
       createdAt={createdAt}
       projects={projects}
       personasCount={personasCount ?? 0}
-      personasProjectId={
-        space.personas_published ? space.personas_project_id : null
-      }
+      personasProjectIds={personasProjectIds}
     />
   );
 }

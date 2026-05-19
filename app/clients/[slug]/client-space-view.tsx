@@ -21,7 +21,7 @@ export function ClientSpaceView({
   createdAt,
   projects,
   personasCount,
-  personasProjectId,
+  personasProjectIds,
 }: {
   profileId: string;
   slug: string;
@@ -30,13 +30,20 @@ export function ClientSpaceView({
   createdAt: string;
   projects: ProjectInSpace[];
   personasCount: number;
-  /** project_id où ranger le lien personas. NULL = section top-level. */
-  personasProjectId: string | null;
+  /**
+   * Liste des project_ids où ranger le lien personas.
+   * Vide = section top-level. Sinon : un lien par projet pinné, pas de
+   * top-level.
+   */
+  personasProjectIds: string[];
 }) {
+  const personasPinnedSet = new Set(personasProjectIds);
+
   // Section top-level "Utilisateurs cibles" : rendue uniquement si publication
-  // active ET aucun projet pinné. Sinon le lien apparaît dans le projet ciblé.
+  // active ET aucun projet pinné. Sinon le lien apparaît dans chaque projet
+  // ciblé.
   const showPersonasTopLevel =
-    personasCount > 0 && personasProjectId === null;
+    personasCount > 0 && personasPinnedSet.size === 0;
   const formattedDate = new Date(createdAt).toLocaleDateString("fr-FR", {
     year: "numeric",
     month: "long",
@@ -184,7 +191,7 @@ export function ClientSpaceView({
               isLast={idx === projects.length - 1}
               clientSlug={slug}
               hasPersonas={
-                personasCount > 0 && personasProjectId === project.id
+                personasCount > 0 && personasPinnedSet.has(project.id)
               }
               personasCount={personasCount}
             />

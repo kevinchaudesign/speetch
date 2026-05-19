@@ -51,20 +51,18 @@ export default async function ClientPersonasPage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select(
-      "id, full_name, is_owner, personas_published, personas_project_id",
-    )
+    .select("id, full_name, is_owner, personas_published")
     .eq("id", id)
     .maybeSingle<{
       id: string;
       full_name: string | null;
       is_owner: boolean;
       personas_published: boolean | null;
-      personas_project_id: string | null;
     }>();
   if (!profile || profile.is_owner) notFound();
 
-  // Projets du client → options du select « Ranger dans projet ».
+  // Projets du client + pins existants — sert au multi-select de
+  // PersonasSettingsPanel.
   const { data: projectsData } = await admin
     .from("projects")
     .select("id, name, position, created_at")
@@ -76,6 +74,13 @@ export default async function ClientPersonasPage({
     id: p.id,
     name: p.name ?? "Sans nom",
   }));
+
+  const { data: pinsData } = await admin
+    .from("client_personas_project_pins" as never)
+    .select("project_id")
+    .eq("profile_id", id)
+    .returns<Array<{ project_id: string }>>();
+  const pinnedProjectIds: string[] = (pinsData ?? []).map((p) => p.project_id);
 
   const { data: personasData } = await admin
     .from("client_personas" as never)
@@ -206,7 +211,7 @@ export default async function ClientPersonasPage({
         <PersonasSettingsPanel
           profileId={id}
           published={profile.personas_published ?? false}
-          projectId={profile.personas_project_id ?? null}
+          pinnedProjectIds={pinnedProjectIds}
           projects={projects}
         />
 

@@ -265,43 +265,89 @@ export async function setPersonasPublished(input: {
   return { ok: true };
 }
 
-export type SetPersonasProjectResult =
+export type PersonasProjectPinResult =
   | { ok: true }
   | { ok: false; error: string };
 
-export async function setPersonasProject(input: {
+/**
+ * Vérifie que `projectId` appartient bien à `profileId`. Mutualisé pour
+ * add/remove — un user qui malicieusement passe un projet d'un autre
+ * client n'obtient rien.
+ */
+async function ensureProjectBelongsToClient(
+  admin: ReturnType<typeof createAdminClient>,
+  profileId: string,
+  projectId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const { data: project } = await admin
+    .from("projects")
+    .select("id, profile_id")
+    .eq("id", projectId)
+    .maybeSingle();
+  if (!project || project.profile_id !== profileId) {
+    return { ok: false, error: "Projet introuvable pour ce client." };
+  }
+  return { ok: true };
+}
+
+export async function addPersonasProjectPin(input: {
   profileId: string;
-  projectId: string | null;
-}): Promise<SetPersonasProjectResult> {
+  projectId: string;
+}): Promise<PersonasProjectPinResult> {
   const auth = await requireOwnerAndAdmin();
   if (!auth.ok) return { ok: false, error: auth.error };
   if (!UUID_REGEX.test(input.profileId)) {
     return { ok: false, error: "Client invalide." };
   }
-  if (input.projectId !== null && !UUID_REGEX.test(input.projectId)) {
+  if (!UUID_REGEX.test(input.projectId)) {
+    return { ok: false, error: "Projet invalide." };
+  }
+  const own = await ensureProfileExists(auth.admin, input.profileId);
+  if (!own.ok) return { ok: false, error: own.error };
+  const owns = await ensureProjectBelongsToClient(
+    auth.admin,
+    input.profileId,
+    input.projectId,
+  );
+  if (!owns.ok) return owns;
+
+  // Upsert pour idempotence : si la ligne existe déjà, no-op.
+  const { error } = await auth.admin
+    .from("client_personas_project_pins" as never)
+    .upsert(
+      { profile_id: input.profileId, project_id: input.projectId } as never,
+      { onConflict: "profile_id,project_id" },
+    );
+  if (error) {
+    console.error("[addPersonasProjectPin] upsert error:", error);
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  return { ok: true };
+}
+
+export async function removePersonasProjectPin(input: {
+  profileId: string;
+  projectId: string;
+}): Promise<PersonasProjectPinResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  if (!UUID_REGEX.test(input.projectId)) {
     return { ok: false, error: "Projet invalide." };
   }
   const own = await ensureProfileExists(auth.admin, input.profileId);
   if (!own.ok) return { ok: false, error: own.error };
 
-  // Si on attache à un projet, il doit appartenir au même client.
-  if (input.projectId !== null) {
-    const { data: project } = await auth.admin
-      .from("projects")
-      .select("id, profile_id")
-      .eq("id", input.projectId)
-      .maybeSingle();
-    if (!project || project.profile_id !== input.profileId) {
-      return { ok: false, error: "Projet introuvable pour ce client." };
-    }
-  }
-
   const { error } = await auth.admin
-    .from("profiles")
-    .update({ personas_project_id: input.projectId } as never)
-    .eq("id", input.profileId);
+    .from("client_personas_project_pins" as never)
+    .delete()
+    .eq("profile_id", input.profileId)
+    .eq("project_id", input.projectId);
   if (error) {
-    console.error("[setPersonasProject] update error:", error);
+    console.error("[removePersonasProjectPin] delete error:", error);
     return { ok: false, error: error.message };
   }
   revalidatePath(`/admin/clients/${input.profileId}/personas`);
