@@ -87,12 +87,25 @@ export default async function PublicPageRoute({ params }: Props) {
     redirect(`/clients/${slug}`);
   }
 
-  // Précédent / Suivant — fetch des autres pages publiées du même projet
+  // Précédent / Suivant — fetch des autres pages publiées du même projet.
+  // Ordre : lot.position d'abord (NULLS LAST → pages hors lot en fin), puis
+  // page.position (renumérotée 0..N-1 par lot côté admin). On cast via
+  // .returns<>() le temps que les types Supabase régénèrent lot_position.
   const { data: siblings } = await supabase
     .from("client_pages")
-    .select("page_id, page_slug, page_name, page_position")
+    .select("page_id, page_slug, page_name, page_position, lot_position")
     .eq("project_id", page.project_id)
-    .order("page_position", { ascending: true });
+    .order("lot_position", { ascending: true, nullsFirst: false })
+    .order("page_position", { ascending: true })
+    .returns<
+      Array<{
+        page_id: string | null;
+        page_slug: string | null;
+        page_name: string | null;
+        page_position: number | null;
+        lot_position: number | null;
+      }>
+    >();
 
   const ordered = siblings ?? [];
   const currentIdx = ordered.findIndex((p) => p.page_id === page.page_id);
@@ -116,8 +129,13 @@ export default async function PublicPageRoute({ params }: Props) {
 
   const navPages = ordered
     .filter(
-      (p): p is { page_id: string; page_slug: string; page_name: string; page_position: number } =>
-        !!p.page_slug && !!p.page_name,
+      (p): p is {
+        page_id: string;
+        page_slug: string;
+        page_name: string;
+        page_position: number | null;
+        lot_position: number | null;
+      } => !!p.page_slug && !!p.page_name,
     )
     .map((p) => ({ slug: p.page_slug, name: p.page_name }));
 
