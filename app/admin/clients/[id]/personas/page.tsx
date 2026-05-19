@@ -4,6 +4,10 @@ import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button } from "@/lib/ds";
 import { PersonasList } from "./_components/personas-list";
+import {
+  PersonasSettingsPanel,
+  type ProjectOption,
+} from "./_components/personas-settings-panel";
 import type {
   ClientPersonaRow,
   PersonaItem,
@@ -47,10 +51,31 @@ export default async function ClientPersonasPage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, full_name, is_owner")
+    .select(
+      "id, full_name, is_owner, personas_published, personas_project_id",
+    )
     .eq("id", id)
-    .maybeSingle();
+    .maybeSingle<{
+      id: string;
+      full_name: string | null;
+      is_owner: boolean;
+      personas_published: boolean | null;
+      personas_project_id: string | null;
+    }>();
   if (!profile || profile.is_owner) notFound();
+
+  // Projets du client → options du select « Ranger dans projet ».
+  const { data: projectsData } = await admin
+    .from("projects")
+    .select("id, name, position, created_at")
+    .eq("profile_id", id)
+    .order("position", { ascending: true })
+    .order("created_at", { ascending: true });
+
+  const projects: ProjectOption[] = (projectsData ?? []).map((p) => ({
+    id: p.id,
+    name: p.name ?? "Sans nom",
+  }));
 
   const { data: personasData } = await admin
     .from("client_personas" as never)
@@ -177,6 +202,13 @@ export default async function ClientPersonasPage({
             publiques et les décisions de design.
           </p>
         </header>
+
+        <PersonasSettingsPanel
+          profileId={id}
+          published={profile.personas_published ?? false}
+          projectId={profile.personas_project_id ?? null}
+          projects={projects}
+        />
 
         <PersonasList profileId={id} initialPersonas={personas} />
 

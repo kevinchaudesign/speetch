@@ -45,13 +45,26 @@ export default async function ClientSpacePage({ params }: Props) {
   const { slug } = await params;
   if (!isValidSlug(slug)) notFound();
 
-  // Lecture via la vue publique (anon a `select`).
+  // Lecture via la vue publique (anon a `select`). On caste sur le select
+  // pour récupérer personas_published / personas_project_id, qui ne sont
+  // pas encore régénérés dans types/database.ts.
   const supabase = await createClient();
   const { data: space } = await supabase
     .from("client_spaces")
-    .select("id, slug, full_name, avatar_url, created_at, projects")
+    .select(
+      "id, slug, full_name, avatar_url, created_at, projects, personas_published, personas_project_id",
+    )
     .eq("slug", slug)
-    .maybeSingle();
+    .maybeSingle<{
+      id: string;
+      slug: string;
+      full_name: string | null;
+      avatar_url: string | null;
+      created_at: string;
+      projects: unknown;
+      personas_published: boolean | null;
+      personas_project_id: string | null;
+    }>();
 
   if (!space || !space.id || !space.slug || !space.created_at) notFound();
 
@@ -78,9 +91,10 @@ export default async function ClientSpacePage({ params }: Props) {
     Array.isArray(space.projects) ? space.projects : []
   ) as ProjectInSpace[];
 
-  // Nombre de personas publiés pour ce client — sert juste à décider si la
-  // section "Personas" est rendue sur la home espace. Vue pas (encore)
-  // dans types/database.ts → cast `as never`.
+  // Nombre de personas publiés pour ce client. La vue
+  // client_personas_public filtre déjà sur personas_published = true côté
+  // DB → si l'admin a désactivé le partage, count = 0 et la home espace
+  // n'affiche rien.
   const { count: personasCount } = await supabase
     .from("client_personas_public" as never)
     .select("id", { count: "exact", head: true })
@@ -95,6 +109,9 @@ export default async function ClientSpacePage({ params }: Props) {
       createdAt={createdAt}
       projects={projects}
       personasCount={personasCount ?? 0}
+      personasProjectId={
+        space.personas_published ? space.personas_project_id : null
+      }
     />
   );
 }

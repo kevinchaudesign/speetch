@@ -21,6 +21,7 @@ export function ClientSpaceView({
   createdAt,
   projects,
   personasCount,
+  personasProjectId,
 }: {
   profileId: string;
   slug: string;
@@ -29,7 +30,13 @@ export function ClientSpaceView({
   createdAt: string;
   projects: ProjectInSpace[];
   personasCount: number;
+  /** project_id où ranger le lien personas. NULL = section top-level. */
+  personasProjectId: string | null;
 }) {
+  // Section top-level "Utilisateurs cibles" : rendue uniquement si publication
+  // active ET aucun projet pinné. Sinon le lien apparaît dans le projet ciblé.
+  const showPersonasTopLevel =
+    personasCount > 0 && personasProjectId === null;
   const formattedDate = new Date(createdAt).toLocaleDateString("fr-FR", {
     year: "numeric",
     month: "long",
@@ -119,8 +126,8 @@ export function ClientSpaceView({
         </section>
       )}
 
-      {/* Personas — section nav, n'apparaît que si au moins un persona est publié */}
-      {personasCount > 0 && (
+      {/* Personas — section top-level, uniquement si pas pinnée à un projet */}
+      {showPersonasTopLevel && (
         <section className="mt-20 border-t border-white/10 px-6 pt-12 md:mt-28 md:px-12 md:pt-16">
           <motion.div
             initial={{ opacity: 0, y: 12 }}
@@ -176,6 +183,10 @@ export function ClientSpaceView({
               index={idx}
               isLast={idx === projects.length - 1}
               clientSlug={slug}
+              hasPersonas={
+                personasCount > 0 && personasProjectId === project.id
+              }
+              personasCount={personasCount}
             />
           ))}
         </div>
@@ -195,11 +206,16 @@ function ProjectBlock({
   index,
   isLast,
   clientSlug,
+  hasPersonas,
+  personasCount,
 }: {
   project: ProjectInSpace;
   index: number;
   isLast: boolean;
   clientSlug: string;
+  /** true si l'admin a rangé la page personas dans ce projet. */
+  hasPersonas: boolean;
+  personasCount: number;
 }) {
   const projectTypeLabel = getProjectTypeLabel(project.project_type);
   const pages = project.pages ?? [];
@@ -265,6 +281,26 @@ function ProjectBlock({
           pages={pages}
           projectSlug={project.slug}
           clientSlug={clientSlug}
+          personasRow={
+            hasPersonas
+              ? {
+                  clientSlug,
+                  index: pages.length,
+                  count: personasCount,
+                }
+              : null
+          }
+        />
+      )}
+
+      {/* Quand on a un layout par lots, on glisse le lien personas dans un
+          bloc dédié "Hors lot" — c'est une page "à part" sans appartenance
+          à un lot, donc cohérent visuellement avec orphanPages. */}
+      {pages.length === 0 && hasPersonas && (
+        <PersonasPageRow
+          clientSlug={clientSlug}
+          index={0}
+          count={personasCount}
         />
       )}
 
@@ -288,6 +324,27 @@ function ProjectBlock({
               projectSlug={project.slug}
               clientSlug={clientSlug}
             />
+          )}
+          {/* Personas rangé dans ce projet : on l'affiche en bas, séparé
+              des lots (c'est une page transverse, pas un livrable de lot). */}
+          {hasPersonas && (
+            <section className="flex flex-col">
+              <header className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 border-t border-white/10 pb-5 pt-6">
+                <p className="font-mono text-[11px] uppercase tracking-[0.4em] text-white/55">
+                  Insights
+                </p>
+                <p className="text-[11px] uppercase tracking-[0.32em] text-white/30">
+                  1 page
+                </p>
+              </header>
+              <ul className="flex flex-col border-t border-white/10">
+                <PersonasPageRow
+                  clientSlug={clientSlug}
+                  index={0}
+                  count={personasCount}
+                />
+              </ul>
+            </section>
           )}
         </div>
       )}
@@ -349,10 +406,17 @@ function FlatPagesList({
   pages,
   projectSlug,
   clientSlug,
+  personasRow,
 }: {
   pages: PageInSpace[];
   projectSlug: string;
   clientSlug: string;
+  /** Si fourni, ajoute un PersonasPageRow en fin de liste. */
+  personasRow: {
+    clientSlug: string;
+    index: number;
+    count: number;
+  } | null;
 }) {
   return (
     <motion.ul
@@ -371,7 +435,52 @@ function FlatPagesList({
           clientSlug={clientSlug}
         />
       ))}
+      {personasRow && (
+        <PersonasPageRow
+          clientSlug={personasRow.clientSlug}
+          index={personasRow.index}
+          count={personasRow.count}
+        />
+      )}
     </motion.ul>
+  );
+}
+
+function PersonasPageRow({
+  clientSlug,
+  index,
+  count,
+}: {
+  clientSlug: string;
+  index: number;
+  count: number;
+}) {
+  return (
+    <li className="border-b border-white/10">
+      <Link
+        href={`/clients/${clientSlug}/personas`}
+        className="group flex flex-wrap items-baseline justify-between gap-x-10 gap-y-2 py-7 transition-colors md:py-9"
+      >
+        <div className="flex min-w-0 flex-1 items-baseline gap-x-6 gap-y-1">
+          <span className="font-mono text-[11px] text-white/30 transition-colors group-hover:text-white/55">
+            {String(index + 1).padStart(2, "0")}
+          </span>
+          <h3
+            className="font-sans font-extralight leading-[0.95] tracking-[-0.03em] text-white/80 transition-colors group-hover:text-[#F5F5F7]"
+            style={{ fontSize: "clamp(1.75rem, 4vw, 3rem)" }}
+          >
+            Personas{" "}
+            <span className="font-serif italic text-white/45">
+              · {count} fiche{count > 1 ? "s" : ""}
+            </span>
+          </h3>
+        </div>
+        <span className="inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/40 transition-colors group-hover:text-white">
+          <span>Consulter</span>
+          <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-16" />
+        </span>
+      </Link>
+    </li>
   );
 }
 

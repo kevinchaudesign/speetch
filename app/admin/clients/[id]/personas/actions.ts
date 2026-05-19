@@ -233,6 +233,81 @@ export async function deletePersona(input: {
   return { ok: true };
 }
 
+// ============================================================================
+// Settings de publication (profile-level)
+// ============================================================================
+
+export type SetPersonasPublishedResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function setPersonasPublished(input: {
+  profileId: string;
+  published: boolean;
+}): Promise<SetPersonasPublishedResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  const own = await ensureProfileExists(auth.admin, input.profileId);
+  if (!own.ok) return { ok: false, error: own.error };
+
+  const { error } = await auth.admin
+    .from("profiles")
+    .update({ personas_published: input.published } as never)
+    .eq("id", input.profileId);
+  if (error) {
+    console.error("[setPersonasPublished] update error:", error);
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  return { ok: true };
+}
+
+export type SetPersonasProjectResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+export async function setPersonasProject(input: {
+  profileId: string;
+  projectId: string | null;
+}): Promise<SetPersonasProjectResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  if (input.projectId !== null && !UUID_REGEX.test(input.projectId)) {
+    return { ok: false, error: "Projet invalide." };
+  }
+  const own = await ensureProfileExists(auth.admin, input.profileId);
+  if (!own.ok) return { ok: false, error: own.error };
+
+  // Si on attache à un projet, il doit appartenir au même client.
+  if (input.projectId !== null) {
+    const { data: project } = await auth.admin
+      .from("projects")
+      .select("id, profile_id")
+      .eq("id", input.projectId)
+      .maybeSingle();
+    if (!project || project.profile_id !== input.profileId) {
+      return { ok: false, error: "Projet introuvable pour ce client." };
+    }
+  }
+
+  const { error } = await auth.admin
+    .from("profiles")
+    .update({ personas_project_id: input.projectId } as never)
+    .eq("id", input.profileId);
+  if (error) {
+    console.error("[setPersonasProject] update error:", error);
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  return { ok: true };
+}
+
 export type SetPersonaCoverResult =
   | { ok: true }
   | { ok: false; error: string };
