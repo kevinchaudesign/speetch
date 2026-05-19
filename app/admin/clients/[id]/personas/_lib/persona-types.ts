@@ -67,3 +67,37 @@ export const PERSONA_PATCHABLE_FIELDS = [
   "tech_comfort",
   "notes",
 ] as const;
+
+// ─── Types UI partagés liste/détail ─────────────────────────────────────────
+
+/** Vignette d'un média de la médiathèque taggé sur un persona. */
+export type PersonaMedia = {
+  id: string;
+  filename: string;
+  mime_type: string;
+  public_url: string;
+};
+
+/**
+ * Persona enrichi pour l'UI : champs DB éditables + média(s) taggé(s).
+ * Le champ `media` n'est PAS patchable — il est calculé côté serveur depuis
+ * client_media.persona_id.
+ */
+export type PersonaItem = Pick<
+  ClientPersonaRow,
+  | "id"
+  | "name"
+  | "role"
+  | "age"
+  | "location"
+  | "quote"
+  | "bio"
+  | "goals"
+  | "frustrations"
+  | "motivations"
+  | "behaviors"
+  | "tech_comfort"
+  | "notes"
+> & {
+  media: PersonaMedia[];
+};

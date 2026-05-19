@@ -3,51 +3,18 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ConfirmDialog } from "@/lib/ds";
-import {
-  createPersona,
-  deletePersona,
-  reorderPersonas,
-  updatePersona,
-} from "../actions";
-import type { ClientPersonaRow } from "../_lib/persona-types";
-
-export type PersonaMedia = {
-  id: string;
-  filename: string;
-  mime_type: string;
-  public_url: string;
-};
-
-export type PersonaItem = Pick<
-  ClientPersonaRow,
-  | "id"
-  | "name"
-  | "role"
-  | "age"
-  | "location"
-  | "quote"
-  | "bio"
-  | "goals"
-  | "frustrations"
-  | "motivations"
-  | "behaviors"
-  | "tech_comfort"
-  | "notes"
-> & {
-  /** Médias de la médiathèque taggés sur ce persona — lecture seule ici,
-   *  l'assignment se fait depuis /admin/clients/:id/media. */
-  media: PersonaMedia[];
-};
+import { deletePersona, updatePersona } from "../actions";
+import type { PersonaItem, PersonaMedia } from "../_lib/persona-types";
 
 type PatchableField = Exclude<keyof PersonaItem, "id" | "media">;
 
-// ─── Styles input/textarea — alignés sur le reste de l'admin ────────────────
+// ─── Styles input/textarea ─────────────────────────────────────────────────
 const INPUT_CLASS =
   "w-full border-0 border-b border-white/15 bg-transparent py-2 text-sm text-[#F5F5F7] outline-none transition-colors placeholder:text-white/25 focus:border-white/45";
 const TEXTAREA_CLASS =
   "w-full resize-y border border-white/15 bg-white/[0.02] px-3 py-2 text-sm text-[#F5F5F7] outline-none transition-colors placeholder:text-white/25 focus:border-white/35";
 const NAME_INPUT_CLASS =
-  "w-full border-0 border-b border-white/20 bg-transparent py-2 font-sans text-2xl font-extralight tracking-[-0.02em] text-[#F5F5F7] outline-none transition-colors placeholder:text-white/25 focus:border-white/55";
+  "w-full border-0 border-b border-white/20 bg-transparent py-2 font-sans text-3xl font-extralight tracking-[-0.02em] text-[#F5F5F7] outline-none transition-colors placeholder:text-white/25 focus:border-white/55 md:text-4xl";
 
 const FIELD_LABEL_CLASS =
   "text-[10px] uppercase tracking-[0.32em] text-white/45";
@@ -55,200 +22,54 @@ const FIELD_LABEL_CLASS =
 const ERROR_CLASS =
   "text-[10px] uppercase tracking-[0.32em] text-red-300/80";
 
-export function PersonasEditor({
+export function PersonaDetailEditor({
   profileId,
-  initialPersonas,
+  persona,
 }: {
   profileId: string;
-  initialPersonas: PersonaItem[];
+  persona: PersonaItem;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [topError, setTopError] = useState<string | null>(null);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [confirmDelete, setConfirmDelete] = useState(false);
 
-  function handleAdd() {
+  function handleDelete() {
+    setConfirmDelete(false);
     setTopError(null);
     startTransition(async () => {
-      const res = await createPersona({ profileId });
+      const res = await deletePersona({ profileId, personaId: persona.id });
       if (!res.ok) {
         setTopError(res.error);
         return;
       }
+      // Retour à la liste après suppression.
+      router.push(`/admin/clients/${profileId}/personas`);
       router.refresh();
     });
   }
-
-  function handleDelete(personaId: string) {
-    setTopError(null);
-    setConfirmDeleteId(null);
-    startTransition(async () => {
-      const res = await deletePersona({ profileId, personaId });
-      if (!res.ok) {
-        setTopError(res.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
-
-  function handleMove(personaId: string, direction: "up" | "down") {
-    setTopError(null);
-    const ids = initialPersonas.map((p) => p.id);
-    const idx = ids.indexOf(personaId);
-    if (idx < 0) return;
-    const target = direction === "up" ? idx - 1 : idx + 1;
-    if (target < 0 || target >= ids.length) return;
-    const next = [...ids];
-    [next[idx], next[target]] = [next[target], next[idx]];
-
-    startTransition(async () => {
-      const res = await reorderPersonas({ profileId, personaIds: next });
-      if (!res.ok) {
-        setTopError(res.error);
-        return;
-      }
-      router.refresh();
-    });
-  }
-
-  const confirmTarget =
-    confirmDeleteId != null
-      ? initialPersonas.find((p) => p.id === confirmDeleteId) ?? null
-      : null;
 
   return (
     <div className="flex flex-col gap-10">
-      <div className="flex items-center justify-between">
-        <span className="text-[11px] uppercase tracking-[0.32em] text-white/45">
-          {initialPersonas.length} persona
-          {initialPersonas.length > 1 ? "s" : ""}
-        </span>
-        <Button
-          variant="primary"
-          onClick={handleAdd}
-          pending={pending}
-          pendingLabel="Ajout…"
-        >
-          + Persona
-        </Button>
-      </div>
-
       {topError && (
         <p className="border-l-2 border-red-400/40 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/80">
           {topError}
         </p>
       )}
 
-      {initialPersonas.length === 0 ? (
-        <p className="border-t border-white/10 pt-8 font-serif text-base italic text-white/40">
-          Aucun persona pour ce client. Clique sur « + Persona » pour en
-          créer un.
-        </p>
-      ) : (
-        <ul className="flex flex-col gap-8">
-          {initialPersonas.map((persona, index) => (
-            <li
-              key={persona.id}
-              className="flex flex-col gap-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6 md:p-10"
-            >
-              <PersonaCard
-                profileId={profileId}
-                persona={persona}
-                index={index}
-                total={initialPersonas.length}
-                pending={pending}
-                onMove={(dir) => handleMove(persona.id, dir)}
-                onRequestDelete={() => setConfirmDeleteId(persona.id)}
-              />
-            </li>
-          ))}
-        </ul>
-      )}
-
-      <ConfirmDialog
-        open={confirmTarget !== null}
-        title="Supprimer ce persona ?"
-        description={
-          confirmTarget ? (
-            <span>
-              <span className="font-serif italic">{confirmTarget.name}</span>{" "}
-              sera définitivement supprimé. Cette action est irréversible.
-            </span>
-          ) : null
-        }
-        confirmLabel="Supprimer"
-        tone="danger"
-        pending={pending}
-        onConfirm={() => {
-          if (confirmDeleteId) handleDelete(confirmDeleteId);
-        }}
-        onCancel={() => setConfirmDeleteId(null)}
-      />
-    </div>
-  );
-}
-
-// ─── Carte persona ──────────────────────────────────────────────────────────
-
-function PersonaCard({
-  profileId,
-  persona,
-  index,
-  total,
-  pending,
-  onMove,
-  onRequestDelete,
-}: {
-  profileId: string;
-  persona: PersonaItem;
-  index: number;
-  total: number;
-  pending: boolean;
-  onMove: (direction: "up" | "down") => void;
-  onRequestDelete: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-8">
-      <div className="flex items-start justify-between gap-6">
-        <div className="flex-1">
-          <p className="mb-2 text-[10px] uppercase tracking-[0.4em] text-white/30">
-            Persona {String(index + 1).padStart(2, "0")}
-          </p>
-          <AutosaveTextInput
-            profileId={profileId}
-            personaId={persona.id}
-            field="name"
-            initialValue={persona.name}
-            placeholder="Nom du persona"
-            className={NAME_INPUT_CLASS}
-            ariaLabel="Nom du persona"
-          />
-        </div>
-
-        <div className="flex shrink-0 items-center gap-5 pt-7">
-          <button
-            type="button"
-            onClick={() => onMove("up")}
-            disabled={pending || index === 0}
-            aria-label="Monter ce persona"
-            className="text-[11px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-white/40"
-          >
-            ↑
-          </button>
-          <button
-            type="button"
-            onClick={() => onMove("down")}
-            disabled={pending || index === total - 1}
-            aria-label="Descendre ce persona"
-            className="text-[11px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-white/40"
-          >
-            ↓
-          </button>
-          <Button variant="danger" onClick={onRequestDelete} pending={pending}>
-            Supprimer
-          </Button>
-        </div>
+      <div className="flex flex-col gap-2">
+        <span className="text-[10px] uppercase tracking-[0.4em] text-white/30">
+          Nom du persona
+        </span>
+        <AutosaveTextInput
+          profileId={profileId}
+          personaId={persona.id}
+          field="name"
+          initialValue={persona.name}
+          placeholder="Nom du persona"
+          className={NAME_INPUT_CLASS}
+          ariaLabel="Nom du persona"
+        />
       </div>
 
       <PersonaMediaStrip media={persona.media} />
@@ -390,9 +211,37 @@ function PersonaCard({
           rows={4}
         />
       </FieldBlock>
+
+      <div className="flex items-center justify-end border-t border-white/10 pt-8">
+        <Button
+          variant="danger"
+          onClick={() => setConfirmDelete(true)}
+          pending={pending}
+        >
+          Supprimer ce persona
+        </Button>
+      </div>
+
+      <ConfirmDialog
+        open={confirmDelete}
+        title="Supprimer ce persona ?"
+        description={
+          <span>
+            <span className="font-serif italic">{persona.name}</span> sera
+            définitivement supprimé. Cette action est irréversible.
+          </span>
+        }
+        confirmLabel="Supprimer"
+        tone="danger"
+        pending={pending}
+        onConfirm={handleDelete}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </div>
   );
 }
+
+// ─── Sous-composants ────────────────────────────────────────────────────────
 
 function PersonaMediaStrip({ media }: { media: PersonaMedia[] }) {
   if (media.length === 0) {
@@ -409,9 +258,7 @@ function PersonaMediaStrip({ media }: { media: PersonaMedia[] }) {
 
   return (
     <div className="flex flex-col gap-3">
-      <span className={FIELD_LABEL_CLASS}>
-        Visuels ({media.length})
-      </span>
+      <span className={FIELD_LABEL_CLASS}>Visuels ({media.length})</span>
       <ul className="flex flex-wrap gap-3">
         {media.map((m) => (
           <li key={m.id}>
@@ -483,11 +330,9 @@ function useAutosave(
 ) {
   const [value, setValue] = useState(initialValue);
   const [error, setError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
   const lastSavedRef = useRef(initialValue);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Resync si le serveur change la valeur (revalidatePath, etc.).
   useEffect(() => {
     if (initialValue !== lastSavedRef.current) {
       lastSavedRef.current = initialValue;
@@ -508,13 +353,11 @@ function useAutosave(
     if (next === lastSavedRef.current) return;
 
     timeoutRef.current = setTimeout(async () => {
-      setSaving(true);
       const res = await updatePersona({
         profileId,
         personaId,
         patch: { [field]: next },
       });
-      setSaving(false);
       if (res.ok) {
         lastSavedRef.current = next;
       } else {
@@ -523,7 +366,7 @@ function useAutosave(
     }, DEBOUNCE_MS);
   }
 
-  return { value, onChange, error, saving };
+  return { value, onChange, error };
 }
 
 function AutosaveTextInput({

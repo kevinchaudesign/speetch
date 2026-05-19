@@ -3,12 +3,12 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button } from "@/lib/ds";
-import {
-  PersonasEditor,
-  type PersonaItem,
-  type PersonaMedia,
-} from "./_components/personas-editor";
-import type { ClientPersonaRow } from "./_lib/persona-types";
+import { PersonasList } from "./_components/personas-list";
+import type {
+  ClientPersonaRow,
+  PersonaItem,
+  PersonaMedia,
+} from "./_lib/persona-types";
 import type { MediaRow } from "../media/_lib/types";
 
 const MEDIA_BUCKET = "page-media";
@@ -176,7 +176,7 @@ export default async function ClientPersonasPage({
           </p>
         </header>
 
-        <PersonasEditor profileId={id} initialPersonas={personas} />
+        <PersonasList profileId={id} initialPersonas={personas} />
 
         <div className="flex items-center pt-4">
           <Button href="/admin/clients" variant="ghost">
