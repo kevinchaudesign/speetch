@@ -596,7 +596,14 @@ function MediaTile({
   const vid = isVideo(item.mime_type);
 
   return (
-    <li className="group relative flex flex-col gap-2 overflow-hidden">
+    <li
+      className={cn(
+        "group relative flex flex-col gap-2",
+        // Quand le menu est ouvert on hisse la tuile au-dessus des sœurs
+        // sinon le dropdown est mangé par les vignettes voisines de la grille.
+        menuOpen && "z-30",
+      )}
+    >
       <button
         type="button"
         onClick={onPreview}
