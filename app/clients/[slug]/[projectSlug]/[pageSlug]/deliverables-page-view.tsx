@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { nextImageUrl, nextImageSrcSet } from "@/lib/next-image-url";
 import {
   postClientFeedback,
   setDeliverableStatusByClient,
@@ -443,7 +444,9 @@ function MediaPreview({ media }: { media: PublicDeliverable["media"] }) {
         >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={media.public_url}
+            src={nextImageUrl(media.public_url)}
+            srcSet={nextImageSrcSet(media.public_url)}
+            sizes="(min-width: 1024px) 80vw, 100vw"
             alt={media.filename}
             loading="lazy"
             onLoad={(e) => {

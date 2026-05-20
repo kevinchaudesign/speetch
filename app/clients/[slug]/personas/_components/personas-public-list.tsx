@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
+import { nextImageUrl, nextImageSrcSet } from "@/lib/next-image-url";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -98,7 +99,9 @@ function PersonaPreviewCard({
             hero.mime_type.startsWith("image/") ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
-                src={hero.public_url}
+                src={nextImageUrl(hero.public_url, 1080)}
+                srcSet={nextImageSrcSet(hero.public_url)}
+                sizes="(min-width: 1024px) 33vw, (min-width: 640px) 50vw, 100vw"
                 alt={persona.name}
                 loading="lazy"
                 className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 ease-out group-hover:scale-[1.02]"

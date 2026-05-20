@@ -133,6 +133,45 @@ export function MediaLibraryView({
   const folders = initialFolders;
   const items = initialItems;
 
+  // Poids du thumb AVIF réellement servi par /_next/image, capturé via
+  // Performance API. `encodedBodySize` reflète les octets du corps
+  // (y compris pour les hits cache, contrairement à `transferSize`).
+  const [thumbBytes, setThumbBytes] = useState<Map<string, number>>(new Map());
+  useEffect(() => {
+    if (typeof PerformanceObserver === "undefined") return;
+    const urlToId = new Map(items.map((i) => [i.public_url, i.id]));
+
+    const ingest = (entry: PerformanceResourceTiming) => {
+      if (!entry.name.includes("/_next/image")) return;
+      try {
+        const u = new URL(entry.name, window.location.origin);
+        const orig = u.searchParams.get("url");
+        if (!orig) return;
+        const id = urlToId.get(decodeURIComponent(orig));
+        if (!id) return;
+        const bytes = entry.encodedBodySize || entry.transferSize;
+        if (!bytes) return;
+        setThumbBytes((prev) => {
+          if (prev.get(id) === bytes) return prev;
+          const next = new Map(prev);
+          next.set(id, bytes);
+          return next;
+        });
+      } catch {
+        /* URL mal formée — ignore */
+      }
+    };
+
+    for (const e of performance.getEntriesByType("resource")) {
+      ingest(e as PerformanceResourceTiming);
+    }
+    const obs = new PerformanceObserver((list) => {
+      for (const e of list.getEntries()) ingest(e as PerformanceResourceTiming);
+    });
+    obs.observe({ type: "resource", buffered: true });
+    return () => obs.disconnect();
+  }, [items]);
+
   // ── Tag persona ──────────────────────────────────────────────────────────
   const personaFolderIds = useMemo(() => {
     const set = new Set<string>();
@@ -459,6 +498,7 @@ export function MediaLibraryView({
                     <MediaTile
                       key={m.id}
                       item={m}
+                      thumbBytes={thumbBytes.get(m.id) ?? null}
                       menuOpen={openMenuId === m.id}
                       selected={selectedIds.has(m.id)}
                       anySelected={hasSelection}
@@ -798,6 +838,7 @@ function FolderRow({
 
 function MediaTile({
   item,
+  thumbBytes,
   menuOpen,
   selected,
   anySelected,
@@ -812,6 +853,8 @@ function MediaTile({
   onDelete,
 }: {
   item: MediaItem;
+  /** Octets transférés du thumb AVIF/WebP via /_next/image, ou null si pas encore mesuré. */
+  thumbBytes: number | null;
   menuOpen: boolean;
   selected: boolean;
   anySelected: boolean;
@@ -994,8 +1037,15 @@ function MediaTile({
           </AnimatePresence>
         </div>
       </div>
-      <span className="px-1 font-mono text-[10px] text-white/30">
-        {formatSize(item.size_bytes)}
+      <span className="flex flex-wrap items-baseline gap-x-2 px-1 font-mono text-[10px] text-white/30">
+        <span>orig {formatSize(item.size_bytes)}</span>
+        {isImage(item.mime_type) && (
+          <span className="text-white/50">
+            {thumbBytes != null
+              ? `· thumb ${formatSize(thumbBytes)}`
+              : "· thumb …"}
+          </span>
+        )}
       </span>
 
       {personaOptions !== null && (
@@ -1430,14 +1480,13 @@ function PreviewModal({
             </div>
             <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
               {isImage(item.mime_type) ? (
-                <Image
+                // Preview plein écran : on sert l'original (sans transcodage AVIF)
+                // pour permettre l'inspection pixel-perfect d'un livrable.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
                   src={item.public_url}
                   alt={item.filename}
-                  width={item.width ?? 1600}
-                  height={item.height ?? 1200}
-                  sizes="(min-width: 1024px) 80vw, 100vw"
-                  className="max-h-[80vh] w-auto max-w-full object-contain"
-                  unoptimized={item.mime_type === "image/svg+xml"}
+                  className="max-h-[80vh] max-w-full object-contain"
                 />
               ) : isVideo(item.mime_type) ? (
                 <video
