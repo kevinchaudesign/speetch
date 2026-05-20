@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { Button, ConfirmDialog } from "@/lib/ds";
 import { cn } from "@/lib/utils";
 import {
@@ -354,11 +355,14 @@ function MediaThumb({ media }: { media: AdminMediaOption | null }) {
   if (media.mime_type.startsWith("image/")) {
     return (
       <div className="relative max-h-[420px] w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+        <Image
           src={media.public_url}
           alt={media.filename}
+          width={1600}
+          height={1200}
+          sizes="(min-width: 1024px) 800px, 100vw"
           className="block max-h-[420px] w-auto object-contain"
+          unoptimized={media.mime_type === "image/svg+xml"}
         />
       </div>
     );
@@ -740,12 +744,13 @@ function MediaPickerModal({
                     >
                       <span className="relative block aspect-square w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all group-hover:border-white/35">
                         {m.mime_type.startsWith("image/") ? (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
+                          <Image
                             src={m.public_url}
                             alt={m.filename}
-                            loading="lazy"
-                            className="absolute inset-0 h-full w-full object-cover"
+                            fill
+                            sizes="(min-width: 1024px) 180px, (min-width: 768px) 25vw, 50vw"
+                            className="object-cover"
+                            unoptimized={m.mime_type === "image/svg+xml"}
                           />
                         ) : m.mime_type.startsWith("video/") ? (
                           <>

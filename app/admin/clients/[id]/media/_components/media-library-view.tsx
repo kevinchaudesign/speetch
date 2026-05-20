@@ -9,6 +9,7 @@ import {
   useTransition,
 } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button, ConfirmDialog, AlertDialog, Field, Eyebrow } from "@/lib/ds";
 import { cn } from "@/lib/utils";
@@ -871,12 +872,12 @@ function MediaTile({
         )}
       >
         {img && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
+          <Image
             src={item.public_url}
             alt={item.filename}
-            loading="lazy"
-            className="absolute inset-0 h-full w-full object-cover"
+            fill
+            sizes="(min-width: 1024px) 240px, (min-width: 640px) 33vw, 50vw"
+            className="object-cover"
           />
         )}
         {vid && (
@@ -1429,11 +1430,14 @@ function PreviewModal({
             </div>
             <div className="overflow-hidden rounded-2xl border border-white/10 bg-black">
               {isImage(item.mime_type) ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={item.public_url}
                   alt={item.filename}
-                  className="max-h-[80vh] max-w-full object-contain"
+                  width={item.width ?? 1600}
+                  height={item.height ?? 1200}
+                  sizes="(min-width: 1024px) 80vw, 100vw"
+                  className="max-h-[80vh] w-auto max-w-full object-contain"
+                  unoptimized={item.mime_type === "image/svg+xml"}
                 />
               ) : isVideo(item.mime_type) ? (
                 <video
