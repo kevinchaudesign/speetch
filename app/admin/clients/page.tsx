@@ -158,8 +158,13 @@ function ClientListRow({ client }: { client: ClientRow }) {
       <div className="flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3">
         <div className="flex min-w-0 flex-1 flex-col gap-2">
           <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-            <h2 className="text-2xl font-light text-[#F5F5F7] md:text-3xl">
-              {client.full_name ?? "Sans nom"}
+            <h2 className="text-2xl font-light md:text-3xl">
+              <Link
+                href={`/admin/clients/${client.slug ?? client.id}`}
+                className="text-[#F5F5F7] transition-colors hover:text-white/70"
+              >
+                {client.full_name ?? "Sans nom"}
+              </Link>
             </h2>
             {client.is_published ? (
               <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.32em] text-emerald-300/75">
