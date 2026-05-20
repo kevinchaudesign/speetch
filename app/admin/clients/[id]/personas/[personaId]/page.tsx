@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import { PersonaDetailEditor } from "../_components/persona-detail-editor";
 import type {
@@ -29,7 +30,7 @@ export default async function PersonaDetailPage({
   params: Promise<{ id: string; personaId: string }>;
 }) {
   const { id, personaId } = await params;
-  if (!UUID_REGEX.test(id) || !UUID_REGEX.test(personaId)) notFound();
+  if (!UUID_REGEX.test(personaId)) notFound();
 
   const supabase = await createClient();
   const {
@@ -48,7 +49,7 @@ export default async function PersonaDetailPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, is_owner")
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
     .maybeSingle();
   if (!profile || profile.is_owner) notFound();
 
@@ -60,7 +61,7 @@ export default async function PersonaDetailPage({
       "id, name, role, age, location, quote, bio, goals, frustrations, motivations, behaviors, tech_comfort, notes, cover_media_id, profile_id",
     )
     .eq("id", personaId)
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .maybeSingle<
       Pick<
         ClientPersonaRow,
@@ -87,7 +88,7 @@ export default async function PersonaDetailPage({
   const { data: mediaRows } = await admin
     .from("client_media" as never)
     .select("id, filename, storage_path, mime_type, position, created_at")
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .eq("persona_id", personaId)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true })
@@ -164,7 +165,7 @@ export default async function PersonaDetailPage({
           </p>
         </header>
 
-        <PersonaDetailEditor profileId={id} persona={persona} />
+        <PersonaDetailEditor profileId={profile.id} persona={persona} />
 
         <div className="flex items-center pt-4">
           <Button

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { NewContextForm } from "./new-context-form";
 
 export const metadata: Metadata = {
@@ -10,16 +11,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function NewClientContextPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (!UUID_REGEX.test(id)) notFound();
 
   const supabase = await createClient();
   const {
@@ -39,14 +36,15 @@ export default async function NewClientContextPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name")
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
+    .eq("is_owner", false)
     .maybeSingle();
 
   if (!profile) notFound();
 
   return (
     <NewContextForm
-      profileId={id}
+      profileId={profile.id}
       clientName={profile.full_name ?? "Client"}
     />
   );

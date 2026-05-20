@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { isDbTemplateId } from "@/lib/page-templates";
 import { Button, StatusBadge } from "@/lib/ds";
@@ -33,7 +34,7 @@ export default async function ProjectDetailPage({
 }) {
   const { id, projectId } = await params;
 
-  if (!UUID_REGEX.test(id) || !UUID_REGEX.test(projectId)) {
+  if (!UUID_REGEX.test(projectId)) {
     notFound();
   }
 
@@ -53,13 +54,21 @@ export default async function ProjectDetailPage({
 
   const admin = createAdminClient();
 
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq(clientLookupColumn(id), id)
+    .eq("is_owner", false)
+    .maybeSingle();
+  if (!profile) notFound();
+
   const { data: project } = await admin
     .from("projects")
     .select(
       "id, name, subtitle, project_type, is_published, profile_id, profiles!profile_id(full_name, slug)",
     )
     .eq("id", projectId)
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .maybeSingle();
 
   if (!project) {
@@ -247,7 +256,7 @@ export default async function ProjectDetailPage({
           <EmptyState clientId={id} projectId={projectId} />
         ) : (
           <ProjectBoard
-            profileId={id}
+            profileId={profile.id}
             projectId={projectId}
             initialLots={lots}
             initialPages={pages}

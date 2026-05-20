@@ -1060,7 +1060,7 @@ si seule → aria-label requis sur le parent`}
               tracking="0"
               leading="1.5"
               weight="400"
-              sample="/clients/club-abrazo · 050d8f9b"
+              sample="/clients/clubabrazo · 050d8f9b"
               accent=""
               previewSize="11px"
               usage="Path, ID, valeurs hex, snippets. Font-mono."

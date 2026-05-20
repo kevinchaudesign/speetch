@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { Button, Chip, Hairline } from "@/lib/ds";
 import type { ClientContextSummary } from "./_lib/types";
 import { DeleteContextButton } from "./_components/delete-context-button";
@@ -14,16 +15,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function ClientContextListPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (!UUID_REGEX.test(id)) notFound();
 
   const supabase = await createClient();
   const {
@@ -44,7 +41,8 @@ export default async function ClientContextListPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
+    .eq("is_owner", false)
     .maybeSingle();
 
   if (!profile) notFound();
@@ -54,7 +52,7 @@ export default async function ClientContextListPage({
     .select(
       "id, title, slug, summary, source_kind, source_url, source_filename, position, project_id, published_page_id, content, created_at, updated_at",
     )
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .order("created_at", { ascending: false });
 
@@ -159,7 +157,7 @@ export default async function ClientContextListPage({
                         </Chip>
                       )}
                       <SpeetchStyleButton
-                        profileId={id}
+                        profileId={profile.id}
                         contextId={ctx.id}
                         initialEnabled={
                           ctx.content?.meta?.apply_speetch_ds === true
@@ -185,7 +183,7 @@ export default async function ClientContextListPage({
 
                   <div className="flex shrink-0 items-center gap-6">
                     <DeleteContextButton
-                      profileId={id}
+                      profileId={profile.id}
                       contextId={ctx.id}
                       contextTitle={ctx.title}
                       redirectTo={`/admin/clients/${id}/context`}

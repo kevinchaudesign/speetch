@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { Button, Chip, Hairline } from "@/lib/ds";
 import type { PageContent } from "@/types/database";
 import { DeleteContextButton } from "../_components/delete-context-button";
@@ -25,7 +26,7 @@ export default async function ContextDetailPage({
   params: Promise<{ id: string; contextId: string }>;
 }) {
   const { id, contextId } = await params;
-  if (!UUID_REGEX.test(id) || !UUID_REGEX.test(contextId)) notFound();
+  if (!UUID_REGEX.test(contextId)) notFound();
 
   const supabase = await createClient();
   const {
@@ -46,7 +47,8 @@ export default async function ContextDetailPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
+    .eq("is_owner", false)
     .maybeSingle();
   if (!profile) notFound();
 
@@ -58,12 +60,12 @@ export default async function ContextDetailPage({
     .eq("id", contextId)
     .maybeSingle<ClientContextRow>();
 
-  if (!ctxData || ctxData.profile_id !== id) notFound();
+  if (!ctxData || ctxData.profile_id !== profile.id) notFound();
 
   const { data: projectsData } = await admin
     .from("projects")
     .select("id, name, slug, is_published")
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .order("created_at", { ascending: false });
   const projects = (projectsData ?? []) as Array<{
@@ -192,7 +194,7 @@ export default async function ContextDetailPage({
             </div>
 
             <DeleteContextButton
-              profileId={id}
+              profileId={profile.id}
               contextId={contextId}
               contextTitle={ctxData.title}
               redirectTo={`/admin/clients/${id}/context`}
@@ -202,7 +204,7 @@ export default async function ContextDetailPage({
 
         <div className="border-t border-white/10 pt-10">
           <PublishingPanel
-            profileId={id}
+            profileId={profile.id}
             contextId={contextId}
             clientSlug={profile.slug ?? null}
             initialProjectId={ctxData.project_id}
@@ -216,7 +218,7 @@ export default async function ContextDetailPage({
             <RawHtmlContextView
               rawHtml={rawHtml}
               title={ctxData.title}
-              profileId={id}
+              profileId={profile.id}
               contextId={contextId}
               initialHiddenElements={hiddenElements}
               initialTextOverrides={textOverrides}

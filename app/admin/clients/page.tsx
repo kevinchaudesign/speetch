@@ -199,35 +199,35 @@ function ClientListRow({ client }: { client: ClientRow }) {
 
         <div className="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-2">
           <Button
-            href={`/admin/clients/${client.id}/design`}
+            href={`/admin/clients/${client.slug ?? client.id}/design`}
             variant="primary"
             className="text-white/55"
           >
             Design
           </Button>
           <Button
-            href={`/admin/clients/${client.id}/context`}
+            href={`/admin/clients/${client.slug ?? client.id}/context`}
             variant="primary"
             className="text-white/55"
           >
             Contexte
           </Button>
           <Button
-            href={`/admin/clients/${client.id}/personas`}
+            href={`/admin/clients/${client.slug ?? client.id}/personas`}
             variant="primary"
             className="text-white/55"
           >
             Personas
           </Button>
           <Button
-            href={`/admin/clients/${client.id}/media`}
+            href={`/admin/clients/${client.slug ?? client.id}/media`}
             variant="primary"
             className="text-white/55"
           >
             Médiathèque
           </Button>
           <Button
-            href={`/admin/clients/${client.id}/projects/new`}
+            href={`/admin/clients/${client.slug ?? client.id}/projects/new`}
             variant="primary"
             className="text-white/55"
           >
@@ -257,7 +257,7 @@ function ClientListRow({ client }: { client: ClientRow }) {
                 className="group flex flex-wrap items-baseline gap-x-4 gap-y-1 py-1.5"
               >
                 <Link
-                  href={`/admin/clients/${client.id}/projects/${project.id}`}
+                  href={`/admin/clients/${client.slug ?? client.id}/projects/${project.id}`}
                   className="inline-flex items-baseline gap-x-4 transition-colors"
                 >
                   <span className="text-base font-light text-white/80 transition-colors group-hover:text-[#F5F5F7] md:text-lg">

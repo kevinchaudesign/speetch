@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { deleteDesignFile } from "./actions";
 import { UploadZone } from "./upload-zone";
 
@@ -13,9 +14,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 function formatSize(bytes: number | null | undefined): string {
   if (!bytes && bytes !== 0) return "—";
@@ -44,7 +42,6 @@ export default async function DesignPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (!UUID_REGEX.test(id)) notFound();
 
   const supabase = await createClient();
   const {
@@ -64,7 +61,7 @@ export default async function DesignPage({
   const { data: client } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
 
@@ -73,7 +70,7 @@ export default async function DesignPage({
   // Liste les fichiers du bucket dans le dossier <client-id>/
   const { data: storageFiles, error: storageError } = await admin.storage
     .from(DESIGN_BUCKET)
-    .list(id, {
+    .list(client.id, {
       sortBy: { column: "created_at", order: "desc" },
     });
 
@@ -82,7 +79,7 @@ export default async function DesignPage({
     (storageFiles ?? [])
       .filter((f) => f.name && !f.name.startsWith(".")) // ignore placeholders
       .map(async (f) => {
-        const path = `${id}/${f.name}`;
+        const path = `${client.id}/${f.name}`;
         const { data: signed } = await admin.storage
           .from(DESIGN_BUCKET)
           .createSignedUrl(path, 60 * 60);
@@ -143,7 +140,7 @@ export default async function DesignPage({
         </div>
 
         {/* Upload zone */}
-        <UploadZone clientId={id} />
+        <UploadZone clientId={client.id} />
 
         {/* Fichiers existants */}
         <div className="flex flex-col gap-6">
@@ -204,7 +201,7 @@ export default async function DesignPage({
                       </a>
                     )}
                     <form action={deleteDesignFile}>
-                      <input type="hidden" name="client_id" value={id} />
+                      <input type="hidden" name="client_id" value={client.id} />
                       <input type="hidden" name="path" value={file.path} />
                       <button
                         type="submit"

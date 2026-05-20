@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { Button, Eyebrow, StatusBadge } from "@/lib/ds";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { DeleteProjectButton } from "./projects/[projectId]/_components/delete-project-button";
 
 export const metadata: Metadata = {
@@ -12,9 +13,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 type ProjectMini = {
   id: string;
@@ -58,26 +56,12 @@ export default async function ClientHubPage({
 
   const admin = createAdminClient();
 
-  // Accepte UUID ou slug. Si slug → redirige vers l'URL canonique en UUID
-  // pour rester cohérent avec les sous-pages qui n'acceptent que l'UUID.
-  const isUuid = UUID_REGEX.test(id);
-  if (!isUuid) {
-    const { data: bySlug } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("slug", id)
-      .eq("is_owner", false)
-      .maybeSingle();
-    if (!bySlug) notFound();
-    redirect(`/admin/clients/${bySlug.id}`);
-  }
-
   const { data, error } = await admin
     .from("profiles")
     .select(
       "id, full_name, slug, client_email, is_published, created_at, projects!profile_id(id, name, is_published, project_type, position, created_at)",
     )
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
 

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import {
   MediaLibraryView,
@@ -19,9 +20,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 const BUCKET = "page-media";
 
 export default async function ClientMediaPage({
@@ -30,7 +28,6 @@ export default async function ClientMediaPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (!UUID_REGEX.test(id)) notFound();
 
   const supabase = await createClient();
   const {
@@ -49,14 +46,14 @@ export default async function ClientMediaPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, is_owner")
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
     .maybeSingle();
   if (!profile || profile.is_owner) notFound();
 
   const { data: foldersData } = await admin
     .from("client_media_folders" as never)
     .select("id, name, position, created_at")
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .returns<
       Array<Pick<MediaFolderRow, "id" | "name" | "position" | "created_at">>
@@ -67,7 +64,7 @@ export default async function ClientMediaPage({
     .select(
       "id, folder_id, persona_id, filename, storage_path, mime_type, size_bytes, width, height, duration_seconds, position, created_at",
     )
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .order("created_at", { ascending: false })
     .returns<
@@ -93,7 +90,7 @@ export default async function ClientMediaPage({
   const { data: personasData } = await admin
     .from("client_personas" as never)
     .select("id, name, position")
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .returns<Array<Pick<ClientPersonaRow, "id" | "name" | "position">>>();
 
@@ -166,7 +163,7 @@ export default async function ClientMediaPage({
         </header>
 
         <MediaLibraryView
-          profileId={id}
+          profileId={profile.id}
           initialFolders={folders}
           initialItems={items}
           personas={personas}

@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import { PersonasList } from "./_components/personas-list";
 import {
@@ -24,16 +25,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function ClientPersonasPage({
   params,
 }: {
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  if (!UUID_REGEX.test(id)) notFound();
 
   const supabase = await createClient();
   const {
@@ -52,7 +49,7 @@ export default async function ClientPersonasPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, is_owner, personas_published")
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
     .maybeSingle<{
       id: string;
       full_name: string | null;
@@ -66,7 +63,7 @@ export default async function ClientPersonasPage({
   const { data: projectsData } = await admin
     .from("projects")
     .select("id, name, position, created_at")
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true });
 
@@ -78,7 +75,7 @@ export default async function ClientPersonasPage({
   const { data: pinsData } = await admin
     .from("client_personas_project_pins" as never)
     .select("project_id")
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .returns<Array<{ project_id: string }>>();
   const pinnedProjectIds: string[] = (pinsData ?? []).map((p) => p.project_id);
 
@@ -87,7 +84,7 @@ export default async function ClientPersonasPage({
     .select(
       "id, name, role, age, location, quote, bio, goals, frustrations, motivations, behaviors, tech_comfort, notes, cover_media_id, position",
     )
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true })
     .returns<
@@ -121,7 +118,7 @@ export default async function ClientPersonasPage({
     .select(
       "id, persona_id, filename, storage_path, mime_type, position, created_at",
     )
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true })
     .returns<
@@ -209,13 +206,13 @@ export default async function ClientPersonasPage({
         </header>
 
         <PersonasSettingsPanel
-          profileId={id}
+          profileId={profile.id}
           published={profile.personas_published ?? false}
           pinnedProjectIds={pinnedProjectIds}
           projects={projects}
         />
 
-        <PersonasList profileId={id} initialPersonas={personas} />
+        <PersonasList profileId={profile.id} initialPersonas={personas} />
 
         <div className="flex items-center pt-4">
           <Button href="/admin/clients" variant="ghost">

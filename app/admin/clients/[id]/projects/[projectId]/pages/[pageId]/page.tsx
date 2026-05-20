@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import type { Page, PageContent } from "@/types/database";
 import { PageEditor } from "./page-editor";
 import { RawHtmlPageEditor } from "./_raw/raw-html-page-editor";
@@ -22,11 +23,7 @@ export default async function EditPagePage({
 }) {
   const { id, projectId, pageId } = await params;
 
-  if (
-    !UUID_REGEX.test(id) ||
-    !UUID_REGEX.test(projectId) ||
-    !UUID_REGEX.test(pageId)
-  ) {
+  if (!UUID_REGEX.test(projectId) || !UUID_REGEX.test(pageId)) {
     notFound();
   }
 
@@ -47,6 +44,14 @@ export default async function EditPagePage({
   }
 
   const admin = createAdminClient();
+
+  const { data: clientProfile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq(clientLookupColumn(id), id)
+    .eq("is_owner", false)
+    .maybeSingle();
+  if (!clientProfile) notFound();
 
   const { data: pageData } = await admin
     .from("pages")
@@ -104,7 +109,7 @@ export default async function EditPagePage({
           | null;
       }>;
   const projectObj = Array.isArray(project) ? project[0] : project;
-  if (!projectObj || projectObj.profile_id !== id) {
+  if (!projectObj || projectObj.profile_id !== clientProfile.id) {
     notFound();
   }
   const profileObj = Array.isArray(projectObj.profiles)
@@ -143,7 +148,7 @@ export default async function EditPagePage({
     return (
       <RawHtmlPageEditor
         initialPage={page}
-        clientId={id}
+        clientId={clientProfile.id}
         projectId={projectId}
         projectName={projectObj.name}
         clientName={profileObj?.full_name ?? "Client"}
@@ -273,7 +278,7 @@ export default async function EditPagePage({
       .select(
         "id, filename, mime_type, storage_path, folder_id, position, created_at, client_media_folders(name)",
       )
-      .eq("profile_id", id)
+      .eq("profile_id", clientProfile.id)
       .order("position", { ascending: true })
       .order("created_at", { ascending: false })
       .returns<
@@ -310,7 +315,7 @@ export default async function EditPagePage({
     const { data: foldersData } = await admin
       .from("client_media_folders" as never)
       .select("id, name, position")
-      .eq("profile_id", id)
+      .eq("profile_id", clientProfile.id)
       .order("position", { ascending: true })
       .returns<Array<{ id: string; name: string; position: number }>>();
     availableFolders = (foldersData ?? []).map((f) => ({
@@ -323,7 +328,7 @@ export default async function EditPagePage({
   return (
     <PageEditor
       initialPage={page}
-      clientId={id}
+      clientId={clientProfile.id}
       projectId={projectId}
       projectName={projectObj.name}
       clientName={profileObj?.full_name ?? "Client"}

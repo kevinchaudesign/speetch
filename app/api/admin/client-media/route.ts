@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 /**
  * Liste la médiathèque d'un client (dossiers + items avec URL publique).
  * Auth Supabase requise (admin uniquement). Filtré par `slug` du client
- * passé en query string : `?slug=club-abrazo`.
+ * passé en query string : `?slug=clubabrazo`.
  */
 
 const MEDIA_BUCKET = "page-media";

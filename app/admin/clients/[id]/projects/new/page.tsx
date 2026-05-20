@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { isValidProjectType } from "@/lib/project-types";
 import { NewProjectForm } from "./new-project-form";
 import { TypePicker } from "./type-picker";
@@ -12,9 +13,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function NewProjectPage({
   params,
   searchParams,
@@ -24,8 +22,6 @@ export default async function NewProjectPage({
 }) {
   const { id } = await params;
   const { type } = await searchParams;
-
-  if (!UUID_REGEX.test(id)) notFound();
 
   const supabase = await createClient();
   const {
@@ -45,7 +41,7 @@ export default async function NewProjectPage({
   const { data: client } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq("id", id)
+    .eq(clientLookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
 

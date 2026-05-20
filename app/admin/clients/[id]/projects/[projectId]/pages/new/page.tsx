@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
+import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import {
   isValidTemplateId,
   RAW_HTML_VIRTUAL_TEMPLATE_ID,
@@ -30,7 +31,7 @@ export default async function NewPagePage({
   const { id, projectId } = await params;
   const { template } = await searchParams;
 
-  if (!UUID_REGEX.test(id) || !UUID_REGEX.test(projectId)) {
+  if (!UUID_REGEX.test(projectId)) {
     notFound();
   }
 
@@ -51,11 +52,20 @@ export default async function NewPagePage({
   }
 
   const admin = createAdminClient();
+
+  const { data: profile } = await admin
+    .from("profiles")
+    .select("id")
+    .eq(clientLookupColumn(id), id)
+    .eq("is_owner", false)
+    .maybeSingle();
+  if (!profile) notFound();
+
   const { data: project } = await admin
     .from("projects")
     .select("id, name, project_type, profile_id")
     .eq("id", projectId)
-    .eq("profile_id", id)
+    .eq("profile_id", profile.id)
     .maybeSingle();
 
   if (!project) {
@@ -66,7 +76,7 @@ export default async function NewPagePage({
   if (template === RAW_HTML_VIRTUAL_TEMPLATE_ID) {
     return (
       <NewRawHtmlPageForm
-        clientId={id}
+        clientId={profile.id}
         projectId={projectId}
         projectName={project.name}
       />
@@ -79,7 +89,7 @@ export default async function NewPagePage({
     if (resolved) {
       return (
         <NewPageForm
-          clientId={id}
+          clientId={profile.id}
           projectId={projectId}
           projectName={project.name}
           initialTemplateId={template}
@@ -95,7 +105,7 @@ export default async function NewPagePage({
 
   return (
     <TemplatePicker
-      clientId={id}
+      clientId={profile.id}
       projectId={projectId}
       projectName={project.name}
       templates={templates}
