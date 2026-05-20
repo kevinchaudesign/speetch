@@ -2,9 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { getProjectTypeLabel } from "@/lib/project-types";
-import { Button, Eyebrow, Hairline, StatusBadge } from "@/lib/ds";
-import { DeleteProjectButton } from "./[id]/projects/[projectId]/_components/delete-project-button";
+import { Button, Eyebrow } from "@/lib/ds";
 
 export const metadata: Metadata = {
   title: "Espaces clients",
@@ -13,23 +11,13 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-type ProjectMini = {
-  id: string;
-  name: string;
-  is_published: boolean;
-  project_type: string | null;
-  position: number;
-  created_at: string;
-};
-
 type ClientRow = {
   id: string;
   full_name: string | null;
   slug: string | null;
-  client_email: string | null;
   is_published: boolean;
   created_at: string;
-  projects: ProjectMini[] | null;
+  projects: { id: string; is_published: boolean }[] | null;
 };
 
 export default async function ClientsListPage() {
@@ -55,7 +43,7 @@ export default async function ClientsListPage() {
   const { data, error } = await admin
     .from("profiles")
     .select(
-      "id, full_name, slug, client_email, is_published, created_at, projects!profile_id(id, name, is_published, project_type, position, created_at)",
+      "id, full_name, slug, is_published, created_at, projects!profile_id(id, is_published)",
     )
     .eq("is_owner", false)
     .order("created_at", { ascending: false });
@@ -117,9 +105,9 @@ export default async function ClientsListPage() {
         {clients.length === 0 ? (
           <EmptyState />
         ) : (
-          <ul className="flex flex-col border-t border-white/10">
+          <ul className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {clients.map((client) => (
-              <ClientListRow key={client.id} client={client} />
+              <ClientCard key={client.id} client={client} />
             ))}
           </ul>
         )}
@@ -142,155 +130,45 @@ function EmptyState() {
   );
 }
 
-function ClientListRow({ client }: { client: ClientRow }) {
-  const formattedDate = new Date(client.created_at).toLocaleDateString(
-    "fr-FR",
-    { year: "numeric", month: "short", day: "numeric" },
-  );
-  const projects = [...(client.projects ?? [])].sort((a, b) => {
-    if (a.position !== b.position) return a.position - b.position;
-    return (a.created_at ?? "").localeCompare(b.created_at ?? "");
-  });
+function ClientCard({ client }: { client: ClientRow }) {
+  const projects = client.projects ?? [];
   const publishedProjects = projects.filter((p) => p.is_published).length;
+  const href = `/admin/clients/${client.slug ?? client.id}`;
 
   return (
-    <li className="flex flex-col gap-5 border-b border-white/10 py-7">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3">
-        <div className="flex min-w-0 flex-1 flex-col gap-2">
-          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
-            <h2 className="text-2xl font-light md:text-3xl">
-              <Link
-                href={`/admin/clients/${client.slug ?? client.id}`}
-                className="text-[#F5F5F7] transition-colors hover:text-white/70"
-              >
-                {client.full_name ?? "Sans nom"}
-              </Link>
-            </h2>
-            {client.is_published ? (
-              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.32em] text-emerald-300/75">
-                <span className="block h-1 w-1 rounded-full bg-emerald-300" />
-                Espace publié
-              </span>
-            ) : (
-              <span className="inline-flex items-center gap-1.5 text-[10px] uppercase tracking-[0.32em] text-amber-300/75">
-                <span className="block h-1 w-1 rounded-full bg-amber-300" />
-                Espace caché
-              </span>
-            )}
-            <span className="text-[10px] uppercase tracking-[0.32em] text-white/45">
-              {projects.length === 0
-                ? "Aucun projet"
-                : `${projects.length} projet${projects.length > 1 ? "s" : ""} · ${publishedProjects} publié${publishedProjects > 1 ? "s" : ""}`}
-            </span>
-          </div>
-
-          <p className="mt-1 break-all font-mono text-[11px] text-white/35">
-            <span>/clients/{client.slug ?? "—"}</span>
-            <span className="text-white/20"> · </span>
-            <span>{formattedDate}</span>
-            {client.client_email && (
-              <>
-                <span className="text-white/20"> · </span>
-                <span>{client.client_email}</span>
-              </>
-            )}
-          </p>
-        </div>
-
-        <div className="flex shrink-0 flex-wrap items-center gap-x-8 gap-y-2">
-          <Button
-            href={`/admin/clients/${client.slug ?? client.id}/design`}
-            variant="primary"
-            className="text-white/55"
-          >
-            Design
-          </Button>
-          <Button
-            href={`/admin/clients/${client.slug ?? client.id}/context`}
-            variant="primary"
-            className="text-white/55"
-          >
-            Contexte
-          </Button>
-          <Button
-            href={`/admin/clients/${client.slug ?? client.id}/personas`}
-            variant="primary"
-            className="text-white/55"
-          >
-            Personas
-          </Button>
-          <Button
-            href={`/admin/clients/${client.slug ?? client.id}/media`}
-            variant="primary"
-            className="text-white/55"
-          >
-            Médiathèque
-          </Button>
-          <Button
-            href={`/admin/clients/${client.slug ?? client.id}/projects/new`}
-            variant="primary"
-            className="text-white/55"
-          >
-            + Projet
-          </Button>
-          {client.slug && (
-            <Button
-              href={`/clients/${client.slug}`}
-              target="_blank"
-              rel="noopener"
-              variant="primary"
-              className="text-white/55"
-            >
-              Ouvrir
-            </Button>
+    <li>
+      <Link
+        href={href}
+        className="group flex h-full flex-col gap-4 border border-white/10 bg-white/[0.02] px-5 py-6 transition-colors hover:border-white/25 hover:bg-white/[0.04]"
+      >
+        <div className="flex items-start justify-between gap-3">
+          <h2 className="text-xl font-light text-[#F5F5F7] transition-colors md:text-2xl">
+            {client.full_name ?? "Sans nom"}
+          </h2>
+          {client.is_published ? (
+            <span
+              className="mt-2 block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300"
+              title="Espace publié"
+            />
+          ) : (
+            <span
+              className="mt-2 block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300"
+              title="Espace caché"
+            />
           )}
         </div>
-      </div>
 
-      {projects.length > 0 && (
-        <ul className="flex flex-col gap-1 md:pl-6">
-          {projects.map((project) => {
-            const typeLabel = getProjectTypeLabel(project.project_type);
-            return (
-              <li
-                key={project.id}
-                className="group flex flex-wrap items-baseline gap-x-4 gap-y-1 py-1.5"
-              >
-                <Link
-                  href={`/admin/clients/${client.slug ?? client.id}/projects/${project.id}`}
-                  className="inline-flex items-baseline gap-x-4 transition-colors"
-                >
-                  <span className="text-base font-light text-white/80 transition-colors group-hover:text-[#F5F5F7] md:text-lg">
-                    {project.name}
-                  </span>
-                  {typeLabel && (
-                    <span className="text-[10px] uppercase tracking-[0.28em] text-white/40">
-                      {typeLabel}
-                    </span>
-                  )}
-                  {project.is_published ? (
-                    <StatusBadge tone="success">Publié</StatusBadge>
-                  ) : (
-                    <StatusBadge tone="warning">Brouillon</StatusBadge>
-                  )}
-                </Link>
-                <div className="ml-auto flex items-center gap-5">
-                  <DeleteProjectButton
-                    profileId={client.id}
-                    projectId={project.id}
-                    projectName={project.name}
-                  />
-                  <Hairline
-                    width="md"
-                    hover="xl"
-                    className="bg-white/25 group-hover:bg-white"
-                  />
-                </div>
-              </li>
-            );
-          })}
-        </ul>
-      )}
+        <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
+          {projects.length === 0
+            ? "Aucun projet"
+            : `${projects.length} projet${projects.length > 1 ? "s" : ""} · ${publishedProjects} publié${publishedProjects > 1 ? "s" : ""}`}
+        </p>
+
+        <p className="mt-auto break-all font-mono text-[11px] text-white/35">
+          /clients/{client.slug ?? "—"}
+        </p>
+      </Link>
     </li>
   );
 }
+
