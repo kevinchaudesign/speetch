@@ -6,6 +6,7 @@ import { getProjectTypeLabel } from "@/lib/project-types";
 import { Button, Eyebrow, StatusBadge } from "@/lib/ds";
 import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { DeleteProjectButton } from "./projects/[projectId]/_components/delete-project-button";
+import { PasswordEditCard } from "./_components/password-edit-card";
 
 export const metadata: Metadata = {
   title: "Espace client · Admin",
@@ -191,6 +192,8 @@ export default async function ClientHubPage({
             )}
           </p>
         </div>
+
+        <PasswordEditCard profileId={client.id} />
 
         {/* Raccourcis sections */}
         <div className="flex flex-col gap-6">
