@@ -205,6 +205,27 @@ const SCRIPT_BODY = `
     return findImgNearTarget(target);
   }
 
+  // Vrai si target est un nœud "feuille texte" — un élément qui contient
+  // du texte direct et dont aucun descendant immédiat n'a lui-même
+  // d'enfants éléments. Faux pour un container qui regroupe plusieurs
+  // blocs (overlay éditorial, carrousel-card-overlay…). Permet de
+  // distinguer un clic intentionnel sur du texte d'un clic sur un
+  // container/overlay positionné par-dessus une image.
+  function isDirectTextLeaf(target) {
+    if (!target || target.nodeType !== 1) return false;
+    if (isSkippable(target)) return false;
+    if (target.tagName === 'IMG' || target.tagName === 'SVG') return false;
+    for (var i = 0; i < target.childNodes.length; i++) {
+      var c = target.childNodes[i];
+      if (c.nodeType !== 1) continue;
+      for (var j = 0; j < c.childNodes.length; j++) {
+        if (c.childNodes[j].nodeType === 1) return false;
+      }
+    }
+    var t = (target.textContent || '').trim();
+    return t.length > 0 && t.length < 1500;
+  }
+
   function onMouseMove(e) {
     if (!ARMED) return;
     var target = e.target;
@@ -216,9 +237,15 @@ const SCRIPT_BODY = `
       clearHover();
       return;
     }
-    // Priorité à une <img> empilée sous le curseur (passe par-dessus
-    // d'éventuels overlays absolus qui interceptent normalement le clic).
-    // Fallback DOM-walk si l'image est cassée (bounding box nulle).
+    // Si on est précisément sur un nœud feuille texte (<em>, <span>...,
+    // pas un container), c'est un clic intentionnel sur texte → on
+    // priorise la branche texte pour ne pas voler le clic au chatbot
+    // d'édition. Sinon (target = container, overlay, ou élément vide),
+    // on tente une <img> empilée puis fallback DOM-walk.
+    if (isDirectTextLeaf(target)) {
+      if (HOVER_NODE !== target) setHover(target, 'Modifier');
+      return;
+    }
     var imgUnder = resolveImageTarget(target, e.clientX, e.clientY);
     if (imgUnder) {
       if (HOVER_NODE !== imgUnder) setHover(imgUnder, 'Modifier');
@@ -247,6 +274,20 @@ const SCRIPT_BODY = `
     var target = e.target;
     if (!target || target.nodeType !== 1) return;
     if (isInsideAnnotation(target)) return;
+    // Symétrique à onMouseMove : un clic direct sur un nœud feuille
+    // texte ouvre le chatbot, pas le picker.
+    if (isDirectTextLeaf(target)) {
+      e.preventDefault();
+      e.stopPropagation();
+      var text = (target.textContent || '').trim();
+      if (!text) return;
+      emit({
+        type: 'speetch-edit-select',
+        kind: 'text',
+        text: text,
+      });
+      return;
+    }
     var imgUnder = resolveImageTarget(target, e.clientX, e.clientY);
     if (imgUnder) {
       e.preventDefault();
