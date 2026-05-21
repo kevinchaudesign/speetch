@@ -13,8 +13,8 @@ export function TypePicker({
     <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
-        <Button href="/admin/clients" variant="return">
-          Retour clients
+        <Button href={`/admin/clients/${clientId}`} variant="return">
+          Retour {clientName}
         </Button>
         <Eyebrow tracking="sm" intensity="muted">
           Nouveau projet
@@ -27,7 +27,12 @@ export function TypePicker({
           <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
             Nouveau projet
             <span className="mx-3 text-white/20">·</span>
-            <span className="text-white/55">Client : {clientName}</span>
+            <Link
+              href={`/admin/clients/${clientId}`}
+              className="text-white/55 transition-colors hover:text-white"
+            >
+              Client : {clientName}
+            </Link>
           </p>
 
           <h1

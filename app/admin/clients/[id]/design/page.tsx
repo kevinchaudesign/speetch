@@ -101,11 +101,11 @@ export default async function DesignPage({
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href="/admin/clients"
+          href={`/admin/clients/${id}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors duration-300 hover:text-white"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10" />
-          Retour clients
+          {clientName}
         </Link>
         <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
           Design system
@@ -118,7 +118,12 @@ export default async function DesignPage({
           <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
             Design system
             <span className="mx-3 text-white/20">·</span>
-            <span className="text-white/55">Client : {clientName}</span>
+            <Link
+              href={`/admin/clients/${id}`}
+              className="text-white/55 transition-colors hover:text-white"
+            >
+              Client : {clientName}
+            </Link>
           </p>
 
           <h1

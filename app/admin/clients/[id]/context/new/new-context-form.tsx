@@ -311,7 +311,12 @@ export function NewContextForm({
               Contexte
             </Link>
             <span className="mx-3 text-white/20">·</span>
-            <span className="text-white/55">{clientName}</span>
+            <Link
+              href={`/admin/clients/${profileId}`}
+              className="text-white/55 transition-colors hover:text-white"
+            >
+              {clientName}
+            </Link>
           </p>
           <h1
             className="font-sans font-extralight leading-[0.85] tracking-[-0.05em] text-[#F5F5F7]"

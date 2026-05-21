@@ -66,9 +66,13 @@ export function DeliverablesPageView({
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-12" />
           <span>Retour {projectName}</span>
         </Link>
-        <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
-          {clientName}
-        </span>
+        <Link
+          href={`/clients/${clientSlug}`}
+          className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors hover:text-white"
+        >
+          <span>Espace {clientName}</span>
+          <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-12" />
+        </Link>
       </header>
 
       <section className="px-6 pt-20 md:px-12 md:pt-32">

@@ -429,7 +429,12 @@ export function RawHtmlPageEditor({
               Espaces clients
             </Link>
             <span className="mx-3 text-white/20">→</span>
-            <span className="text-white/55">{clientName}</span>
+            <Link
+              href={`/admin/clients/${clientId}`}
+              className="text-white/55 transition-colors hover:text-white"
+            >
+              {clientName}
+            </Link>
             <span className="mx-3 text-white/20">→</span>
             <Link
               href={`/admin/clients/${clientId}/projects/${projectId}`}

@@ -150,7 +150,12 @@ export default async function PersonaDetailPage({
               Espaces clients
             </Link>
             <span className="mx-3 text-white/20">→</span>
-            <span className="text-white/55">{clientName}</span>
+            <Link
+              href={`/admin/clients/${id}`}
+              className="text-white/55 transition-colors hover:text-white"
+            >
+              {clientName}
+            </Link>
             <span className="mx-3 text-white/20">·</span>
             <Link
               href={`/admin/clients/${id}/personas`}

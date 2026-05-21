@@ -176,10 +176,10 @@ export default async function ProjectDetailPage({
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href="/admin/clients"
+          href={`/admin/clients/${id}`}
           className="text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors hover:text-white"
         >
-          ← Clients
+          ← {clientName}
         </Link>
         <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
           Projet
@@ -196,7 +196,12 @@ export default async function ProjectDetailPage({
               Espaces clients
             </Link>
             <span className="mx-3 text-white/20">→</span>
-            <span className="text-white/55">{clientName}</span>
+            <Link
+              href={`/admin/clients/${id}`}
+              className="text-white/55 transition-colors hover:text-white"
+            >
+              {clientName}
+            </Link>
             {typeLabel && (
               <>
                 <span className="mx-3 text-white/20">·</span>
@@ -265,9 +270,12 @@ export default async function ProjectDetailPage({
           />
         )}
 
-        <div className="flex items-center pt-4">
+        <div className="flex items-center gap-6 pt-4">
+          <Button href={`/admin/clients/${id}`} variant="ghost">
+            ← Retour {clientName}
+          </Button>
           <Button href="/admin/clients" variant="ghost">
-            ← Retour clients
+            Tous les clients
           </Button>
         </div>
       </section>
