@@ -370,13 +370,9 @@ function injectOverridesScript(
   const texts = textOverrides ?? {};
   const images = imageOverrides ?? {};
   const imagesById = imageOverridesById ?? {};
-  if (
-    Object.keys(texts).length === 0 &&
-    Object.keys(images).length === 0 &&
-    Object.keys(imagesById).length === 0
-  ) {
-    return html;
-  }
+  // On injecte toujours le script : même sans override, il pose un
+  // placeholder neutre sur les <img> au src cassé (chemins relatifs non
+  // résolus dans srcDoc).
 
   const escape = (obj: Record<string, string>) =>
     JSON.stringify(obj).replace(/<\/script/gi, "<\\/script");
@@ -397,6 +393,12 @@ function injectOverridesScript(
     var ORIGIN = '';
     try { ORIGIN = window.parent && window.parent.location && window.parent.location.origin || ''; } catch (e) {}
     var DEVICE_SIZES = [640, 750, 828, 1080, 1200, 1920, 2048, 3840];
+
+    // Placeholder pour les <img> dont le src ne résout pas (chemins
+    // relatifs cassés dans l'iframe srcDoc). SVG 80×80 blanc avec une
+    // icône d'image au centre. preserveAspectRatio=xMidYMid meet pour
+    // s'adapter au container.
+    var PLACEHOLDER = "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 80 80' preserveAspectRatio='xMidYMid meet'><rect width='80' height='80' fill='%23ffffff'/><g stroke='%23bdbdbd' stroke-width='1.4' fill='none' stroke-linecap='round' stroke-linejoin='round'><rect x='22' y='26' width='36' height='28' rx='1.5'/><circle cx='32' cy='35.5' r='2.8' fill='%23bdbdbd' stroke='none'/><path d='M24 50 L34 40 L42 48 L50 40 L56 46'/></g></svg>";
 
     function optimizedUrl(url, img) {
       if (!url) return url;
@@ -480,6 +482,18 @@ function injectOverridesScript(
           img.setAttribute('src', target);
           if (img.hasAttribute('srcset')) img.removeAttribute('srcset');
         }
+        return;
+      }
+      // Aucun override : si le src n'est ni une URL absolue (http/data),
+      // l'image est cassée (chemin relatif non résolu dans srcDoc).
+      // On affiche un placeholder neutre — le data-speetch-original-src
+      // et data-speetch-img-id restent intacts pour permettre à l'admin
+      // de cliquer dessus et poser un override.
+      if (!/^(https?:|data:)/i.test(src)) {
+        if (src !== PLACEHOLDER) {
+          img.setAttribute('src', PLACEHOLDER);
+          if (img.hasAttribute('srcset')) img.removeAttribute('srcset');
+        }
       }
     }
 
@@ -493,7 +507,8 @@ function injectOverridesScript(
     }
 
     function applyImages() {
-      if (!Object.keys(IMAGES).length && !Object.keys(IMAGES_BY_ID).length) return;
+      // Tourne systématiquement : même sans override, on doit pouvoir
+      // poser le placeholder sur les <img> au src cassé.
       applyImagesInTree(document.body || document.documentElement);
     }
 
@@ -501,7 +516,8 @@ function injectOverridesScript(
     // (système d'onglets "directions", lazy mount…) ainsi qu'aux <img>
     // existantes dont le src est remplacé dynamiquement par le JS d'origine.
     function watchImages() {
-      if (!Object.keys(IMAGES).length && !Object.keys(IMAGES_BY_ID).length) return;
+      // Idem : on observe systématiquement, même sans override, pour
+      // attraper les nouvelles <img> ajoutées dynamiquement.
       try {
         var obs = new MutationObserver(function(records) {
           for (var i = 0; i < records.length; i++) {

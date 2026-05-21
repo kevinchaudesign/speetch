@@ -262,15 +262,37 @@ export async function POST(req: NextRequest) {
     const originalSrc =
       typeof payload.original_src === "string" ? payload.original_src : "";
     const imgId = typeof payload.img_id === "string" ? payload.img_id : "";
-    const newMediaUrl =
+    const blockColor =
+      typeof payload.block_color === "string" ? payload.block_color : "";
+    let newMediaUrl =
       typeof payload.new_media_url === "string" ? payload.new_media_url : "";
+
+    // Mode "bloc de couleur" : on construit le data URI SVG côté serveur
+    // pour empêcher l'injection (un admin pourrait poster un SVG avec
+    // <script> ou attributs on*= sinon). Format CSS strict #rgb/#rrggbb.
+    if (blockColor) {
+      if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(blockColor)) {
+        return NextResponse.json(
+          { error: "Couleur invalide (format attendu : #rgb ou #rrggbb)" },
+          { status: 400 },
+        );
+      }
+      const svg = `<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1' preserveAspectRatio='none'><rect width='1' height='1' fill='${blockColor}'/></svg>`;
+      newMediaUrl = `data:image/svg+xml;utf8,${encodeURIComponent(svg)}`;
+    }
+
     if (!originalSrc || !newMediaUrl) {
       return NextResponse.json(
-        { error: "Champs requis manquants (original_src, new_media_url)" },
+        {
+          error:
+            "Champs requis manquants (original_src + new_media_url ou block_color)",
+        },
         { status: 400 },
       );
     }
-    if (!(await ensureMediaInLibrary(profile.id, newMediaUrl))) {
+    // Le check médiathèque ne s'applique qu'aux URLs externes (Supabase).
+    // Pour un data URI auto-généré, on a déjà la garantie côté serveur.
+    if (!blockColor && !(await ensureMediaInLibrary(profile.id, newMediaUrl))) {
       return NextResponse.json(
         { error: "URL hors médiathèque de ce client" },
         { status: 403 },

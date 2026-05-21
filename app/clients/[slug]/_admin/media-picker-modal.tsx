@@ -67,6 +67,14 @@ export function MediaPickerModal({
    *  pendant 1.2s puis on ferme. */
   const [appliedId, setAppliedId] = useState<string | null>(null);
   const closingTimerRef = useRef<number | null>(null);
+  // Alternative à la médiathèque : poser un bloc de couleur uni à la
+  // place de l'image. Le serveur construit le data URI SVG.
+  // `blockColor` est la valeur normalisée (#rrggbb) utilisée pour
+  // l'aperçu et l'API. `colorInput` est la string brute saisie au
+  // clavier — peut être transitoirement invalide pendant la frappe.
+  const [blockColor, setBlockColor] = useState<string>("#ffffff");
+  const [colorInput, setColorInput] = useState<string>("#ffffff");
+  const [applyingColor, setApplyingColor] = useState(false);
 
   // Charge la médiathèque à l'ouverture.
   useEffect(() => {
@@ -182,6 +190,43 @@ export function MediaPickerModal({
     [target, applyingId, router, onClose],
   );
 
+  const handleApplyColor = useCallback(async () => {
+    if (!target || applyingColor) return;
+    setApplyingColor(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/admin/assistant/apply", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "image-override",
+          client_slug: target.clientSlug,
+          page_id: target.pageId,
+          original_src: target.originalSrc,
+          img_id: target.imgId,
+          block_color: blockColor,
+        }),
+        credentials: "include",
+      });
+      const json = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        error?: string;
+      };
+      if (!res.ok || !json.ok) {
+        throw new Error(json.error ?? `HTTP ${res.status}`);
+      }
+      router.refresh();
+      closingTimerRef.current = window.setTimeout(() => {
+        onClose();
+      }, 900);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Erreur inconnue";
+      setError(msg);
+    } finally {
+      setApplyingColor(false);
+    }
+  }, [target, applyingColor, blockColor, router, onClose]);
+
   if (!target) return null;
 
   const aspectHint =
@@ -230,6 +275,84 @@ export function MediaPickerModal({
               </span>
             )}
           </div>
+        </div>
+
+        {/* Bloc de couleur — alternative à un média de la bibliothèque.
+            Le serveur construit le data URI SVG (1×1 stretched cover).
+            Deux entrées synchronisées : swatch (OS color picker) +
+            input texte hex pour saisir une valeur précise. */}
+        <div className="flex items-center gap-4 rounded-lg border border-white/[0.06] bg-white/[0.015] px-4 py-3">
+          <label
+            className="relative h-12 w-12 shrink-0 cursor-pointer overflow-hidden rounded-md border border-white/[0.12]"
+            style={{ backgroundColor: blockColor }}
+            aria-label="Choisir une couleur"
+          >
+            <input
+              type="color"
+              value={blockColor}
+              onChange={(e) => {
+                const next = e.target.value;
+                setBlockColor(next);
+                setColorInput(next.toUpperCase());
+              }}
+              disabled={applyingColor}
+              className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            />
+          </label>
+          <div className="flex min-w-0 flex-1 flex-col gap-1">
+            <span className="text-[9px] uppercase tracking-[0.4em] text-white/35">
+              Bloc de couleur
+            </span>
+            <input
+              type="text"
+              inputMode="text"
+              spellCheck={false}
+              autoCapitalize="characters"
+              value={colorInput}
+              onChange={(e) => {
+                const raw = e.target.value.trim();
+                // Accepte la saisie avec ou sans #. Auto-préfixe pour
+                // l'affichage si l'utilisateur tape directement les hex.
+                const normalized = raw.startsWith("#") ? raw : raw ? `#${raw}` : "";
+                setColorInput(normalized);
+                if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(normalized)) {
+                  setBlockColor(normalized);
+                }
+              }}
+              onBlur={() => {
+                // Snap à la dernière valeur valide à la perte de focus
+                // (évite que l'utilisateur reste sur une saisie cassée).
+                if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorInput)) {
+                  setColorInput(blockColor.toUpperCase());
+                }
+              }}
+              placeholder="#RRGGBB"
+              disabled={applyingColor}
+              className={cn(
+                "w-32 border-b bg-transparent pb-1 font-mono text-[13px] tracking-[0.05em] outline-none transition-colors",
+                /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorInput)
+                  ? "border-white/20 text-white/85 focus:border-white/70"
+                  : "border-red-400/40 text-red-200/80 focus:border-red-300/70",
+              )}
+            />
+          </div>
+          <button
+            type="button"
+            onClick={handleApplyColor}
+            disabled={
+              applyingColor ||
+              applyingId !== null ||
+              !/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(colorInput)
+            }
+            className={cn(
+              "shrink-0 rounded-full border px-4 py-1.5 text-[10px] uppercase tracking-[0.32em] transition-colors",
+              applyingColor
+                ? "border-emerald-300/40 text-emerald-200"
+                : "border-white/15 text-white/75 hover:border-white/45 hover:text-white disabled:opacity-40 disabled:hover:border-white/15 disabled:hover:text-white/75",
+            )}
+          >
+            {applyingColor ? "Application…" : "Appliquer ce bloc"}
+          </button>
         </div>
 
         {/* Filtres + recherche */}
