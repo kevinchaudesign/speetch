@@ -48,6 +48,7 @@ export function RawHtmlPageView({
   rawHtml,
   textOverrides,
   imageOverrides,
+  imageOverridesById,
   applySpeetchDs,
   pages,
   initialAnnotations,
@@ -62,6 +63,7 @@ export function RawHtmlPageView({
   rawHtml: string;
   textOverrides?: Record<string, string>;
   imageOverrides?: Record<string, string>;
+  imageOverridesById?: Record<string, string>;
   applySpeetchDs?: boolean;
   pages: PageNavItem[];
   initialAnnotations: AnnotationData[];
@@ -113,11 +115,18 @@ export function RawHtmlPageView({
   }, [editMode]);
 
   const srcDoc = useMemo(() => {
-    // Marker du src d'origine pour TOUS les <img> — doit tourner avant les
-    // overrides et avant le mode édition pour que ce dernier connaisse la clé
-    // exacte à utiliser dans `image_overrides`.
-    let result = isAdmin ? injectOriginalsMarker(rawHtml) : rawHtml;
-    result = injectOverridesScript(result, textOverrides, imageOverrides);
+    // Marker du src d'origine ET de l'id (index DOM) pour TOUS les <img>.
+    // Doit tourner avant les overrides et avant le mode édition pour que
+    // ce dernier connaisse l'id exact à utiliser dans `image_overrides_by_id`.
+    // En mode public (non-admin), on tag aussi pour que `image_overrides_by_id`
+    // puisse cibler par index.
+    let result = injectOriginalsMarker(rawHtml);
+    result = injectOverridesScript(
+      result,
+      textOverrides,
+      imageOverrides,
+      imageOverridesById,
+    );
     if (applySpeetchDs) {
       result = injectSpeetchOverlay(result);
     }
@@ -127,7 +136,7 @@ export function RawHtmlPageView({
       result = injectEditModeBundle(result);
     }
     return result;
-  }, [rawHtml, textOverrides, imageOverrides, applySpeetchDs, isAdmin]);
+  }, [rawHtml, textOverrides, imageOverrides, imageOverridesById, applySpeetchDs, isAdmin]);
 
   // Reçoit les demandes d'ouverture de lien depuis l'iframe (cf.
   // injectExternalLinksScript) et ouvre dans un nouvel onglet depuis
@@ -143,6 +152,7 @@ export function RawHtmlPageView({
             current_src?: string;
             alt?: string;
             text?: string;
+            img_id?: string;
           }
         | null;
       if (!data) return;
@@ -181,6 +191,7 @@ export function RawHtmlPageView({
             originalSrc: data.original_src ?? "",
             currentSrc: data.current_src ?? "",
             alt: data.alt ?? "",
+            imgId: data.img_id ?? "",
           });
         } else {
           // Click sur un texte → passe par le chatbot (réécriture éditoriale).
@@ -354,10 +365,16 @@ function injectOverridesScript(
   html: string,
   textOverrides: Record<string, string> | undefined,
   imageOverrides: Record<string, string> | undefined,
+  imageOverridesById: Record<string, string> | undefined,
 ): string {
   const texts = textOverrides ?? {};
   const images = imageOverrides ?? {};
-  if (Object.keys(texts).length === 0 && Object.keys(images).length === 0) {
+  const imagesById = imageOverridesById ?? {};
+  if (
+    Object.keys(texts).length === 0 &&
+    Object.keys(images).length === 0 &&
+    Object.keys(imagesById).length === 0
+  ) {
     return html;
   }
 
@@ -370,6 +387,40 @@ function injectOverridesScript(
   try {
     var TEXTS = ${escape(texts)};
     var IMAGES = ${escape(images)};
+    var IMAGES_BY_ID = ${escape(imagesById)};
+
+    // Optimisation AVIF/WebP via /_next/image.
+    // On garde l'URL Supabase brute dans le payload (BDD) et on la
+    // transforme côté client en URL /_next/image?w=<deviceSize>&q=75
+    // calée sur la dimension d'affichage réelle de chaque <img>.
+    // L'iframe srcDoc a allow-same-origin → on peut lire l'origin du parent.
+    var ORIGIN = '';
+    try { ORIGIN = window.parent && window.parent.location && window.parent.location.origin || ''; } catch (e) {}
+    var DEVICE_SIZES = [640, 750, 828, 1080, 1200, 1920, 2048, 3840];
+
+    function optimizedUrl(url, img) {
+      if (!url) return url;
+      // Skip si déjà optimisé, non-http, ou si on n'a pas d'origin.
+      if (url.indexOf('/_next/image') !== -1) return url;
+      if (!/^https?:\\/\\//i.test(url)) return url;
+      if (!ORIGIN) return url;
+      var width = 0;
+      if (img) {
+        if (img.parentElement) {
+          width = img.parentElement.getBoundingClientRect().width;
+        }
+        if (!width) width = img.getBoundingClientRect().width;
+      }
+      if (!width || width < 1) width = 1080;
+      var dpr = window.devicePixelRatio || 1;
+      var target = Math.ceil(width * dpr);
+      var w = 0;
+      for (var i = 0; i < DEVICE_SIZES.length; i++) {
+        if (DEVICE_SIZES[i] >= target) { w = DEVICE_SIZES[i]; break; }
+      }
+      if (!w) w = DEVICE_SIZES[DEVICE_SIZES.length - 1];
+      return ORIGIN + '/_next/image?url=' + encodeURIComponent(url) + '&w=' + w + '&q=75';
+    }
 
     function applyTexts() {
       if (!Object.keys(TEXTS).length) return;
@@ -401,22 +452,84 @@ function injectOverridesScript(
       });
     }
 
-    function applyImages() {
-      if (!Object.keys(IMAGES).length) return;
-      var imgs = document.querySelectorAll('img');
-      Array.prototype.forEach.call(imgs, function(img) {
-        var src = img.getAttribute('src');
-        if (src && Object.prototype.hasOwnProperty.call(IMAGES, src)) {
-          img.setAttribute('src', IMAGES[src]);
-          // Recharge srcset si présent (sinon le browser garde l'ancienne)
+    function applyImageEl(img) {
+      if (!img || img.nodeType !== 1 || img.tagName !== 'IMG') return;
+      var src = img.getAttribute('src') || '';
+      // Priorité 1 : override par img_id (cible une instance précise).
+      var imgId = img.getAttribute('data-speetch-img-id') || '';
+      if (imgId && Object.prototype.hasOwnProperty.call(IMAGES_BY_ID, imgId)) {
+        var byId = optimizedUrl(IMAGES_BY_ID[imgId], img);
+        if (byId && src !== byId) {
+          img.setAttribute('src', byId);
           if (img.hasAttribute('srcset')) img.removeAttribute('srcset');
         }
-      });
+        return;
+      }
+      // Priorité 2 : override par src d'origine (legacy, affecte toutes
+      // les <img> ayant ce src).
+      var orig = img.getAttribute('data-speetch-original-src') || '';
+      var rawTarget = null;
+      if (src && Object.prototype.hasOwnProperty.call(IMAGES, src)) {
+        rawTarget = IMAGES[src];
+      } else if (orig && Object.prototype.hasOwnProperty.call(IMAGES, orig)) {
+        rawTarget = IMAGES[orig];
+      }
+      if (rawTarget) {
+        var target = optimizedUrl(rawTarget, img);
+        if (target && src !== target) {
+          img.setAttribute('src', target);
+          if (img.hasAttribute('srcset')) img.removeAttribute('srcset');
+        }
+      }
+    }
+
+    function applyImagesInTree(root) {
+      if (!root || root.nodeType !== 1) return;
+      if (root.tagName === 'IMG') applyImageEl(root);
+      if (root.querySelectorAll) {
+        var imgs = root.querySelectorAll('img');
+        Array.prototype.forEach.call(imgs, applyImageEl);
+      }
+    }
+
+    function applyImages() {
+      if (!Object.keys(IMAGES).length && !Object.keys(IMAGES_BY_ID).length) return;
+      applyImagesInTree(document.body || document.documentElement);
+    }
+
+    // Réapplique les image_overrides aux <img> ajoutées après DOMContentLoaded
+    // (système d'onglets "directions", lazy mount…) ainsi qu'aux <img>
+    // existantes dont le src est remplacé dynamiquement par le JS d'origine.
+    function watchImages() {
+      if (!Object.keys(IMAGES).length && !Object.keys(IMAGES_BY_ID).length) return;
+      try {
+        var obs = new MutationObserver(function(records) {
+          for (var i = 0; i < records.length; i++) {
+            var r = records[i];
+            if (r.type === 'childList') {
+              for (var j = 0; j < r.addedNodes.length; j++) {
+                applyImagesInTree(r.addedNodes[j]);
+              }
+            } else if (r.type === 'attributes' && r.target && r.target.tagName === 'IMG') {
+              applyImageEl(r.target);
+            }
+          }
+        });
+        obs.observe(document.body || document.documentElement, {
+          subtree: true,
+          childList: true,
+          attributes: true,
+          attributeFilter: ['src'],
+        });
+      } catch (e) {
+        /* swallow */
+      }
     }
 
     function run() {
       applyTexts();
       applyImages();
+      watchImages();
     }
 
     if (document.readyState === 'loading') {

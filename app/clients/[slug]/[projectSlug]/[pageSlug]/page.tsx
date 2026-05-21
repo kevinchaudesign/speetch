@@ -281,6 +281,7 @@ export default async function PublicPageRoute({ params }: Props) {
         rawHtml={content.meta.raw_html}
         textOverrides={content.meta.text_overrides}
         imageOverrides={content.meta.image_overrides}
+        imageOverridesById={content.meta.image_overrides_by_id}
         applySpeetchDs={applySpeetchDs}
         pages={navPages}
         initialAnnotations={(annotationsData ?? []).map((a) => ({

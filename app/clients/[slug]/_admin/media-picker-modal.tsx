@@ -10,6 +10,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { motion } from "framer-motion";
 import { Modal, ModalHeader } from "@/lib/ds";
 import { cn } from "@/lib/utils";
@@ -41,6 +42,9 @@ export type ImagePickerTarget = {
   originalSrc: string;
   currentSrc: string;
   alt: string;
+  /** Id d'instance posé par injectOriginalsMarker — quand présent, l'API
+   *  écrit dans image_overrides_by_id pour cibler cette seule <img>. */
+  imgId: string;
 };
 
 export function MediaPickerModal({
@@ -148,6 +152,7 @@ export function MediaPickerModal({
             client_slug: target.clientSlug,
             page_id: target.pageId,
             original_src: target.originalSrc,
+            img_id: target.imgId,
             new_media_url: item.url,
           }),
           credentials: "include",
@@ -197,17 +202,18 @@ export function MediaPickerModal({
       {/* Bandeau "image actuelle" + filtres */}
       <div className="flex flex-col gap-4 border-b border-white/[0.08] px-6 py-5 md:px-8">
         <div className="flex items-center gap-4">
-          <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.02]">
-            {target.currentSrc ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
+          <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.02]">
+            {target.currentSrc && /^https?:\/\//i.test(target.currentSrc) ? (
+              <Image
                 src={target.currentSrc}
                 alt=""
-                className="h-full w-full object-cover"
+                fill
+                sizes="64px"
+                className="object-cover"
               />
             ) : (
-              <span className="text-[9px] uppercase tracking-[0.32em] text-white/30">
-                vide
+              <span className="px-1 text-center text-[9px] uppercase tracking-[0.32em] text-white/30">
+                {target.currentSrc ? "src brisé" : "vide"}
               </span>
             )}
           </div>
@@ -308,13 +314,12 @@ export function MediaPickerModal({
                       applyingId !== null && !isApplying && "opacity-40",
                     )}
                   >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
+                    <Image
                       src={it.url}
                       alt={it.filename}
-                      loading="lazy"
-                      decoding="async"
-                      className="h-full w-full object-cover"
+                      fill
+                      sizes="(min-width: 1024px) 240px, (min-width: 768px) 33vw, 50vw"
+                      className="object-cover"
                     />
                     {isCurrent && !isApplied && (
                       <span className="absolute left-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] uppercase tracking-[0.3em] text-black">

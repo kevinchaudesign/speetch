@@ -438,8 +438,18 @@ export type ProjectContent = {
     /**
      * Surcharges d'images pour le mode raw_html. Map "src originale" →
      * "nouvelle URL". Appliquée par le même script.
+     * Note: cette map remplace TOUTES les <img> ayant le src cible.
+     * Pour cibler une seule instance, utiliser image_overrides_by_id.
      */
     image_overrides?: Record<string, string>;
+    /**
+     * Surcharges d'images par instance (index DOM). Map "img_id" →
+     * "nouvelle URL". Chaque <img> reçoit un identifiant numérique
+     * stable au DOMContentLoaded (ordre du document), ce qui permet
+     * de remplacer une occurrence donnée sans toucher les autres.
+     * Priorité sur image_overrides en cas de double match.
+     */
+    image_overrides_by_id?: Record<string, string>;
   };
 };
 

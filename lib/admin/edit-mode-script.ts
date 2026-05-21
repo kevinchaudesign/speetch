@@ -148,6 +148,63 @@ const SCRIPT_BODY = `
     node.appendChild(TAG_NODE);
   }
 
+  /**
+   * Renvoie une <img> empilée au point (x, y) si elle existe.
+   * Utilisé pour traverser les overlays positionnés en absolute (cas
+   * fréquent : overlays éditoriaux par-dessus une image publicitaire).
+   * On itère du plus haut au plus bas et on ignore les <img> à
+   * l'intérieur d'une annotation.
+   */
+  function findImgAtPoint(x, y) {
+    if (typeof document.elementsFromPoint !== 'function') return null;
+    try {
+      var stack = document.elementsFromPoint(x, y);
+      for (var i = 0; i < stack.length; i++) {
+        var el = stack[i];
+        if (el && el.tagName === 'IMG' && !isInsideAnnotation(el)) {
+          return el;
+        }
+      }
+    } catch (e) {
+      /* swallow */
+    }
+    return null;
+  }
+
+  // Fallback quand elementsFromPoint ne retourne pas d'<img> — typiquement
+  // parce que l'image est cassée (src relatif non résolu dans l'iframe
+  // srcDoc) et a une bounding box nulle. On remonte alors le DOM depuis
+  // target tant que le sous-arbre courant ne contient qu'une seule
+  // <img> ; dès qu'on en trouve plusieurs (cas carrousel), on arrête
+  // pour éviter de cibler une image arbitraire.
+  function findImgNearTarget(target) {
+    var n = target;
+    var depth = 0;
+    while (n && n.nodeType === 1 && depth < 8) {
+      if (n.querySelectorAll) {
+        var imgs = n.querySelectorAll('img');
+        if (imgs.length === 1) {
+          var img = imgs[0];
+          if (!isInsideAnnotation(img)) return img;
+          return null;
+        }
+        if (imgs.length > 1) return null;
+      }
+      n = n.parentNode;
+      depth++;
+    }
+    return null;
+  }
+
+  function resolveImageTarget(target, x, y) {
+    if (target && target.tagName === 'IMG' && !isInsideAnnotation(target)) {
+      return target;
+    }
+    var img = findImgAtPoint(x, y);
+    if (img) return img;
+    return findImgNearTarget(target);
+  }
+
   function onMouseMove(e) {
     if (!ARMED) return;
     var target = e.target;
@@ -159,8 +216,12 @@ const SCRIPT_BODY = `
       clearHover();
       return;
     }
-    if (target.tagName === 'IMG') {
-      if (HOVER_NODE !== target) setHover(target, 'Modifier');
+    // Priorité à une <img> empilée sous le curseur (passe par-dessus
+    // d'éventuels overlays absolus qui interceptent normalement le clic).
+    // Fallback DOM-walk si l'image est cassée (bounding box nulle).
+    var imgUnder = resolveImageTarget(target, e.clientX, e.clientY);
+    if (imgUnder) {
+      if (HOVER_NODE !== imgUnder) setHover(imgUnder, 'Modifier');
       return;
     }
     var block = findTextBlock(target);
@@ -186,20 +247,23 @@ const SCRIPT_BODY = `
     var target = e.target;
     if (!target || target.nodeType !== 1) return;
     if (isInsideAnnotation(target)) return;
-    if (target.tagName === 'IMG') {
+    var imgUnder = resolveImageTarget(target, e.clientX, e.clientY);
+    if (imgUnder) {
       e.preventDefault();
       e.stopPropagation();
       var originalSrc =
-        target.getAttribute('data-speetch-original-src') ||
-        target.getAttribute('src') || '';
-      var currentSrc = target.getAttribute('src') || '';
-      var alt = target.getAttribute('alt') || '';
+        imgUnder.getAttribute('data-speetch-original-src') ||
+        imgUnder.getAttribute('src') || '';
+      var currentSrc = imgUnder.getAttribute('src') || '';
+      var alt = imgUnder.getAttribute('alt') || '';
+      var imgId = imgUnder.getAttribute('data-speetch-img-id') || '';
       emit({
         type: 'speetch-edit-select',
         kind: 'image',
         original_src: originalSrc,
         current_src: currentSrc,
         alt: alt,
+        img_id: imgId,
       });
       return;
     }
@@ -246,18 +310,56 @@ const SCRIPT_BODY = `
 const ORIGINAL_SRC_MARKER_SCRIPT = `
 <script data-speetch-edit="originals">
 (function() {
-  function tag() {
-    var imgs = document.querySelectorAll('img');
-    Array.prototype.forEach.call(imgs, function(img) {
-      if (!img.hasAttribute('data-speetch-original-src')) {
-        img.setAttribute('data-speetch-original-src', img.getAttribute('src') || '');
-      }
-    });
+  // Compteur global incrémental — chaque <img> reçoit un id unique
+  // dans l'ordre du document. Idempotent : si une img a déjà un id,
+  // on le préserve (utile au re-render). Les imgs ajoutées dynamiquement
+  // après le DOMContentLoaded continuent la numérotation.
+  var IMG_COUNTER = 0;
+  function tagImg(img) {
+    if (!img.hasAttribute('data-speetch-original-src')) {
+      img.setAttribute('data-speetch-original-src', img.getAttribute('src') || '');
+    }
+    if (!img.hasAttribute('data-speetch-img-id')) {
+      img.setAttribute('data-speetch-img-id', String(IMG_COUNTER));
+      IMG_COUNTER++;
+    }
+  }
+  function tagAll(root) {
+    if (!root) return;
+    if (root.nodeType !== 1) return;
+    if (root.tagName === 'IMG') tagImg(root);
+    if (root.querySelectorAll) {
+      var imgs = root.querySelectorAll('img');
+      Array.prototype.forEach.call(imgs, tagImg);
+    }
+  }
+  function init() {
+    tagAll(document.body || document.documentElement);
+    // Les pages "raw_html" peuvent injecter des <img> après DOMContentLoaded
+    // (système d'onglets "directions", lazy mount, animations…). On tag
+    // chaque nouvel <img> dès son insertion, de sorte que le mode édition
+    // admin retrouve toujours le src d'origine via data-speetch-original-src.
+    try {
+      var obs = new MutationObserver(function(records) {
+        for (var i = 0; i < records.length; i++) {
+          var added = records[i].addedNodes;
+          for (var j = 0; j < added.length; j++) {
+            tagAll(added[j]);
+          }
+        }
+      });
+      obs.observe(document.body || document.documentElement, {
+        subtree: true,
+        childList: true,
+      });
+    } catch (e) {
+      /* swallow */
+    }
   }
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', tag);
+    document.addEventListener('DOMContentLoaded', init);
   } else {
-    tag();
+    init();
   }
 })();
 </script>`;

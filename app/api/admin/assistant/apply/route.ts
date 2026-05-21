@@ -261,6 +261,7 @@ export async function POST(req: NextRequest) {
   if (kind === "image-override") {
     const originalSrc =
       typeof payload.original_src === "string" ? payload.original_src : "";
+    const imgId = typeof payload.img_id === "string" ? payload.img_id : "";
     const newMediaUrl =
       typeof payload.new_media_url === "string" ? payload.new_media_url : "";
     if (!originalSrc || !newMediaUrl) {
@@ -275,14 +276,25 @@ export async function POST(req: NextRequest) {
         { status: 403 },
       );
     }
-    const nextImages = {
-      ...(meta.image_overrides ?? {}),
-      [originalSrc]: newMediaUrl,
-    };
-    const nextContent: PageContent = {
-      ...content,
-      meta: { ...meta, image_overrides: nextImages },
-    };
+    // Si on dispose d'un img_id (index DOM), on écrit dans la map by-id
+    // pour cibler une seule occurrence. Sinon fallback sur la map "par src"
+    // qui s'applique à toutes les <img> ayant ce src.
+    const nextMeta = imgId
+      ? {
+          ...meta,
+          image_overrides_by_id: {
+            ...(meta.image_overrides_by_id ?? {}),
+            [imgId]: newMediaUrl,
+          },
+        }
+      : {
+          ...meta,
+          image_overrides: {
+            ...(meta.image_overrides ?? {}),
+            [originalSrc]: newMediaUrl,
+          },
+        };
+    const nextContent: PageContent = { ...content, meta: nextMeta };
     const { error } = await admin
       .from("pages")
       .update({ content: nextContent as unknown as Json })
@@ -300,6 +312,7 @@ export async function POST(req: NextRequest) {
       kind: "image-override",
       page_id: page.id,
       new_url: newMediaUrl,
+      scope: imgId ? "by_id" : "by_src",
     });
   }
 
