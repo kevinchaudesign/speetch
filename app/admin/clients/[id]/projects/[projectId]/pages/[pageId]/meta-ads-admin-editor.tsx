@@ -562,7 +562,7 @@ function FormatPickerModal({
                   <button
                     type="button"
                     onClick={() => onPick(f.value)}
-                    className="group flex w-full items-stretch gap-4 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-left transition-colors hover:border-white/40 hover:bg-white/[0.04]"
+                    className="group flex w-full cursor-pointer items-stretch gap-4 rounded-xl border border-white/10 bg-black/30 px-4 py-3 text-left transition-colors hover:border-white/40 hover:bg-white/[0.04]"
                   >
                     <div className="flex h-14 w-14 shrink-0 items-center justify-center">
                       <FormatPreview spec={f} />
@@ -1243,7 +1243,7 @@ function MediaThumbAdmin({
         type="button"
         onClick={onPick}
         className={cn(
-          "flex w-full items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.02] text-[11px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:border-white/35 hover:bg-white/[0.04]",
+          "flex w-full cursor-pointer items-center justify-center rounded-xl border border-dashed border-white/15 bg-white/[0.02] text-[11px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:border-white/35 hover:bg-white/[0.04] hover:text-white/70",
           compact ? "aspect-square" : "aspect-video",
         )}
       >
@@ -1255,13 +1255,16 @@ function MediaThumbAdmin({
   const isVideo = mimeType?.startsWith("video/");
   return (
     <div className="flex flex-col gap-2">
-      <div
-        className={cn(
-          "relative w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]",
-          heightClass,
-        )}
-      >
-        {isImage && (
+      {isImage && (
+        <button
+          type="button"
+          onClick={onPick}
+          aria-label="Changer le média"
+          className={cn(
+            "group relative block w-full cursor-pointer overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-colors hover:border-white/40",
+            heightClass,
+          )}
+        >
           <Image
             src={url}
             alt="Média"
@@ -1271,8 +1274,18 @@ function MediaThumbAdmin({
             className={cn("block w-auto object-contain", heightClass)}
             unoptimized={mimeType === "image/svg+xml"}
           />
-        )}
-        {isVideo && (
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 text-[11px] uppercase tracking-[0.32em] text-transparent transition-all duration-300 group-hover:bg-black/55 group-hover:text-white">
+            Cliquer pour changer
+          </span>
+        </button>
+      )}
+      {isVideo && (
+        <div
+          className={cn(
+            "relative w-full overflow-hidden rounded-xl border border-white/10 bg-white/[0.02]",
+            heightClass,
+          )}
+        >
           <video
             src={url}
             controls
@@ -1280,25 +1293,29 @@ function MediaThumbAdmin({
             playsInline
             className={cn("block w-full", heightClass)}
           />
-        )}
-        {!isImage && !isVideo && (
-          <div className="flex aspect-video items-center justify-center text-[10px] uppercase tracking-[0.32em] text-white/40">
-            {mimeType ?? "média"}
-          </div>
-        )}
-      </div>
+        </div>
+      )}
+      {!isImage && !isVideo && (
+        <div
+          className={cn(
+            "flex aspect-video items-center justify-center rounded-xl border border-white/10 bg-white/[0.02] text-[10px] uppercase tracking-[0.32em] text-white/40",
+          )}
+        >
+          {mimeType ?? "média"}
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <button
           type="button"
           onClick={onPick}
-          className="text-[10px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
+          className="cursor-pointer text-[10px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
         >
-          Changer le média
+          {isImage ? "Changer le média" : "Remplacer la vidéo"}
         </button>
         <button
           type="button"
           onClick={onClear}
-          className="text-[10px] uppercase tracking-[0.32em] text-white/35 transition-colors hover:text-red-300"
+          className="cursor-pointer text-[10px] uppercase tracking-[0.32em] text-white/35 transition-colors hover:text-red-300"
         >
           Retirer
         </button>
@@ -1321,7 +1338,8 @@ function AvatarThumb({
       <button
         type="button"
         onClick={onPick}
-        className="relative h-16 w-16 overflow-hidden rounded-full border border-white/15 bg-white/[0.04] transition-colors hover:border-white/40"
+        aria-label={url ? "Changer l'avatar" : "Choisir un avatar"}
+        className="group relative h-16 w-16 cursor-pointer overflow-hidden rounded-full border border-white/15 bg-white/[0.04] transition-colors hover:border-white/40"
       >
         {url ? (
           <Image
@@ -1337,12 +1355,17 @@ function AvatarThumb({
             Avatar
           </span>
         )}
+        {url && (
+          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/0 text-[9px] uppercase tracking-[0.28em] text-transparent transition-all duration-300 group-hover:bg-black/60 group-hover:text-white">
+            Changer
+          </span>
+        )}
       </button>
       {url && (
         <button
           type="button"
           onClick={onClear}
-          className="text-[10px] uppercase tracking-[0.28em] text-white/35 transition-colors hover:text-red-300"
+          className="cursor-pointer text-[10px] uppercase tracking-[0.28em] text-white/35 transition-colors hover:text-red-300"
         >
           Retirer
         </button>
@@ -1499,7 +1522,7 @@ function MediaPickerModal({
                     <button
                       type="button"
                       onClick={() => onPick(m.id)}
-                      className="group block w-full overflow-hidden rounded-lg border border-white/10 bg-black/30 text-left transition-colors hover:border-white/40"
+                      className="group block w-full cursor-pointer overflow-hidden rounded-lg border border-white/10 bg-black/30 text-left transition-colors hover:border-white/40"
                     >
                       <div className="relative aspect-square w-full overflow-hidden bg-black">
                         {m.mime_type.startsWith("image/") ? (
