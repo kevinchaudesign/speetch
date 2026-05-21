@@ -421,8 +421,17 @@ export type ProjectContent = {
      *   ligne de la table `client_page_deliverables` rattachée à la page. Le
      *   contenu `sections` est ignoré. Le client peut commenter et changer le
      *   statut (pending/approved/changes_requested) par livrable.
+     * - `"meta_ads"` : rendu galerie de mockups Meta (Facebook + Instagram).
+     *   Chaque mockup est stocké dans `meta.meta_ads[]` (pas de table dédiée).
+     *   `sections` est ignoré. Lecture seule côté client v1.
      */
-    style?: "default" | "document" | "raw_html" | "fwa" | "deliverables";
+    style?:
+      | "default"
+      | "document"
+      | "raw_html"
+      | "fwa"
+      | "deliverables"
+      | "meta_ads";
     /**
      * HTML brut conservé pour le mode reproduction fidèle (style="raw_html").
      * Le `<head>` + `<body>` complet du document uploadé.
@@ -450,7 +459,126 @@ export type ProjectContent = {
      * Priorité sur image_overrides en cas de double match.
      */
     image_overrides_by_id?: Record<string, string>;
+    /**
+     * Mockups Meta Ads (Facebook + Instagram) — utilisé uniquement quand
+     * `style === "meta_ads"`. Chaque entrée décrit une variation de
+     * publicité (un format × une copy × un média).
+     */
+    meta_ads?: MetaAdMockup[];
   };
+};
+
+// ─── Meta Ads (Facebook + Instagram mockups) ─────────────────────────────
+
+/**
+ * Plateforme cible. Utilisée pour grouper visuellement et choisir le bon
+ * chrome (header @handle vs prénom + heure).
+ */
+export type MetaAdPlatform = "facebook" | "instagram";
+
+/**
+ * Formats publicitaires Meta supportés. Le préfixe `fb_` / `ig_` est
+ * redondant avec `platform` mais on le garde pour avoir un id unique
+ * sans ambiguïté côté code.
+ *
+ * Note : on ne couvre pas (encore) Audience Network, Messenger, Marketplace
+ * en story, ni les formats Reels overlay. À ajouter au besoin.
+ */
+export type MetaAdFormat =
+  // Facebook
+  | "fb_feed_image"
+  | "fb_feed_video"
+  | "fb_feed_carousel"
+  | "fb_story"
+  | "fb_reel"
+  | "fb_right_column"
+  | "fb_marketplace"
+  | "fb_in_stream"
+  // Instagram
+  | "ig_feed_image"
+  | "ig_feed_video"
+  | "ig_feed_carousel"
+  | "ig_story"
+  | "ig_reel"
+  | "ig_explore"
+  | "ig_shop";
+
+/**
+ * CTA boutons proposés par Meta. La string sert d'id et de fallback de
+ * label (mappé en français côté UI via META_CTAS).
+ */
+export type MetaAdCta =
+  | "no_button"
+  | "shop_now"
+  | "learn_more"
+  | "sign_up"
+  | "download"
+  | "get_offer"
+  | "contact_us"
+  | "send_message"
+  | "book_now"
+  | "watch_more"
+  | "subscribe"
+  | "apply_now"
+  | "donate_now"
+  | "install_now"
+  | "play_game"
+  | "use_app"
+  | "listen_now"
+  | "request_time"
+  | "see_menu"
+  | "order_now"
+  | "get_quote"
+  | "get_directions"
+  | "get_showtimes";
+
+export type MetaAdMedia = {
+  /** URL publique (storage Supabase ou externe). */
+  url: string;
+  /** image/* ou video/*. */
+  mime_type: string;
+  /** Optionnel — utile pour pré-charger un poster vidéo. */
+  poster_url?: string | null;
+};
+
+export type MetaAdCarouselCard = {
+  id: string;
+  media: MetaAdMedia | null;
+  headline?: string;
+  description?: string;
+  cta?: MetaAdCta;
+};
+
+export type MetaAdMockup = {
+  id: string;
+  /** Position dans la liste — l'éditeur garde [].sort par position. */
+  position: number;
+  format: MetaAdFormat;
+  /** Étiquette interne pour l'admin (ex: "Hook A — variation 1"). */
+  label?: string | null;
+  brand: {
+    /** Pour FB : "Nom de Page", pour IG : "@handle" affiché en haut. */
+    name: string;
+    /** URL publique de l'avatar (rond). Médiathèque. */
+    avatar_url?: string | null;
+    /** Pour FB only : 2e ligne "Sponsorisé · 🌐". */
+    sponsored_label?: string | null;
+  };
+  copy: {
+    /** Texte au-dessus du média (FB feed, IG feed). */
+    primary_text?: string;
+    /** Titre gras sous le média (FB/IG feed, carousel cards). */
+    headline?: string;
+    /** Sous-ligne grise sous le headline (FB feed surtout). */
+    description?: string;
+    /** URL affichée (ex: speetch.fr). FB/IG feed CTA strip. */
+    display_url?: string;
+  };
+  cta: MetaAdCta;
+  /** Média unique. Ignoré si format est *_carousel et carousel.length > 0. */
+  media: MetaAdMedia | null;
+  /** Cartes pour les formats carrousel uniquement. */
+  carousel?: MetaAdCarouselCard[];
 };
 
 /**

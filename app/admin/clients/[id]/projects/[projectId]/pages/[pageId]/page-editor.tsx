@@ -27,6 +27,8 @@ import {
   type AdminFolderOption,
   type AdminMediaOption,
 } from "./deliverables-admin-editor";
+import { MetaAdsAdminEditor } from "./meta-ads-admin-editor";
+import type { MetaAdMockup } from "@/types/database";
 
 export function PageEditor({
   initialPage,
@@ -38,6 +40,7 @@ export function PageEditor({
   initialDeliverables,
   availableMedia,
   availableFolders,
+  initialMetaAdsMockups,
 }: {
   initialPage: Page;
   clientId: string;
@@ -51,6 +54,13 @@ export function PageEditor({
   availableMedia: AdminMediaOption[];
   /** Dossiers de la médiathèque pour la sidebar du picker. */
   availableFolders: AdminFolderOption[];
+  /**
+   * Mockups Meta Ads pré-extraits côté serveur depuis `page.content.meta.meta_ads`.
+   * On les reçoit en prop dédiée (et pas via `page.content`) parce que `page`
+   * est mis dans un useState local — router.refresh() ne le réhydrate pas
+   * après une mutation, mais les props serveur sont bien recalculées.
+   */
+  initialMetaAdsMockups: MetaAdMockup[];
 }) {
   const [page, setPage] = useState<Page>(initialPage);
   const [pending, startTransition] = useTransition();
@@ -61,6 +71,7 @@ export function PageEditor({
   const sections: Section[] = content.sections ?? [];
   const isRawHtml = content.meta?.style === "raw_html";
   const isDeliverables = content.meta?.style === "deliverables";
+  const isMetaAds = content.meta?.style === "meta_ads";
   const context: ActionContext = {
     profileId: clientId,
     projectId,
@@ -309,6 +320,21 @@ export function PageEditor({
               </p>
             </div>
           )}
+
+          {isMetaAds && (
+            <div className="rounded-md border border-white/15 bg-white/[0.03] px-5 py-4">
+              <Eyebrow tracking="md" intensity="strong">
+                Mockups Meta Ads
+              </Eyebrow>
+              <p className="mt-2 font-serif text-sm italic text-white/55 md:text-base">
+                Cette page présente une galerie de mockups publicitaires
+                Facebook & Instagram. Chaque mockup combine un format Meta, une
+                copy et un média de la médiathèque. L&apos;intro est rendue en
+                tête de page ; les mockups se gèrent dans le bloc « Mockups »
+                plus bas. Lecture seule côté client.
+              </p>
+            </div>
+          )}
         </div>
 
         {/* Intro */}
@@ -325,8 +351,18 @@ export function PageEditor({
           />
         </div>
 
-        {/* Sections OU livrables, selon style */}
-        {isDeliverables ? (
+        {/* Sections OU livrables OU mockups Meta, selon style */}
+        {isMetaAds ? (
+          <div className="flex flex-col gap-6">
+            <Eyebrow tracking="md">Mockups</Eyebrow>
+            <MetaAdsAdminEditor
+              ctx={context}
+              initialMockups={initialMetaAdsMockups}
+              availableMedia={availableMedia}
+              availableFolders={availableFolders}
+            />
+          </div>
+        ) : isDeliverables ? (
           <div className="flex flex-col gap-6">
             <Eyebrow tracking="md">Livrables</Eyebrow>
             <DeliverablesAdminEditor

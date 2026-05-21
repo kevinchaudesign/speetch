@@ -137,6 +137,24 @@ export const PAGE_TEMPLATES: readonly PageTemplate[] = [
     },
   },
   {
+    id: "meta_ads",
+    label: "Meta Ads (FB & IG)",
+    tagline: "Mockups de publicités Facebook & Instagram, tous formats",
+    description:
+      "Présente une campagne Meta en mockups fidèles : feed, story, reel, carrousel, etc. Chaque mockup combine plateforme, format, copy, CTA et média de la médiathèque. Les mockups sont stockés dans le contenu de la page (pas de table dédiée). Lecture seule côté client v1.",
+    source: "code",
+    projectType: null,
+    defaultContent: {
+      intro:
+        "Aperçu des mockups publicitaires Meta pour cette campagne. Chaque visuel reproduit l'environnement réel de diffusion (Facebook ou Instagram).",
+      sections: [],
+      meta: {
+        style: "meta_ads",
+        meta_ads: [],
+      },
+    },
+  },
+  {
     id: "deliverables_review",
     label: "Livrables (validation)",
     tagline: "Galerie de livrables avec retours et statut par item",

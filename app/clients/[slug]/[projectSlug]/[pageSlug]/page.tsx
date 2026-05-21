@@ -14,6 +14,8 @@ import {
   type PublicDeliverable,
   type PublicDeliverableFeedback,
 } from "./deliverables-page-view";
+import { MetaAdsPageView } from "./meta-ads-page-view";
+import type { MetaAdMockup } from "@/types/database";
 
 const MEDIA_BUCKET = "page-media";
 
@@ -238,6 +240,23 @@ export default async function PublicPageRoute({ params }: Props) {
         pageName={page.page_name ?? "Page"}
         intro={content.intro ?? null}
         deliverables={deliverables}
+      />
+    );
+  }
+
+  if (style === "meta_ads") {
+    const mockups: MetaAdMockup[] = Array.isArray(content.meta?.meta_ads)
+      ? (content.meta!.meta_ads as MetaAdMockup[])
+      : [];
+    return (
+      <MetaAdsPageView
+        clientSlug={page.client_slug}
+        clientName={page.client_name ?? "Espace client"}
+        projectSlug={page.project_slug}
+        projectName={page.project_name ?? "Projet"}
+        pageName={page.page_name ?? "Page"}
+        intro={content.intro ?? null}
+        mockups={mockups}
       />
     );
   }

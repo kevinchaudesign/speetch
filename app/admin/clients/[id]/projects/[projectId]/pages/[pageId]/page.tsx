@@ -5,6 +5,7 @@ import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import type { Page, PageContent } from "@/types/database";
 import { PageEditor } from "./page-editor";
 import { RawHtmlPageEditor } from "./_raw/raw-html-page-editor";
+import type { MetaAdMockup } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Éditer la page",
@@ -143,6 +144,8 @@ export default async function EditPagePage({
     ((page.content as PageContent) ?? {}).meta?.style === "raw_html";
   const isDeliverables =
     ((page.content as PageContent) ?? {}).meta?.style === "deliverables";
+  const isMetaAds =
+    ((page.content as PageContent) ?? {}).meta?.style === "meta_ads";
 
   if (isRawHtml) {
     return (
@@ -157,12 +160,23 @@ export default async function EditPagePage({
     );
   }
 
-  // Mode "Livrables" : on précharge la liste des livrables + leurs feedbacks
-  // + tous les médias disponibles dans la médiathèque du client pour le
-  // picker + la liste des dossiers (sidebar de navigation du picker).
+  // Mode "Livrables" OU "Meta Ads" : on précharge tous les médias disponibles
+  // dans la médiathèque du client pour le picker + la liste des dossiers.
+  // En mode Livrables uniquement, on précharge aussi la liste des livrables +
+  // leurs feedbacks (stockés dans une table dédiée).
+  //
+  // Pour Meta Ads, les mockups vivent dans pages.content.meta.meta_ads — on
+  // les extrait ici dans une prop dédiée pour bypasser le useState(initialPage)
+  // côté PageEditor : router.refresh() depuis l'éditeur enfant doit pouvoir
+  // remettre la liste à jour sans démonter le parent.
   let initialDeliverables: import("./deliverables-admin-editor").AdminDeliverable[] | null = null;
   let availableMedia: import("./deliverables-admin-editor").AdminMediaOption[] = [];
   let availableFolders: import("./deliverables-admin-editor").AdminFolderOption[] = [];
+  const initialMetaAdsMockups: MetaAdMockup[] = isMetaAds
+    ? (Array.isArray(((page.content as PageContent) ?? {}).meta?.meta_ads)
+        ? (((page.content as PageContent).meta!.meta_ads) as MetaAdMockup[])
+        : [])
+    : [];
   if (isDeliverables) {
     const { data: delivRows } = await admin
       .from("client_page_deliverables" as never)
@@ -270,9 +284,11 @@ export default async function EditPagePage({
       media: d.media_id ? mediaById.get(d.media_id) ?? null : null,
       feedbacks: feedbacksByDeliv.get(d.id) ?? [],
     }));
+  }
 
-    // Tous les médias du client pour le picker. On limite aux images +
-    // vidéos (déjà filtré par mime côté UI mais autant cadrer).
+  // Médiathèque + dossiers : pré-chargés dès qu'un picker est susceptible
+  // d'être ouvert dans l'éditeur (Livrables ou Meta Ads).
+  if (isDeliverables || isMetaAds) {
     const { data: allMedia } = await admin
       .from("client_media" as never)
       .select(
@@ -311,7 +327,6 @@ export default async function EditPagePage({
       };
     });
 
-    // Liste des dossiers de la médiathèque pour la sidebar du picker.
     const { data: foldersData } = await admin
       .from("client_media_folders" as never)
       .select("id, name, position")
@@ -336,6 +351,7 @@ export default async function EditPagePage({
       initialDeliverables={initialDeliverables}
       availableMedia={availableMedia}
       availableFolders={availableFolders}
+      initialMetaAdsMockups={initialMetaAdsMockups}
     />
   );
 }
