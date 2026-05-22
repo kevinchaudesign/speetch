@@ -46,6 +46,25 @@ type Message = {
 };
 
 /**
+ * Expressions de l'ara kawai — chacune correspond à un état app :
+ * - happy   : repos
+ * - thinking: Claude réfléchit (pending, pas encore de contenu)
+ * - talking : Claude streame une réponse (pending + contenu)
+ * - wink    : réponse arrivée, panneau fermé (hasUnread)
+ * - focused : utilisateur tape ou a un draft (input focused / non vide)
+ * - sparkle : snapshot client temps-réel actif dans le prompt
+ * - dizzy   : erreur réseau ou serveur
+ */
+export type AvatarExpression =
+  | "happy"
+  | "thinking"
+  | "talking"
+  | "wink"
+  | "focused"
+  | "sparkle"
+  | "dizzy";
+
+/**
  * Carte d'aperçu d'une action proposée par Claude — trois variantes :
  *  - `image-section` : page « document », swap dans content.sections[i].media[j]
  *  - `image-override` : page « raw_html », ajout dans content.meta.image_overrides
@@ -879,6 +898,12 @@ export function AdminAssistant({ email }: { email: string }) {
     );
   }, []);
 
+  const lastMessage = messages[messages.length - 1];
+  const streamingHasContent =
+    pending &&
+    lastMessage?.role === "assistant" &&
+    lastMessage.content.length > 0;
+
   return (
     <>
       <AnimatePresence initial={false} mode="popLayout">
@@ -887,6 +912,7 @@ export function AdminAssistant({ email }: { email: string }) {
             key="orb-closed"
             pending={pending}
             hasUnread={messages.length > 0 && !pending}
+            streamingHasContent={streamingHasContent}
             onOpen={() => setOpen(true)}
           />
         )}
@@ -903,6 +929,7 @@ export function AdminAssistant({ email }: { email: string }) {
             proposals={proposals}
             pending={pending}
             error={error}
+            streamingHasContent={streamingHasContent}
             draft={draft}
             inputFocused={inputFocused}
             firstName={firstName}
@@ -935,12 +962,21 @@ export function AdminAssistant({ email }: { email: string }) {
 function FloatingOrb({
   pending,
   hasUnread,
+  streamingHasContent,
   onOpen,
 }: {
   pending: boolean;
   hasUnread: boolean;
+  streamingHasContent: boolean;
   onOpen: () => void;
 }) {
+  const expression: AvatarExpression = pending
+    ? streamingHasContent
+      ? "talking"
+      : "thinking"
+    : hasUnread
+      ? "wink"
+      : "happy";
   return (
     <motion.button
       type="button"
@@ -962,78 +998,65 @@ function FloatingOrb({
         },
         layout: { duration: 0.55, ease: EASE_OUT_EXPO },
       }}
-      whileHover={{ scale: 1.06 }}
+      whileHover={{ scale: 1.08 }}
       whileTap={{ scale: 0.94 }}
-      className={cn(
-        "group fixed bottom-6 right-6 z-[60] flex h-14 w-14 items-center justify-center",
-        "rounded-full border border-white/[0.14]",
-        "bg-gradient-to-br from-white/[0.16] via-white/[0.04] to-white/[0.01]",
-        "backdrop-blur-2xl",
-        "shadow-[0_24px_60px_-20px_rgba(0,0,0,0.85),inset_1px_1px_0_0_rgba(255,255,255,0.10)]",
-      )}
-      style={{ WebkitTapHighlightColor: "transparent" }}
+      className="group fixed bottom-5 right-5 z-[60] flex items-center justify-center bg-transparent"
+      style={{
+        WebkitTapHighlightColor: "transparent",
+        filter:
+          "drop-shadow(0 8px 16px rgba(0,0,0,0.45)) drop-shadow(0 2px 4px rgba(0,0,0,0.3))",
+      }}
     >
-      <OrbInner pending={pending} hasUnread={hasUnread} large />
+      <YodaAvatar expression={expression} size="xl" />
     </motion.button>
   );
 }
 
 /* ─────────────────────────────────────────────────────────────────────────── */
-/* Médaillon partagé — utilisé dans l'orb fermé ET dans le header du panneau   */
+/* Maître Yoda — mascotte image-based (illustrations IA générées)              */
 /* ─────────────────────────────────────────────────────────────────────────── */
 
-function OrbInner({
-  pending,
-  hasUnread,
-  large,
+/**
+ * Mascotte Maître Yoda en 7 portraits IA (générés via Higgsfield Soul v2,
+ * stockés dans `/public/yoda/{expression}.png` à 256×256 ~110kb chacun).
+ *
+ * - L'image `happy` a servi de reference d'identité pour les 6 autres
+ *   (paramètre `medias[image]` de Soul v2) → cohérence du visage garantie.
+ * - Crossfade Framer Motion entre expressions via AnimatePresence.
+ * - Crop circulaire (`rounded-full` + `object-cover`) : convention avatar,
+ *   masque le fond sombre rectangulaire des PNG.
+ * - Tailles rendues : xl=80px (orb flottant), lg=56px (médaillon header),
+ *   md=40px (défaut).
+ */
+function YodaAvatar({
+  expression,
+  size = "md",
 }: {
-  pending: boolean;
-  hasUnread: boolean;
-  large?: boolean;
+  expression: AvatarExpression;
+  size?: "md" | "lg" | "xl";
 }) {
+  const px = size === "xl" ? 80 : size === "lg" ? 56 : 40;
   return (
-    <>
-      {/* Halo rotatif lent */}
-      <motion.span
-        aria-hidden
-        className="pointer-events-none absolute inset-[-6px] rounded-full"
-        style={{
-          background:
-            "conic-gradient(from 0deg, rgba(245,245,247,0.18), rgba(245,245,247,0) 35%, rgba(245,245,247,0.10) 70%, rgba(245,245,247,0) 100%)",
-          filter: "blur(8px)",
-          opacity: large ? 0.55 : 0.4,
-        }}
-        animate={{ rotate: 360 }}
-        transition={{ duration: 14, repeat: Infinity, ease: "linear" }}
-      />
-      {/* Halo statique bas-gauche */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -bottom-2 -left-2 h-8 w-8 rounded-full bg-white/[0.07] blur-xl"
-      />
-      {/* "S" éditorial */}
-      <span
-        className={cn(
-          "relative font-serif font-light italic text-[#F5F5F7] transition-opacity",
-          large ? "text-lg" : "text-base",
-        )}
-      >
-        S
-      </span>
-      {/* Activity dot */}
-      <span
-        aria-hidden
-        className={cn(
-          "pointer-events-none absolute rounded-full ring-2 ring-[#0a0a0a] transition-opacity duration-500",
-          large ? "-right-0.5 -top-0.5 h-2.5 w-2.5" : "-right-0 -top-0 h-1.5 w-1.5",
-          pending
-            ? "bg-emerald-400/90 opacity-100"
-            : hasUnread
-              ? "bg-white/70 opacity-100"
-              : "opacity-0",
-        )}
-      />
-    </>
+    <div
+      className="relative overflow-hidden rounded-full ring-1 ring-white/10"
+      style={{ width: px, height: px }}
+    >
+      <AnimatePresence initial={false} mode="sync">
+        <motion.img
+          key={expression}
+          src={`/yoda/${expression}.png`}
+          alt={`Maître Yoda — ${expression}`}
+          width={px}
+          height={px}
+          initial={{ opacity: 0, scale: 1.04 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{ opacity: 0, scale: 0.98 }}
+          transition={{ duration: 0.45, ease: EASE_OUT_EXPO }}
+          className="absolute inset-0 h-full w-full select-none object-cover"
+          draggable={false}
+        />
+      </AnimatePresence>
+    </div>
   );
 }
 
@@ -1049,6 +1072,7 @@ function ChatPanel({
   proposals,
   pending,
   error,
+  streamingHasContent,
   draft,
   inputFocused,
   firstName,
@@ -1075,6 +1099,7 @@ function ChatPanel({
   proposals: AnyProposalUI[];
   pending: boolean;
   error: string | null;
+  streamingHasContent: boolean;
   draft: string;
   inputFocused: boolean;
   firstName: string;
@@ -1094,6 +1119,17 @@ function ChatPanel({
   onApplyProposal: (p: AnyProposalUI) => void;
   onDismissProposal: (proposalId: string) => void;
 }) {
+  const headerExpression: AvatarExpression = error
+    ? "dizzy"
+    : pending
+      ? streamingHasContent
+        ? "talking"
+        : "thinking"
+      : inputFocused || draft.length > 0
+        ? "focused"
+        : isClientContext
+          ? "sparkle"
+          : "happy";
   return (
     <motion.div
       role="dialog"
@@ -1129,18 +1165,16 @@ function ChatPanel({
       {/* Header */}
       <header className="relative flex items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
         <div className="flex items-center gap-3">
-          {/* Médaillon partagé — vient de l'orb fermé */}
+          {/* Mascotte partagée — l'ara vole littéralement depuis l'orb fermé */}
           <motion.div
             layoutId="speetch-orb"
             transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
-            className={cn(
-              "relative flex h-10 w-10 items-center justify-center rounded-full",
-              "border border-white/[0.14]",
-              "bg-gradient-to-br from-white/[0.14] via-white/[0.03] to-white/[0.01]",
-              "shadow-[inset_1px_1px_0_0_rgba(255,255,255,0.08)]",
-            )}
+            className="relative flex items-center justify-center"
+            style={{
+              filter: "drop-shadow(0 4px 8px rgba(0,0,0,0.35))",
+            }}
           >
-            <OrbInner pending={pending} hasUnread={false} />
+            <YodaAvatar expression={headerExpression} size="lg" />
           </motion.div>
 
           <div className="flex flex-col gap-0.5">
