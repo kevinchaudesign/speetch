@@ -5,7 +5,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button, Eyebrow, Hairline } from "@/lib/ds";
 
 export const metadata: Metadata = {
-  title: "Réglages",
+  title: "Forge",
   robots: { index: false, follow: false },
 };
 
@@ -41,99 +41,119 @@ export default async function SettingsHome() {
   const cards = [
     {
       href: "/admin/settings/profile",
-      label: "Mon profil",
+      label: "Identité Jedi",
       hint: ownerProfile?.full_name
         ? ownerProfile.full_name
-        : "Configurer ton identité Speetch",
-      summary: "Nom affiché, avatar, identité owner.",
+        : "Configure ton nom de Maître",
+      summary: "Nom de Maître, avatar, signature owner.",
     },
     {
       href: "/admin/settings/design-system",
-      label: "Design System",
-      hint: "Charte Speetch",
+      label: "Codex",
+      hint: "Grammaire visuelle Speetch",
       summary:
-        "Palette, typographies, easings, principes — référence visuelle pour les espaces clients.",
+        "Palette holocron, typographies, easings de la Force — référence visuelle pour les espaces clients.",
     },
     {
       href: "/admin/templates",
-      label: "Templates",
+      label: "Blueprints",
       hint:
         templateCount && templateCount > 0
-          ? `${templateCount} template${templateCount > 1 ? "s" : ""} HTML`
-          : "Aucun template personnalisé",
+          ? `${templateCount} blueprint${templateCount > 1 ? "s" : ""} HTML`
+          : "Aucun blueprint forgé",
       summary:
-        "Gérer les templates de page personnalisés (uploads HTML, conversion Claude).",
+        "Forger les blueprints de pages (HTML brut, conversion via la Force — Claude API).",
     },
   ];
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines hologramme + sabre vertical à gauche */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
         <Button href="/admin" variant="return">
-          Admin
+          Conseil
         </Button>
-        <Eyebrow intensity="muted" tracking="sm">
-          Réglages
+        <Eyebrow intensity="muted" tracking="sm" className="text-cyan-200/55">
+          Forge
         </Eyebrow>
       </header>
 
       <section className="mx-auto flex max-w-5xl flex-col gap-12 pt-20">
         <div className="flex flex-col gap-6">
-          <Eyebrow tracking="lg" intensity="muted" as="p">
-            <Link href="/admin" className="transition-colors hover:text-white">
-              Administration
+          <Eyebrow tracking="lg" as="p" className="text-cyan-200/65">
+            <Link
+              href="/admin"
+              className="transition-colors hover:text-cyan-100"
+            >
+              Conseil Jedi
             </Link>
-            <span className="mx-3 text-white/20">→</span>
-            <span className="text-white/55">Réglages</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
+            <span className="text-cyan-200/85">Forge</span>
           </Eyebrow>
 
           <h1
             className="font-sans font-extralight leading-[0.85] tracking-[-0.05em] text-[#F5F5F7]"
             style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
           >
-            Réglages
+            La{" "}
+            <span className="sw-hologram-text font-serif italic font-normal">
+              Forge
+            </span>
           </h1>
 
-          <p className="max-w-xl text-balance font-serif text-base italic text-white/45 md:text-lg">
-            Configuration de l&apos;administration Speetch. Identité du
-            propriétaire, templates de page et paramètres avancés.
+          <p className="max-w-xl text-balance font-serif text-base italic text-white/55 md:text-lg">
+            Où le Maître affûte ses outils : identité Jedi, Codex visuel,
+            blueprints de pages — les fondations de ton Conseil.
           </p>
         </div>
 
-        <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl bg-white/[0.08] md:grid-cols-2 lg:grid-cols-3">
+        {/* Grille des sous-rubriques — bordure cyan subtile, hover hologramme */}
+        <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl bg-cyan-200/[0.1] md:grid-cols-2 lg:grid-cols-3">
           {cards.map((card) => (
             <li key={card.href}>
               <Link
                 href={card.href}
-                className="group relative flex h-full flex-col gap-6 bg-black p-7 transition-colors duration-500 ease-out hover:bg-white/[0.03] md:p-9"
+                className="group relative flex h-full flex-col gap-6 bg-black p-7 transition-colors duration-500 ease-out hover:bg-cyan-200/[0.04] md:p-9"
               >
                 <Eyebrow
                   tracking="lg"
-                  intensity="muted"
-                  className="text-[10px] text-white/30 transition-colors duration-500 group-hover:text-white/55"
+                  className="text-[10px] text-cyan-200/40 transition-colors duration-500 group-hover:text-cyan-200/75"
                 >
-                  Sous-rubrique
+                  Console
                 </Eyebrow>
 
                 <h2
-                  className="font-sans font-extralight leading-[0.95] tracking-[-0.03em] text-[#F5F5F7]"
+                  className="font-sans font-extralight leading-[0.95] tracking-[-0.03em] text-[#F5F5F7] transition-colors duration-500 group-hover:text-cyan-100"
                   style={{ fontSize: "clamp(1.5rem, 2.6vw, 2.25rem)" }}
                 >
                   {card.label}
                 </h2>
 
-                <Eyebrow tracking="sm" intensity="default">
+                <Eyebrow tracking="sm" className="text-cyan-200/70">
                   {card.hint}
                 </Eyebrow>
 
-                <p className="font-serif text-sm italic text-white/55 transition-colors duration-500 group-hover:text-white/75 md:text-base">
+                <p className="font-serif text-sm italic text-white/55 transition-colors duration-500 group-hover:text-white/80 md:text-base">
                   {card.summary}
                 </p>
 
-                <span className="mt-auto inline-flex items-center gap-3 pt-4 text-[10px] uppercase tracking-[0.32em] text-white/40 transition-colors duration-500 group-hover:text-white">
+                <span className="mt-auto inline-flex items-center gap-3 pt-4 text-[10px] uppercase tracking-[0.32em] text-white/40 transition-colors duration-500 group-hover:text-cyan-100">
                   <Hairline width="sm" hover="xl" />
-                  <span>Ouvrir</span>
+                  <span>Engager</span>
                 </span>
               </Link>
             </li>
@@ -142,7 +162,7 @@ export default async function SettingsHome() {
 
         <div className="flex items-center pt-4">
           <Button href="/admin" variant="ghost">
-            ← Tableau de bord
+            ← Conseil
           </Button>
         </div>
       </section>
