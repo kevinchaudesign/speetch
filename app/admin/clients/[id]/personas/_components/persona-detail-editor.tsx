@@ -13,19 +13,19 @@ import type { PersonaItem, PersonaMedia } from "../_lib/persona-types";
 
 type PatchableField = Exclude<keyof PersonaItem, "id" | "media">;
 
-// ─── Styles input/textarea ─────────────────────────────────────────────────
+// ─── Styles input/textarea — palette cyan thème Conseil Jedi ──────────────
 const INPUT_CLASS =
-  "w-full border-0 border-b border-white/15 bg-transparent py-2 text-sm text-[#F5F5F7] outline-none transition-colors placeholder:text-white/25 focus:border-white/45";
+  "w-full border-0 border-b border-cyan-200/20 bg-transparent py-2 text-sm text-[#F5F5F7] caret-cyan-200 outline-none transition-colors placeholder:text-white/25 focus:border-cyan-200/55";
 const TEXTAREA_CLASS =
-  "w-full resize-y border border-white/15 bg-white/[0.02] px-3 py-2 text-sm text-[#F5F5F7] outline-none transition-colors placeholder:text-white/25 focus:border-white/35";
+  "w-full resize-y border border-cyan-200/15 bg-cyan-200/[0.02] px-3 py-2 text-sm text-[#F5F5F7] caret-cyan-200 outline-none transition-colors placeholder:text-white/25 focus:border-cyan-200/45";
 const NAME_INPUT_CLASS =
-  "w-full border-0 border-b border-white/20 bg-transparent py-2 font-sans text-3xl font-extralight tracking-[-0.02em] text-[#F5F5F7] outline-none transition-colors placeholder:text-white/25 focus:border-white/55 md:text-4xl";
+  "w-full border-0 border-b border-cyan-200/25 bg-transparent py-2 font-sans text-3xl font-extralight tracking-[-0.02em] text-[#F5F5F7] caret-cyan-200 outline-none transition-colors placeholder:text-white/25 focus:border-cyan-200/65 md:text-4xl";
 
 const FIELD_LABEL_CLASS =
-  "text-[10px] uppercase tracking-[0.32em] text-white/45";
+  "text-[10px] uppercase tracking-[0.32em] text-cyan-200/55";
 
 const ERROR_CLASS =
-  "text-[10px] uppercase tracking-[0.32em] text-red-300/80";
+  "text-[10px] uppercase tracking-[0.32em] text-red-300/85";
 
 export function PersonaDetailEditor({
   profileId,
@@ -75,23 +75,26 @@ export function PersonaDetailEditor({
   return (
     <div className="flex flex-col gap-10">
       {topError && (
-        <p className="border-l-2 border-red-400/40 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/80">
+        <p
+          className="border-l-2 border-red-400/50 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/85"
+          style={{ textShadow: "0 0 8px rgba(252, 165, 165, 0.35)" }}
+        >
           {topError}
         </p>
       )}
 
       <div className="flex flex-col gap-2">
-        <span className="text-[10px] uppercase tracking-[0.4em] text-white/30">
-          Nom du persona
+        <span className="text-[10px] uppercase tracking-[0.4em] text-cyan-200/45">
+          Nom de l&apos;audience
         </span>
         <AutosaveTextInput
           profileId={profileId}
           personaId={persona.id}
           field="name"
           initialValue={persona.name}
-          placeholder="Nom du persona"
+          placeholder="Nom de l'audience"
           className={NAME_INPUT_CLASS}
-          ariaLabel="Nom du persona"
+          ariaLabel="Nom de l'audience"
         />
       </div>
 
@@ -145,7 +148,7 @@ export function PersonaDetailEditor({
           personaId={persona.id}
           field="quote"
           initialValue={persona.quote ?? ""}
-          placeholder="« Ce que ce persona pourrait dire… »"
+          placeholder="« Ce que cette audience pourrait dire… »"
           className={TEXTAREA_CLASS}
           ariaLabel="Citation"
           rows={2}
@@ -240,26 +243,26 @@ export function PersonaDetailEditor({
         />
       </FieldBlock>
 
-      <div className="flex items-center justify-end border-t border-white/10 pt-8">
+      <div className="flex items-center justify-end border-t border-cyan-200/15 pt-8">
         <Button
           variant="danger"
           onClick={() => setConfirmDelete(true)}
           pending={pending}
         >
-          Supprimer ce persona
+          Effacer cette audience
         </Button>
       </div>
 
       <ConfirmDialog
         open={confirmDelete}
-        title="Supprimer ce persona ?"
+        title="Effacer cette audience ?"
         description={
           <span>
             <span className="font-serif italic">{persona.name}</span> sera
-            définitivement supprimé. Cette action est irréversible.
+            définitivement effacée. Cette action est irréversible.
           </span>
         }
-        confirmLabel="Supprimer"
+        confirmLabel="Effacer"
         tone="danger"
         pending={pending}
         onConfirm={handleDelete}
@@ -284,11 +287,11 @@ function PersonaMediaStrip({
 }) {
   if (media.length === 0) {
     return (
-      <p className="text-[11px] uppercase tracking-[0.32em] text-white/30">
+      <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/45">
         Aucun visuel taggé
-        <span className="mx-2 text-white/15">·</span>
-        <span className="font-serif italic normal-case tracking-normal text-white/40">
-          assigne des images depuis la médiathèque, dossier « Personas »
+        <span className="mx-2 text-cyan-200/20">·</span>
+        <span className="font-serif italic normal-case tracking-normal text-white/55">
+          assigne des images depuis la médiathèque, dossier «&nbsp;Audiences&nbsp;»
         </span>
       </p>
     );
@@ -305,11 +308,11 @@ function PersonaMediaStrip({
     <div className="flex flex-col gap-3">
       <span className={FIELD_LABEL_CLASS}>
         Visuels ({media.length})
-        <span className="mx-2 text-white/15">·</span>
-        <span className="normal-case tracking-normal text-white/35">
+        <span className="mx-2 text-cyan-200/20">·</span>
+        <span className="normal-case tracking-normal text-cyan-200/45">
           {activeCoverId
-            ? "click ★ pour retirer la card"
-            : "click ☆ pour définir la card preview"}
+            ? "click ★ pour retirer la vignette"
+            : "click ☆ pour définir la vignette"}
         </span>
       </span>
       <ul className="flex flex-wrap gap-3">
@@ -323,10 +326,10 @@ function PersonaMediaStrip({
                 rel="noopener noreferrer"
                 title={m.filename}
                 className={cn(
-                  "relative block h-full w-full overflow-hidden rounded-xl border bg-white/[0.02] transition-all",
+                  "relative block h-full w-full overflow-hidden rounded-xl border bg-cyan-200/[0.02] transition-all",
                   isCover
-                    ? "border-white/50 ring-2 ring-white/30"
-                    : "border-white/10 hover:border-white/35",
+                    ? "border-cyan-200/60 ring-2 ring-cyan-200/35"
+                    : "border-cyan-200/15 hover:border-cyan-200/40",
                 )}
               >
                 {m.mime_type.startsWith("image/") ? (
@@ -363,20 +366,20 @@ function PersonaMediaStrip({
                 disabled={pending}
                 aria-label={
                   isCover
-                    ? "Retirer comme card preview"
-                    : "Définir comme card preview"
+                    ? "Retirer comme vignette"
+                    : "Définir comme vignette"
                 }
                 aria-pressed={isCover}
                 title={
                   isCover
-                    ? "Card preview actuelle — click pour retirer"
-                    : "Définir comme card preview"
+                    ? "Vignette actuelle — click pour retirer"
+                    : "Définir comme vignette"
                 }
                 className={cn(
                   "absolute right-1.5 top-1.5 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border bg-black/60 text-[14px] backdrop-blur-sm transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50",
                   isCover
-                    ? "border-white/70 text-amber-200 opacity-100 hover:border-white"
-                    : "border-white/35 text-white/65 opacity-0 hover:border-white hover:text-white group-hover:opacity-100 focus-visible:opacity-100",
+                    ? "border-cyan-200/75 text-amber-200 opacity-100 hover:border-cyan-200"
+                    : "border-cyan-200/40 text-cyan-200/65 opacity-0 hover:border-cyan-200/80 hover:text-cyan-100 group-hover:opacity-100 focus-visible:opacity-100",
                 )}
               >
                 {isCover ? "★" : "☆"}
