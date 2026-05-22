@@ -10,10 +10,12 @@ const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 export function AdminShell({
   email,
+  displayName,
   initialCollapsed,
   children,
 }: {
   email: string;
+  displayName: string | null;
   initialCollapsed: boolean;
   children: ReactNode;
 }) {
@@ -43,7 +45,7 @@ export function AdminShell({
       >
         {children}
       </div>
-      <AdminAssistant email={email} />
+      <AdminAssistant email={email} displayName={displayName} />
     </div>
   );
 }

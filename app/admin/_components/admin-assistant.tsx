@@ -491,14 +491,27 @@ function renderMarkdown(content: string): string {
   return typeof out === "string" ? out : "";
 }
 
-export function AdminAssistant({ email }: { email: string }) {
+export function AdminAssistant({
+  email,
+  displayName,
+}: {
+  email: string;
+  /** Nom affiché dans le greeting — vient de `profiles.full_name` (Mon profil). */
+  displayName?: string | null;
+}) {
   const pathname = usePathname();
   const routeContext = useMemo(() => getRouteContext(pathname), [pathname]);
   const isClientContext = useMemo(
     () => isClientContextRoute(pathname),
     [pathname],
   );
-  const firstName = useMemo(() => firstNameFromEmail(email), [email]);
+  /* Priorité au nom du profil owner ; fallback sur le premier segment de l'email
+     (ex. « clubabrazo@… » → « Clubabrazo »). Si Mon profil reste vide, on garde
+     l'ancien comportement. */
+  const firstName = useMemo(
+    () => displayName?.trim() || firstNameFromEmail(email),
+    [displayName, email],
+  );
   const greeting = useMemo(() => greetingForNow(new Date()), []);
 
   const [open, setOpen] = useState(false);

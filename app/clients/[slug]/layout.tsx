@@ -1,4 +1,4 @@
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { isOwnerEmail } from "@/lib/auth/owner";
 import { AdminAssistant } from "@/app/admin/_components/admin-assistant";
 import { AdminEditModeFlag } from "./_admin/admin-edit-mode-flag";
@@ -26,6 +26,18 @@ export default async function ClientSpaceLayout({
   } = await supabase.auth.getUser();
   const isOwner = !!user && isOwnerEmail(user.email);
 
+  // Nom affiché dans le greeting du chatbot — défini dans Mon profil.
+  let displayName: string | null = null;
+  if (isOwner) {
+    const admin = createAdminClient();
+    const { data: ownerProfile } = await admin
+      .from("profiles")
+      .select("full_name")
+      .eq("is_owner", true)
+      .maybeSingle();
+    displayName = ownerProfile?.full_name?.trim() || null;
+  }
+
   return (
     <>
       {children}
@@ -33,7 +45,10 @@ export default async function ClientSpaceLayout({
         <>
           <AdminEditModeFlag />
           <EditModeToggle />
-          <AdminAssistant email={user.email ?? "Session admin"} />
+          <AdminAssistant
+            email={user.email ?? "Session admin"}
+            displayName={displayName}
+          />
         </>
       ) : null}
     </>

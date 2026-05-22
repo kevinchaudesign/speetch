@@ -1,6 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { AdminShell } from "./_components/admin-shell";
 
 export const dynamic = "force-dynamic";
@@ -26,9 +26,19 @@ export default async function AdminLayout({
   const initialCollapsed =
     cookieStore.get(SIDEBAR_COOKIE)?.value === "1";
 
+  // Nom affiché dans le greeting du chatbot — défini dans Mon profil.
+  const admin = createAdminClient();
+  const { data: ownerProfile } = await admin
+    .from("profiles")
+    .select("full_name")
+    .eq("is_owner", true)
+    .maybeSingle();
+  const displayName = ownerProfile?.full_name?.trim() || null;
+
   return (
     <AdminShell
       email={user.email ?? "Session active"}
+      displayName={displayName}
       initialCollapsed={initialCollapsed}
     >
       {children}
