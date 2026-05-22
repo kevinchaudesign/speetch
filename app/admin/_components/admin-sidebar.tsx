@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Eyebrow } from "@/lib/ds";
+import { AudioToggle } from "./audio-toggle";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const COLLAPSE_DURATION_MS = 500;
@@ -271,6 +272,8 @@ export function AdminSidebar({
             {email}
           </span>
         </div>
+
+        <AudioToggle collapsed={collapsed} />
 
         <form action="/auth/signout" method="post">
           <button

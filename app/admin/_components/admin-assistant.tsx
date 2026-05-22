@@ -39,6 +39,10 @@ import {
   useState,
 } from "react";
 import { cn } from "@/lib/utils";
+import {
+  playLightsaberIgnite,
+  playLightsaberOff,
+} from "@/lib/sw/audio";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -953,7 +957,10 @@ export function AdminAssistant({
             pending={pending}
             hasUnread={messages.length > 0 && !pending}
             streamingHasContent={streamingHasContent}
-            onOpen={() => setOpen(true)}
+            onOpen={() => {
+              playLightsaberIgnite();
+              setOpen(true);
+            }}
           />
         )}
       </AnimatePresence>
@@ -976,7 +983,10 @@ export function AdminAssistant({
             greeting={greeting}
             scrollRef={scrollRef}
             inputRef={inputRef}
-            onClose={() => setOpen(false)}
+            onClose={() => {
+              playLightsaberOff();
+              setOpen(false);
+            }}
             onReset={handleReset}
             onStop={handleStop}
             onDraftChange={setDraft}

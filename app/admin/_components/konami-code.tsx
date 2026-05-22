@@ -12,6 +12,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { playForceChime } from "@/lib/sw/audio";
 
 const SEQUENCE = [
   "ArrowUp",
@@ -68,6 +69,7 @@ export function KonamiCode() {
         const q = YODA_QUOTES[Math.floor(Math.random() * YODA_QUOTES.length)];
         setQuote(q);
         setMatched(true);
+        playForceChime();
         buffer = []; // reset pour ré-armer
       }
     }
