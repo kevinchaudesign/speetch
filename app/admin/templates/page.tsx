@@ -7,7 +7,7 @@ import { Button, Chip, Eyebrow, Hairline } from "@/lib/ds";
 import { DeleteTemplateForm } from "./delete-button";
 
 export const metadata: Metadata = {
-  title: "Templates de page",
+  title: "Blueprints",
   robots: { index: false, follow: false },
 };
 
@@ -53,34 +53,51 @@ export default async function TemplatesListPage() {
   }
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines + sabre vertical — thème Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       <header className="flex items-center justify-between md:hidden">
         <Link
           href="/admin/settings"
-          className="text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors hover:text-white"
+          className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
-          ← Réglages
+          ← Forge
         </Link>
-        <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
-          Templates
+        <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/55">
+          Blueprints
         </span>
       </header>
 
       <section className="mx-auto flex max-w-5xl flex-col gap-12 pt-20">
         <div className="flex flex-col gap-6">
-          <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
-            <Link href="/admin" className="transition-colors hover:text-white">
-              Administration
+          <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/55">
+            <Link
+              href="/admin"
+              className="transition-colors hover:text-cyan-100"
+            >
+              Conseil Jedi
             </Link>
-            <span className="mx-3 text-white/20">→</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
             <Link
               href="/admin/settings"
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-cyan-100"
             >
-              Réglages
+              Forge
             </Link>
-            <span className="mx-3 text-white/20">→</span>
-            <span className="text-white/55">Templates</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
+            <span className="text-cyan-200/85">Blueprints</span>
           </p>
 
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -88,44 +105,52 @@ export default async function TemplatesListPage() {
               className="font-sans font-extralight leading-[0.85] tracking-[-0.05em] text-[#F5F5F7]"
               style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)" }}
             >
-              Templates{" "}
-              <span className="font-serif italic font-normal text-white/85">
-                de page
+              Les{" "}
+              <span className="sw-hologram-text font-serif italic font-normal">
+                Blueprints
               </span>
             </h1>
 
             <Button href="/admin/templates/new" variant="primary">
-              + Importer du HTML
+              + Forger un blueprint
             </Button>
           </div>
 
-          <p className="max-w-xl text-balance font-serif text-base italic text-white/45 md:text-lg">
-            Upload une page HTML, Claude la transforme en template éditable.
-            Les templates peuvent être généraux ou liés à un type de projet
-            précis.
+          <p className="max-w-xl text-balance font-serif text-base italic text-white/55 md:text-lg">
+            Confie un parchemin HTML — la Force (Claude) en tire un blueprint
+            éditable. Les blueprints peuvent être généraux ou liés à un type
+            de mission précis.
           </p>
 
-          <Eyebrow tracking="md" intensity="default">
+          <Eyebrow tracking="md" className="text-cyan-200/70">
             {list.length === 0
-              ? "Aucun template personnalisé"
-              : `${list.length} template${list.length > 1 ? "s" : ""} personnalisé${list.length > 1 ? "s" : ""}`}
+              ? "Aucun blueprint forgé pour le moment"
+              : `${list.length} blueprint${list.length > 1 ? "s" : ""} forgé${list.length > 1 ? "s" : ""}`}
           </Eyebrow>
         </div>
 
         {list.length === 0 ? (
-          <div className="flex flex-col items-start gap-8 border-t border-white/10 pt-16">
-            <p className="max-w-md text-balance font-serif text-base italic text-white/40 md:text-lg">
-              Aucun template personnalisé en BDD. Les 5 presets code (page
-              blanche, présentation, moodboard, livrable, process) restent
-              toujours disponibles à la création.
+          <div className="relative flex flex-col items-start gap-8 pt-16">
+            <div
+              aria-hidden
+              className="sw-hologram-line absolute inset-x-0 top-0"
+            />
+            <p className="max-w-md text-balance font-serif text-base italic text-white/55 md:text-lg">
+              Aucun blueprint personnalisé en BDD. Les 5 presets ancestraux de
+              la Force (parchemin blanc, présentation, moodboard, livrable,
+              process) restent disponibles à la création de toute mission.
             </p>
             <Button href="/admin/templates/new" variant="large">
-              Importer le premier HTML
+              Forger le premier blueprint
             </Button>
           </div>
         ) : (
-          <ul className="flex flex-col border-t border-white/10">
-            {list.map((tpl) => {
+          <ul className="relative flex flex-col">
+            <div
+              aria-hidden
+              className="sw-hologram-line absolute inset-x-0 top-0"
+            />
+            {list.map((tpl, i) => {
               const formattedDate = new Date(tpl.created_at).toLocaleDateString(
                 "fr-FR",
                 { year: "numeric", month: "short", day: "numeric" },
@@ -139,8 +164,15 @@ export default async function TemplatesListPage() {
               return (
                 <li
                   key={tpl.id}
-                  className="flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3 border-b border-white/10 py-7"
+                  className="relative flex flex-wrap items-baseline justify-between gap-x-10 gap-y-3 py-7"
                 >
+                  {/* hologram-line bottom sauf dernier */}
+                  {i < list.length - 1 && (
+                    <div
+                      aria-hidden
+                      className="sw-hologram-line absolute inset-x-0 bottom-0"
+                    />
+                  )}
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
                       <h2 className="text-2xl font-light text-[#F5F5F7] md:text-3xl">
@@ -149,25 +181,25 @@ export default async function TemplatesListPage() {
                       {typeLabel ? (
                         <Chip tone="default">{typeLabel}</Chip>
                       ) : (
-                        <Chip tone="muted">Tous types</Chip>
+                        <Chip tone="muted">Toute mission</Chip>
                       )}
                       <Chip tone={isRawHtml ? "warning" : "muted"}>
-                        {isRawHtml ? "Reproduction fidèle" : "Édition libre"}
+                        {isRawHtml ? "Réplique fidèle" : "Forge ouverte"}
                       </Chip>
                     </div>
                     {tpl.tagline && (
-                      <p className="font-serif text-sm italic text-white/55 md:text-base">
+                      <p className="font-serif text-sm italic text-white/65 md:text-base">
                         {tpl.tagline}
                       </p>
                     )}
                     {tpl.description && (
-                      <p className="text-[11px] uppercase tracking-[0.28em] text-white/40">
+                      <p className="text-[11px] uppercase tracking-[0.28em] text-white/45">
                         {tpl.description}
                       </p>
                     )}
                     <p className="font-mono text-[11px] text-white/35">
                       <span>{formattedDate}</span>
-                      <span className="text-white/20"> · </span>
+                      <span className="text-cyan-200/25"> · </span>
                       <span>
                         {(
                           ((tpl.default_content as { sections?: unknown[] }).sections ?? [])
@@ -175,11 +207,11 @@ export default async function TemplatesListPage() {
                         )}{" "}
                         section(s)
                       </span>
-                      <span className="text-white/20"> · </span>
+                      <span className="text-cyan-200/25"> · </span>
                       <span>
                         {usageCount === 0
-                          ? "non utilisé"
-                          : `${usageCount} page${usageCount > 1 ? "s" : ""}`}
+                          ? "non engagé"
+                          : `${usageCount} parchemin${usageCount > 1 ? "s" : ""}`}
                       </span>
                     </p>
                   </div>
@@ -187,9 +219,9 @@ export default async function TemplatesListPage() {
                   <div className="flex shrink-0 items-center gap-6">
                     <Link
                       href={`/admin/templates/${tpl.id}`}
-                      className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
+                      className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-200/65 transition-colors hover:text-cyan-100"
                     >
-                      <span>Éditer</span>
+                      <span>Affûter</span>
                       <Hairline width="sm" hover="lg" />
                     </Link>
                     <DeleteTemplateForm
@@ -205,7 +237,7 @@ export default async function TemplatesListPage() {
 
         <div className="flex items-center pt-4">
           <Button href="/admin/settings" variant="ghost">
-            ← Retour Réglages
+            ← Retour Forge
           </Button>
         </div>
       </section>
