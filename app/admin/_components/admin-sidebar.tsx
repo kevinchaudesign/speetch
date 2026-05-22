@@ -83,21 +83,12 @@ export function AdminSidebar({
         "fixed inset-y-4 left-4 z-20 hidden flex-col justify-between overflow-hidden",
         // Largeur conditionnelle
         collapsed ? "w-16" : "w-56",
-        // Glassmorphism premium
-        "rounded-2xl border border-white/[0.08]",
-        "bg-gradient-to-br from-white/[0.08] via-white/[0.025] to-white/[0.005]",
-        "backdrop-blur-2xl",
-        "shadow-[0_20px_60px_-20px_rgba(0,0,0,0.7),inset_1px_1px_0_0_rgba(255,255,255,0.05)]",
+        // Pas de contour ni de fond : la sidebar flotte directement sur la page
+        "bg-transparent",
         collapsed ? "px-3 py-8" : "px-6 py-8",
         "md:flex",
       )}
     >
-      {/* Halo lumineux haut-gauche */}
-      <span
-        aria-hidden
-        className="pointer-events-none absolute -left-12 -top-12 h-40 w-40 rounded-full bg-white/[0.06] blur-3xl"
-      />
-
       {/* Brand + toggle + Admin label */}
       <div className="relative flex flex-col gap-2">
         <div className="flex items-start justify-between gap-2">
