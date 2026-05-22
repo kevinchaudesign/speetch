@@ -130,121 +130,121 @@ const ROUTE_CONTEXTS: Array<{ match: RegExp; build: () => RouteContext }> = [
   {
     match: /^\/admin\/?$/,
     build: () => ({
-      label: "Tableau de bord",
+      label: "Conseil",
       prompts: [
-        "Par quoi commencer pour préparer un nouvel espace client ?",
-        "Quelle est la différence entre un projet et un lot ?",
-        "Comment publier un espace client une fois prêt ?",
+        "Par quoi commencer pour forger un nouvel Holocron ?",
+        "Différence entre Mission et lot, quelle est-elle ?",
+        "Sceller un Holocron une fois prêt, comment ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/new\/?$/,
     build: () => ({
-      label: "Nouvel espace",
+      label: "Forge holocron",
       prompts: [
-        "Quelles infos sont obligatoires pour créer un client ?",
-        "Comment fonctionne le slug auto-généré ?",
-        "Le mot de passe sert à quoi exactement ?",
+        "Quelles infos obligatoires pour forger un Holocron ?",
+        "Le slug auto-généré, comment fonctionne-t-il ?",
+        "Le code holocron, à quoi sert-il exactement ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/?$/,
     build: () => ({
-      label: "Espaces clients",
+      label: "Holocrons",
       prompts: [
-        "Comment retrouver un espace non publié ?",
-        "Puis-je dupliquer un espace client existant ?",
-        "Comment partager le lien d'un espace au client ?",
+        "Un Holocron non scellé, comment le retrouver ?",
+        "Dupliquer un Holocron existant, possible ?",
+        "Le lien d'un Holocron au Padawan, comment le transmettre ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/projects\/new\/?$/,
     build: () => ({
-      label: "Nouveau projet",
+      label: "Nouvelle mission",
       prompts: [
-        "Quel statut choisir au démarrage d'un projet ?",
-        "Le slug du projet apparaît-il dans l'URL publique ?",
-        "Puis-je organiser plusieurs livrables dans un projet ?",
+        "Quel statut choisir au démarrage d'une Mission ?",
+        "Le slug de la Mission apparaît-il dans l'URL publique ?",
+        "Plusieurs parchemins dans une Mission, on peut ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/projects\/[^/]+\/pages\/new\/?$/,
     build: () => ({
-      label: "Nouvelle page",
+      label: "Nouveau parchemin",
       prompts: [
-        "Quelle voie d'entrée choisir pour cette page ?",
-        "Quand utiliser raw_html vs sections éditoriales ?",
-        "Comment importer un .docx ou un .pdf ici ?",
+        "Quelle voie d'entrée choisir pour ce parchemin ?",
+        "Réplique fidèle vs Forge ouverte, quand utiliser quoi ?",
+        "Importer un .docx ou un .pdf ici, comment ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/projects\/[^/]+\/pages\/[^/]+\/?$/,
     build: () => ({
-      label: "Édition page",
+      label: "Affûtage parchemin",
       prompts: [
-        "Comment ajouter une annotation fluo à un passage ?",
-        "Puis-je attacher une note à cette page ?",
-        "Comment réorganiser les sections d'une page ?",
+        "Ajouter une annotation fluo à un passage, comment ?",
+        "Attacher une note à ce parchemin, possible ?",
+        "Réorganiser les sections, comment faire ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/projects\/[^/]+\/?$/,
     build: () => ({
-      label: "Projet",
+      label: "Mission",
       prompts: [
-        "Comment créer un lot pour grouper des pages ?",
-        "Comment réorganiser les pages d'un projet ?",
-        "Comment dépublier ce projet temporairement ?",
+        "Créer un lot pour grouper des parchemins, comment ?",
+        "Réorganiser les parchemins d'une Mission, comment ?",
+        "Désactiver cette Mission temporairement, possible ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/context\/new\/?$/,
     build: () => ({
-      label: "Nouveau contexte",
+      label: "Nouveau parchemin d'archive",
       prompts: [
-        "Quels formats sont supportés à l'import ?",
-        "Le document est-il visible côté client ?",
-        "Comment réutiliser ce contenu dans une page ?",
+        "Quels formats supportés à l'import ?",
+        "Le parchemin visible côté Padawan, oui ou non ?",
+        "Réutiliser ce contenu dans un parchemin, comment ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/context\/[^/]+\/?$/,
     build: () => ({
-      label: "Édition contexte",
+      label: "Affûtage parchemin",
       prompts: [
-        "Comment publier ce document de contexte ?",
-        "Puis-je éditer le titre sans casser le lien ?",
-        "Comment supprimer ce document ?",
+        "Sceller ce parchemin d'archive, comment ?",
+        "Éditer le titre sans casser le lien, possible ?",
+        "Effacer ce parchemin, comment ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/context\/?$/,
     build: () => ({
-      label: "Dossier contexte",
+      label: "Archives",
       prompts: [
-        "À quoi sert ce dossier de contexte côté client ?",
-        "Quels formats puis-je importer ici ?",
-        "Comment ordonner les documents ?",
+        "À quoi servent les Archives côté Padawan ?",
+        "Quels formats puis-je confier à la Force ici ?",
+        "Comment ordonner les parchemins ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/design\/?$/,
     build: () => ({
-      label: "Design client",
+      label: "Charte Holocron",
       prompts: [
-        "Comment changer la couleur d'accent de cet espace ?",
-        "Puis-je prévisualiser le rendu côté client ?",
-        "Comment revenir au design par défaut ?",
+        "Changer la couleur d'accent de cet Holocron, comment ?",
+        "Prévisualiser le rendu côté Padawan, possible ?",
+        "Revenir à la charte par défaut, comment ?",
       ],
     }),
   },
@@ -253,131 +253,153 @@ const ROUTE_CONTEXTS: Array<{ match: RegExp; build: () => RouteContext }> = [
     build: () => ({
       label: "Médiathèque",
       prompts: [
-        "Comment organiser les fichiers en dossiers ?",
+        "Organiser les fichiers en dossiers, comment ?",
         "Quelle taille max pour une image ou vidéo ?",
-        "Comment réutiliser un média dans une page ?",
+        "Réutiliser un média dans un parchemin, comment ?",
+      ],
+    }),
+  },
+  {
+    match: /^\/admin\/clients\/[^/]+\/personas\/?$/,
+    build: () => ({
+      label: "Audiences",
+      prompts: [
+        "À quoi servent les Audiences pour cet Holocron ?",
+        "Forger une nouvelle Audience, comment ?",
+        "Lier une Audience à une Mission, possible ?",
+      ],
+    }),
+  },
+  {
+    match: /^\/admin\/clients\/[^/]+\/personas\/[^/]+\/?$/,
+    build: () => ({
+      label: "Affûtage Audience",
+      prompts: [
+        "Tagger des visuels sur cette Audience, comment ?",
+        "Définir la vignette de l'Audience, comment ?",
+        "Effacer cette Audience, possible ?",
       ],
     }),
   },
   {
     match: /^\/admin\/clients\/[^/]+\/?$/,
     build: () => ({
-      label: "Espace client",
+      label: "Holocron",
       prompts: [
-        "Comment changer le mot de passe de cet espace ?",
-        "Comment publier cet espace ?",
-        "Où se trouve la médiathèque du client ?",
+        "Régénérer le code holocron, comment ?",
+        "Sceller cet Holocron pour le rendre public, comment ?",
+        "Où se trouve la médiathèque de cet Holocron ?",
       ],
     }),
   },
   {
     match: /^\/admin\/templates\/new\/?$/,
     build: () => ({
-      label: "Nouveau template",
+      label: "Forge blueprint",
       prompts: [
-        "Quelle URL HTML donne les meilleurs résultats ?",
-        "Comment Claude convertit-il le HTML en sections ?",
-        "Puis-je modifier les sections par défaut après ?",
+        "Quel parchemin HTML donne les meilleurs résultats ?",
+        "La Force, comment convertit-elle le HTML en sections ?",
+        "Modifier les sections par défaut après, possible ?",
       ],
     }),
   },
   {
     match: /^\/admin\/templates\/[^/]+\/?$/,
     build: () => ({
-      label: "Édition template",
+      label: "Affûtage blueprint",
       prompts: [
-        "Comment recharger ce template depuis un nouveau HTML ?",
-        "Puis-je dupliquer ce template ?",
-        "Comment l'utiliser pour créer une page ?",
+        "Recharger ce blueprint depuis un nouveau HTML, comment ?",
+        "Dupliquer ce blueprint, possible ?",
+        "L'utiliser pour forger un parchemin, comment ?",
       ],
     }),
   },
   {
     match: /^\/admin\/templates\/?$/,
     build: () => ({
-      label: "Templates",
+      label: "Blueprints",
       prompts: [
-        "À quoi servent les templates dans Speetch ?",
-        "Comment partir d'un site existant pour créer un template ?",
-        "Puis-je versionner mes templates ?",
+        "À quoi servent les Blueprints dans le Conseil ?",
+        "Partir d'un site existant pour forger un Blueprint, comment ?",
+        "Versionner mes Blueprints, possible ?",
       ],
     }),
   },
   {
     match: /^\/admin\/settings\/design-system\/?$/,
     build: () => ({
-      label: "Design system",
+      label: "Codex",
       prompts: [
-        "Quelle est la grammaire typographique Speetch ?",
+        "Quelle est la grammaire typographique du Codex ?",
         "Quand utiliser un Hairline plutôt qu'un Button ?",
-        "Comment ajouter une nouvelle primitive au DS ?",
+        "Ajouter une nouvelle primitive au Codex, comment ?",
       ],
     }),
   },
   {
     match: /^\/admin\/settings\/profile\/?$/,
     build: () => ({
-      label: "Mon profil",
+      label: "Identité Jedi",
       prompts: [
-        "Comment changer mon avatar ?",
-        "Le nom affiché apparaît-il publiquement ?",
-        "Comment changer mon mot de passe admin ?",
+        "Changer mon sigil holographique, comment ?",
+        "Mon nom de Maître apparaît-il publiquement ?",
+        "Changer mon code d'accès au Conseil, comment ?",
       ],
     }),
   },
   {
     match: /^\/admin\/settings\/?$/,
     build: () => ({
-      label: "Réglages",
+      label: "Forge",
       prompts: [
-        "Où se trouve la documentation du design system ?",
-        "Comment gérer les templates HTML ?",
-        "Comment éditer mon profil owner ?",
+        "Où se trouve le Codex visuel ?",
+        "Gérer les Blueprints HTML, comment ?",
+        "Affûter mon identité Jedi, comment ?",
       ],
     }),
   },
-  /* Pages publiques d'un client — l'admin connecté voit l'assistant avec
-     snapshot temps-réel du client. */
+  /* Pages publiques d'un Holocron — le Maître connecté voit l'assistant avec
+     snapshot temps-réel de l'Holocron. */
   {
     match: /^\/clients\/[^/]+\/[^/]+\/[^/]+\/?$/,
     build: () => ({
-      label: "Page client",
+      label: "Parchemin public",
       prompts: [
-        "Résume cette page et son contexte dans le projet.",
-        "Cette page est-elle publiée ? À quoi sert-elle ?",
-        "Y a-t-il des annotations fluo ou notes attachées à cette page ?",
+        "Résume ce parchemin et son contexte dans la Mission.",
+        "Ce parchemin est-il scellé ? À quoi sert-il ?",
+        "Annotations fluo ou notes attachées à ce parchemin ?",
       ],
     }),
   },
   {
     match: /^\/clients\/[^/]+\/[^/]+\/?$/,
     build: () => ({
-      label: "Projet client",
+      label: "Mission publique",
       prompts: [
-        "Liste les pages de ce projet et leur statut.",
-        "Quelle est la prochaine page à terminer ?",
-        "Quels lots structurent ce projet ?",
+        "Liste les parchemins de cette Mission et leur statut.",
+        "Quel est le prochain parchemin à affûter ?",
+        "Quels lots structurent cette Mission ?",
       ],
     }),
   },
   {
     match: /^\/clients\/[^/]+\/?$/,
     build: () => ({
-      label: "Contexte client",
+      label: "Holocron public",
       prompts: [
-        "Fais-moi le point sur ce client.",
-        "Quels projets ne sont pas encore publiés ?",
-        "Y a-t-il des documents de contexte récents à exploiter ?",
+        "Fais-moi le point sur cet Holocron.",
+        "Quelles Missions ne sont pas encore actives ?",
+        "Des parchemins d'archive récents à exploiter ?",
       ],
     }),
   },
   {
     match: /^\/clients\/?$/,
     build: () => ({
-      label: "Clients publics",
+      label: "Holocrons publics",
       prompts: [
-        "Combien d'espaces clients sont publiés ?",
-        "Quel client a le plus de projets actifs ?",
+        "Combien d'Holocrons sont scellés ?",
+        "Quel Holocron a le plus de Missions actives ?",
         "À quoi sert cette page côté public ?",
       ],
     }),
@@ -393,11 +415,11 @@ function getRouteContext(pathname: string): RouteContext {
     if (match.test(pathname)) return build();
   }
   return {
-    label: "Admin",
+    label: "Conseil Jedi",
     prompts: [
-      "Comment naviguer dans l'admin Speetch ?",
-      "Comment créer mon premier espace client ?",
-      "Quels formats peut-on importer dans une page ?",
+      "Comment naviguer dans le Conseil Jedi ?",
+      "Forger mon premier Holocron, comment ?",
+      "Quels formats peut-on confier à la Force ?",
     ],
   };
 }
@@ -1273,12 +1295,12 @@ function ChatPanel({
           <div className="flex flex-col gap-0.5">
             <span
               id={panelTitleId}
-              className="text-[10px] uppercase tracking-[0.4em] text-white/45"
+              className="text-[10px] uppercase tracking-[0.4em] text-cyan-200/55"
             >
-              Assistant
+              Maître
             </span>
             <span className="font-serif text-[15px] italic font-light leading-none text-[#F5F5F7]">
-              Speetch
+              Yoda
             </span>
           </div>
         </div>
@@ -1417,8 +1439,8 @@ function ChatPanel({
             rows={1}
             placeholder={
               pending
-                ? "Speetch rédige une réponse…"
-                : "Posez votre question…"
+                ? "Yoda médite…"
+                : "Pose ta question, Maître…"
             }
             disabled={pending}
             className={cn(
@@ -1520,8 +1542,9 @@ function EmptyState({
         transition={{ duration: 0.7, delay: 0.25 }}
         className="text-[13px] leading-relaxed text-white/55"
       >
-        Je connais l'admin Speetch — clients, projets, lots, notes, médiathèque,
-        contexte, design system. Je m'adapte à la page que vous regardez.
+        Le Conseil Jedi, je connais — Holocrons, Missions, parchemins, lots,
+        Archives, Audiences, Médiathèque, Codex. À ta page courante, je
+        m&apos;adapte.
       </motion.p>
 
       <div className="flex flex-col gap-0">
