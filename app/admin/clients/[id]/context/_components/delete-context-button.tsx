@@ -48,9 +48,9 @@ export function DeleteContextButton({
       <ConfirmDialog
         open={confirmOpen}
         tone="danger"
-        title={`Supprimer « ${contextTitle} » ?`}
-        description="Cette action supprime définitivement la note de contexte. Irréversible."
-        confirmLabel="Supprimer définitivement"
+        title={`Effacer « ${contextTitle} » ?`}
+        description="Cette action efface définitivement le parchemin d'archive. Irréversible."
+        confirmLabel="Effacer définitivement"
         cancelLabel="Annuler"
         pending={pending}
         onConfirm={onConfirm}

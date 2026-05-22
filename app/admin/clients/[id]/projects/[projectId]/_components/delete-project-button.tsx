@@ -41,9 +41,9 @@ export function DeleteProjectButton({
       <ConfirmDialog
         open={confirmOpen}
         tone="danger"
-        title={`Supprimer « ${projectName} » ?`}
-        description="Cette action supprime aussi toutes les pages du projet et leurs médias. Irréversible."
-        confirmLabel="Supprimer définitivement"
+        title={`Effacer la mission « ${projectName} » ?`}
+        description="Cette action efface aussi tous les parchemins de la mission et leurs médias. Irréversible."
+        confirmLabel="Effacer définitivement"
         cancelLabel="Annuler"
         pending={pending}
         onConfirm={onConfirm}

@@ -49,30 +49,31 @@ export function PasswordEditCard({ profileId }: { profileId: string }) {
   };
 
   return (
-    <div className="flex flex-col gap-4 border border-white/10 bg-white/[0.02] px-6 py-6">
+    <div className="flex flex-col gap-4 border border-cyan-200/15 bg-cyan-200/[0.015] px-6 py-6">
       <div className="flex items-baseline justify-between gap-4">
         <div className="flex flex-col gap-1">
-          <h2 className="text-[11px] uppercase tracking-[0.4em] text-white/40">
-            Mot de passe
+          <h2 className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
+            Code holocron
           </h2>
-          <p className="font-serif text-sm italic text-white/45">
-            Le mot de passe d&apos;accès à l&apos;espace public du client.
+          <p className="font-serif text-sm italic text-white/55">
+            Le code holocron permettant au Padawan d&apos;accéder à son espace
+            public.
           </p>
         </div>
         {mode === "idle" && (
           <Button
             onClick={() => setMode("editing")}
             variant="primary"
-            className="text-white/55"
+            className="text-cyan-200/65"
           >
-            Modifier
+            Régénérer
           </Button>
         )}
         {mode === "done" && (
           <Button
             onClick={reset}
             variant="primary"
-            className="text-white/55"
+            className="text-cyan-200/65"
           >
             Fermer
           </Button>
@@ -80,10 +81,10 @@ export function PasswordEditCard({ profileId }: { profileId: string }) {
       </div>
 
       {mode === "editing" && (
-        <div className="flex flex-col gap-3 border-t border-white/10 pt-5">
+        <div className="flex flex-col gap-3 border-t border-cyan-200/15 pt-5">
           <Field
-            label="Nouveau mot de passe"
-            hint="vide = généré automatiquement"
+            label="Nouveau code holocron"
+            hint="vide = forgé par la Force"
           >
             <input
               type="text"
@@ -93,27 +94,26 @@ export function PasswordEditCard({ profileId }: { profileId: string }) {
               autoFocus
               disabled={pending}
               autoComplete="off"
-              className="w-full border-0 border-b border-white/15 bg-transparent py-2 font-mono text-base text-[#F5F5F7] outline-none transition-colors placeholder:text-white/25 focus:border-white/45 disabled:opacity-50"
+              className="w-full border-0 border-b border-cyan-200/20 bg-transparent py-2 font-mono text-base text-[#F5F5F7] caret-cyan-200 outline-none transition-colors placeholder:text-white/25 focus:border-cyan-200/55 disabled:opacity-50"
             />
           </Field>
           {error && (
-            <p className="border-l-2 border-red-400/40 pl-3 text-[11px] uppercase tracking-[0.32em] text-red-300/80">
+            <p
+              className="border-l-2 border-red-400/50 pl-3 text-[11px] uppercase tracking-[0.32em] text-red-300/85"
+              style={{ textShadow: "0 0 8px rgba(252, 165, 165, 0.35)" }}
+            >
               {error}
             </p>
           )}
           <div className="flex flex-wrap items-center gap-4">
-            <Button
-              onClick={submit}
-              disabled={pending}
-              variant="return"
-            >
-              {pending ? "Mise à jour…" : "Valider"}
+            <Button onClick={submit} disabled={pending} variant="return">
+              {pending ? "Scellement…" : "Sceller"}
             </Button>
             <button
               type="button"
               onClick={reset}
               disabled={pending}
-              className="text-[11px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white disabled:opacity-50"
+              className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/40 transition-colors hover:text-cyan-100 disabled:opacity-50"
             >
               Annuler
             </button>
@@ -122,15 +122,16 @@ export function PasswordEditCard({ profileId }: { profileId: string }) {
       )}
 
       {mode === "done" && newPassword && (
-        <div className="flex flex-col gap-3 border-t border-white/10 pt-5">
-          <p className="text-[11px] uppercase tracking-[0.32em] text-emerald-300/80">
-            Mot de passe mis à jour
+        <div className="flex flex-col gap-3 border-t border-cyan-200/15 pt-5">
+          <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/90"
+             style={{ textShadow: "0 0 8px rgba(125, 211, 252, 0.45)" }}>
+            Code holocron scellé
           </p>
-          <p className="font-serif text-sm italic text-white/55">
+          <p className="font-serif text-sm italic text-white/65">
             Copie-le maintenant — il ne sera plus jamais ré-affiché.
           </p>
           <div className="flex flex-wrap items-center gap-4">
-            <code className="break-all rounded border border-white/15 bg-black/40 px-4 py-3 font-mono text-base text-[#F5F5F7]">
+            <code className="break-all rounded border border-cyan-200/25 bg-black/40 px-4 py-3 font-mono text-base text-[#F5F5F7]">
               {newPassword}
             </code>
             <button
@@ -139,8 +140,8 @@ export function PasswordEditCard({ profileId }: { profileId: string }) {
               className={cn(
                 "text-[11px] uppercase tracking-[0.32em] transition-colors",
                 copied
-                  ? "text-emerald-300/80"
-                  : "text-white/55 hover:text-white",
+                  ? "text-cyan-200/90"
+                  : "text-cyan-200/65 hover:text-cyan-100",
               )}
             >
               {copied ? "✓ Copié" : "Copier"}

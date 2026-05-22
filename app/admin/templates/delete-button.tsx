@@ -16,7 +16,7 @@ export function DeleteTemplateForm({
 
   const description =
     usageCount > 0
-      ? `${usageCount} page${usageCount > 1 ? "s" : ""} ${usageCount > 1 ? "utilisent" : "utilise"} déjà ce template. Elles garderont leur contenu mais perdront le lien vers le template.`
+      ? `${usageCount} parchemin${usageCount > 1 ? "s" : ""} ${usageCount > 1 ? "utilisent" : "utilise"} déjà ce blueprint. Ils garderont leur contenu mais perdront le lien vers le blueprint.`
       : "Action irréversible.";
 
   function onConfirm() {
@@ -34,16 +34,16 @@ export function DeleteTemplateForm({
         onClick={() => setConfirmOpen(true)}
         variant="danger"
         pending={pending}
-        pendingLabel="Suppression…"
+        pendingLabel="Effacement…"
       >
         Supprimer
       </Button>
       <ConfirmDialog
         open={confirmOpen}
         tone="danger"
-        title="Supprimer ce template ?"
+        title="Effacer ce blueprint ?"
         description={description}
-        confirmLabel="Supprimer le template"
+        confirmLabel="Effacer le blueprint"
         cancelLabel="Annuler"
         pending={pending}
         onConfirm={onConfirm}

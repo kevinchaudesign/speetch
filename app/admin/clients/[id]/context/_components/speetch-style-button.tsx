@@ -8,7 +8,7 @@ import { setContextSpeetchStyle } from "../actions";
 
 /**
  * Bouton réutilisable (liste + viewer) pour activer/désactiver l'overlay
- * CSS Speetch sur une note de contexte raw_html.
+ * CSS Codex Speetch sur un parchemin raw_html.
  *
  * Variante :
  *  - "chip" : pour les lignes de liste (petit, dans la chip strip)
@@ -64,19 +64,19 @@ export function SpeetchStyleButton({
           className={cn(
             "inline-flex items-center gap-2 rounded-full border px-3 py-1 text-[10px] uppercase tracking-[0.32em] transition-colors",
             enabled
-              ? "border-[#F5F5F7]/40 bg-white/[0.08] text-[#F5F5F7]"
-              : "border-white/15 bg-white/[0.02] text-white/45 hover:border-white/30 hover:text-white/75",
+              ? "border-cyan-200/55 bg-cyan-200/[0.08] text-cyan-100"
+              : "border-cyan-200/15 bg-cyan-200/[0.02] text-cyan-200/45 hover:border-cyan-200/40 hover:text-cyan-100/80",
             pending && "opacity-50",
           )}
-          title="Active/désactive l'overlay CSS Speetch sur la note"
+          title="Active/désactive l'overlay Codex Speetch sur le parchemin"
         >
           <span
             className={cn(
               "block h-1.5 w-1.5 rounded-full",
-              enabled ? "bg-[#F5F5F7]" : "bg-white/30",
+              enabled ? "bg-cyan-300 sw-cyan-dot" : "bg-cyan-200/30",
             )}
           />
-          <span>{enabled ? "Style Speetch ON" : "Style Speetch"}</span>
+          <span>{enabled ? "Codex ON" : "Codex"}</span>
         </button>
         <AlertDialog
           open={error !== null}
@@ -97,19 +97,19 @@ export function SpeetchStyleButton({
         className={cn(
           "group inline-flex items-center gap-3 rounded-full border px-4 py-2 text-[11px] uppercase tracking-[0.32em] transition-colors",
           enabled
-            ? "border-[#F5F5F7]/40 bg-white/[0.08] text-[#F5F5F7]"
-            : "border-white/15 bg-white/[0.02] text-white/60 hover:border-white/30 hover:text-white",
+            ? "border-cyan-200/55 bg-cyan-200/[0.08] text-cyan-100"
+            : "border-cyan-200/15 bg-cyan-200/[0.02] text-cyan-200/55 hover:border-cyan-200/40 hover:text-cyan-100",
           pending && "cursor-wait opacity-50",
         )}
       >
         <span
           className={cn(
             "block h-2 w-2 rounded-full transition-colors",
-            enabled ? "bg-[#F5F5F7]" : "bg-white/30",
+            enabled ? "bg-cyan-300 sw-cyan-dot" : "bg-cyan-200/30",
           )}
         />
         <span>
-          {pending ? "…" : enabled ? "Style Speetch · ON" : "Style Speetch"}
+          {pending ? "…" : enabled ? "Codex Speetch · ON" : "Codex Speetch"}
         </span>
       </button>
       <AlertDialog
