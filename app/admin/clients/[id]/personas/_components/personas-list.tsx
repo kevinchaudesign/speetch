@@ -53,31 +53,40 @@ export function PersonasList({
   return (
     <div className="flex flex-col gap-10">
       <div className="flex items-center justify-between">
-        <span className="text-[11px] uppercase tracking-[0.32em] text-white/45">
-          {initialPersonas.length} persona
+        <span className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55">
+          {initialPersonas.length} audience
           {initialPersonas.length > 1 ? "s" : ""}
         </span>
         <Button
           variant="primary"
           onClick={handleAdd}
           pending={pending}
-          pendingLabel="Création…"
+          pendingLabel="Forge…"
         >
-          + Persona
+          + Audience
         </Button>
       </div>
 
       {topError && (
-        <p className="border-l-2 border-red-400/40 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/80">
+        <p
+          className="border-l-2 border-red-400/50 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/85"
+          style={{ textShadow: "0 0 8px rgba(252, 165, 165, 0.35)" }}
+        >
           {topError}
         </p>
       )}
 
       {initialPersonas.length === 0 ? (
-        <p className="border-t border-white/10 pt-8 font-serif text-base italic text-white/40">
-          Aucun persona pour ce client. Clique sur « + Persona » pour en
-          créer un.
-        </p>
+        <div className="relative pt-8">
+          <div
+            aria-hidden
+            className="sw-hologram-line absolute inset-x-0 top-0"
+          />
+          <p className="font-serif text-base italic text-white/55">
+            Aucune audience pour cet holocron. Clique sur «&nbsp;+ Audience&nbsp;»
+            pour en forger une.
+          </p>
+        </div>
       ) : (
         <ul className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
           {initialPersonas.map((persona, index) => (
@@ -131,9 +140,9 @@ function PersonaPreviewCard({
     <li className="group relative">
       <Link
         href={`/admin/clients/${profileId}/personas/${persona.id}`}
-        className="flex flex-col overflow-hidden rounded-2xl border border-white/10 bg-white/[0.02] transition-all hover:border-white/30 hover:bg-white/[0.04]"
+        className="flex flex-col overflow-hidden rounded-2xl border border-cyan-200/15 bg-cyan-200/[0.015] transition-all hover:border-cyan-200/40 hover:bg-cyan-200/[0.04]"
       >
-        <div className="relative aspect-[4/3] w-full overflow-hidden bg-white/[0.02]">
+        <div className="relative aspect-[4/3] w-full overflow-hidden bg-cyan-200/[0.02]">
           {hero ? (
             hero.mime_type.startsWith("image/") ? (
               // eslint-disable-next-line @next/next/no-img-element
@@ -155,7 +164,7 @@ function PersonaPreviewCard({
           ) : (
             <div className="absolute inset-0 flex items-center justify-center">
               <span
-                className="font-sans font-extralight tracking-[-0.04em] text-white/20"
+                className="font-sans font-extralight tracking-[-0.04em] text-cyan-200/20"
                 style={{ fontSize: "clamp(3rem, 8vw, 5rem)" }}
               >
                 {initials}
@@ -163,34 +172,34 @@ function PersonaPreviewCard({
             </div>
           )}
           {persona.media.length > 0 && (
-            <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-3 py-1 text-[10px] uppercase tracking-[0.32em] text-white/75 backdrop-blur-sm">
+            <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-3 py-1 text-[10px] uppercase tracking-[0.32em] text-cyan-200/80 backdrop-blur-sm">
               {persona.media.length} visuel{persona.media.length > 1 ? "s" : ""}
             </span>
           )}
         </div>
 
         <div className="flex flex-col gap-2 p-5">
-          <p className="text-[10px] uppercase tracking-[0.4em] text-white/30">
-            Persona {String(index + 1).padStart(2, "0")}
+          <p className="text-[10px] uppercase tracking-[0.4em] text-cyan-200/45">
+            Audience {String(index + 1).padStart(2, "0")}
           </p>
-          <h3 className="font-sans text-2xl font-extralight tracking-[-0.02em] text-[#F5F5F7]">
+          <h3 className="font-sans text-2xl font-extralight tracking-[-0.02em] text-[#F5F5F7] transition-colors group-hover:text-cyan-100">
             {persona.name || (
-              <span className="font-serif italic text-white/40">
+              <span className="font-serif italic text-white/45">
                 Sans nom
               </span>
             )}
           </h3>
-          <p className="text-[11px] uppercase tracking-[0.32em] text-white/45">
-            {persona.role || <span className="text-white/25">Rôle —</span>}
+          <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55">
+            {persona.role || <span className="text-cyan-200/30">Rôle —</span>}
             {persona.age != null && (
               <>
-                <span className="mx-2 text-white/20">·</span>
+                <span className="mx-2 text-cyan-200/25">·</span>
                 {persona.age} ans
               </>
             )}
           </p>
           {persona.location && (
-            <p className="font-serif text-sm italic text-white/45">
+            <p className="font-serif text-sm italic text-white/55">
               {persona.location}
             </p>
           )}
@@ -207,8 +216,8 @@ function PersonaPreviewCard({
             onMove("up");
           }}
           disabled={pending || index === 0}
-          aria-label="Monter ce persona"
-          className="px-2 text-[12px] text-white/70 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-white/70"
+          aria-label="Monter cette audience"
+          className="px-2 text-[12px] text-cyan-200/75 transition-colors hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-cyan-200/75"
         >
           ↑
         </button>
@@ -220,8 +229,8 @@ function PersonaPreviewCard({
             onMove("down");
           }}
           disabled={pending || index === total - 1}
-          aria-label="Descendre ce persona"
-          className="px-2 text-[12px] text-white/70 transition-colors hover:text-white disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-white/70"
+          aria-label="Descendre cette audience"
+          className="px-2 text-[12px] text-cyan-200/75 transition-colors hover:text-cyan-100 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:text-cyan-200/75"
         >
           ↓
         </button>

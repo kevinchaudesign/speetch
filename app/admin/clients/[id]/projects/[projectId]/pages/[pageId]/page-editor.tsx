@@ -189,41 +189,55 @@ export function PageEditor({
   }
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines + sabre — thème Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       {/* Header mobile */}
       <header className="flex items-center justify-between md:hidden">
         <Link
           href={`/admin/clients/${clientId}/projects/${projectId}`}
-          className="text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors hover:text-white"
+          className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
-          ← Projet
+          ← Mission
         </Link>
-        <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
-          Édition
+        <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/55">
+          Affûtage
         </span>
       </header>
 
       <section className="mx-auto flex max-w-4xl flex-col gap-12 pt-20">
         {/* Breadcrumb + actions */}
         <div className="flex flex-col gap-6">
-          <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
+          <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
             <Link
               href="/admin/clients"
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-cyan-100"
             >
-              Espaces clients
+              Holocrons
             </Link>
-            <span className="mx-3 text-white/20">→</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
             <Link
               href={`/admin/clients/${clientId}`}
-              className="text-white/55 transition-colors hover:text-white"
+              className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
             </Link>
-            <span className="mx-3 text-white/20">→</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
             <Link
               href={`/admin/clients/${clientId}/projects/${projectId}`}
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-cyan-100"
             >
               {projectName}
             </Link>
@@ -231,13 +245,15 @@ export function PageEditor({
 
           <div className="flex flex-wrap items-end justify-between gap-6">
             <div className="flex w-full max-w-2xl flex-col gap-3">
-              <Eyebrow tracking="md">Titre de la page</Eyebrow>
+              <Eyebrow tracking="md" className="text-cyan-200/65">
+                Titre du parchemin
+              </Eyebrow>
               <AutosaveField
                 initialValue={page.name}
                 onSave={saveName}
-                ariaLabel="Titre de la page"
+                ariaLabel="Titre du parchemin"
                 placeholder="Sans titre"
-                className="w-full border-b border-white/20 bg-transparent pb-3 font-sans font-extralight tracking-[-0.05em] text-[#F5F5F7] placeholder:text-white/25 focus:border-white/80 focus:outline-none"
+                className="w-full border-b border-cyan-200/25 bg-transparent pb-3 font-sans font-extralight tracking-[-0.05em] text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none"
               />
             </div>
 
@@ -248,28 +264,28 @@ export function PageEditor({
                   target="_blank"
                   rel="noopener"
                   variant="primary"
-                  className="text-white/55"
+                  className="text-cyan-200/65"
                 >
-                  Voir public
+                  Voir l&apos;holocron ↗
                 </Button>
               )}
               <button
                 type="button"
                 onClick={togglePublish}
                 disabled={pending}
-                className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] transition-colors hover:text-white disabled:opacity-50"
+                className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] transition-colors hover:text-cyan-100 disabled:opacity-50"
               >
                 {page.is_published ? (
                   <>
-                    <StatusBadge tone="success">Publi&eacute;e</StatusBadge>
-                    <span className="text-white/40">·</span>
-                    <span className="text-white/55">D&eacute;publier</span>
+                    <StatusBadge tone="success">Active</StatusBadge>
+                    <span className="text-cyan-200/40">·</span>
+                    <span className="text-cyan-200/65">D&eacute;sactiver</span>
                   </>
                 ) : (
                   <>
-                    <StatusBadge tone="warning">Brouillon</StatusBadge>
-                    <span className="text-white/40">·</span>
-                    <span className="text-white/55">Publier</span>
+                    <StatusBadge tone="warning">En forge</StatusBadge>
+                    <span className="text-cyan-200/40">·</span>
+                    <span className="text-cyan-200/65">Sceller</span>
                   </>
                 )}
               </button>
@@ -285,26 +301,29 @@ export function PageEditor({
           </div>
 
           {error && (
-            <p className="border-l-2 border-red-400/40 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/80">
+            <p
+              className="border-l-2 border-red-400/50 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/85"
+              style={{ textShadow: "0 0 8px rgba(252, 165, 165, 0.35)" }}
+            >
               {error}
             </p>
           )}
 
           {isRawHtml && (
-            <div className="rounded-md border border-white/15 bg-white/[0.03] px-5 py-4">
-              <Eyebrow tracking="md" intensity="strong">
-                Reproduction fidèle
+            <div className="rounded-md border border-cyan-200/20 bg-cyan-200/[0.03] px-5 py-4">
+              <Eyebrow tracking="md" className="text-cyan-200/85">
+                Réplique fidèle
               </Eyebrow>
-              <p className="mt-2 font-serif text-sm italic text-white/55 md:text-base">
-                Le contenu de cette page provient du HTML brut stocké dans son
-                template. L&apos;intro et les sections ci-dessous ne sont pas
-                rendues sur la page publique. Pour mettre à jour le contenu,
-                ré-importe un nouveau template depuis{" "}
+              <p className="mt-2 font-serif text-sm italic text-white/65 md:text-base">
+                Le contenu de ce parchemin provient du HTML brut scellé dans son
+                blueprint. L&apos;intro et les sections ci-dessous ne sont pas
+                rendues côté public. Pour mettre à jour le contenu, confie un
+                nouveau blueprint depuis{" "}
                 <Link
                   href="/admin/templates/new"
-                  className="underline decoration-white/30 transition-colors hover:text-white"
+                  className="underline decoration-cyan-200/40 transition-colors hover:text-cyan-100"
                 >
-                  Réglages → Templates → Nouveau
+                  Forge → Blueprints → Nouveau
                 </Link>
                 .
               </p>
@@ -312,31 +331,33 @@ export function PageEditor({
           )}
 
           {isDeliverables && (
-            <div className="rounded-md border border-white/15 bg-white/[0.03] px-5 py-4">
-              <Eyebrow tracking="md" intensity="strong">
+            <div className="rounded-md border border-cyan-200/20 bg-cyan-200/[0.03] px-5 py-4">
+              <Eyebrow tracking="md" className="text-cyan-200/85">
                 Livrables (validation)
               </Eyebrow>
-              <p className="mt-2 font-serif text-sm italic text-white/55 md:text-base">
-                Cette page affiche une galerie de livrables piochés dans la
-                médiathèque du client. Pour chaque livrable, le client pourra
-                laisser un retour et changer le statut (approuvé / modif
-                demandée). L&apos;intro ci-dessous est rendue en tête de page,
-                les livrables se gèrent dans le bloc « Livrables » plus bas.
+              <p className="mt-2 font-serif text-sm italic text-white/65 md:text-base">
+                Ce parchemin affiche une galerie de livrables piochés dans la
+                médiathèque de l&apos;holocron. Pour chaque livrable, le
+                Padawan pourra laisser un retour et changer le statut
+                (approuvé / modif demandée). L&apos;intro ci-dessous est
+                rendue en tête de parchemin, les livrables se gèrent dans le
+                bloc «&nbsp;Livrables&nbsp;» plus bas.
               </p>
             </div>
           )}
 
           {isMetaAds && (
-            <div className="rounded-md border border-white/15 bg-white/[0.03] px-5 py-4">
-              <Eyebrow tracking="md" intensity="strong">
+            <div className="rounded-md border border-cyan-200/20 bg-cyan-200/[0.03] px-5 py-4">
+              <Eyebrow tracking="md" className="text-cyan-200/85">
                 Mockups Meta Ads
               </Eyebrow>
-              <p className="mt-2 font-serif text-sm italic text-white/55 md:text-base">
-                Cette page présente une galerie de mockups publicitaires
-                Facebook & Instagram. Chaque mockup combine un format Meta, une
-                copy et un média de la médiathèque. L&apos;intro est rendue en
-                tête de page ; les mockups se gèrent dans le bloc « Mockups »
-                plus bas. Lecture seule côté client.
+              <p className="mt-2 font-serif text-sm italic text-white/65 md:text-base">
+                Ce parchemin présente une galerie de mockups publicitaires
+                Facebook & Instagram. Chaque mockup combine un format Meta,
+                une copy et un média de la médiathèque. L&apos;intro est
+                rendue en tête de parchemin ; les mockups se gèrent dans le
+                bloc «&nbsp;Mockups&nbsp;» plus bas. Lecture seule côté
+                public.
               </p>
             </div>
           )}
@@ -344,22 +365,26 @@ export function PageEditor({
 
         {/* Intro */}
         <div className="flex flex-col gap-3">
-          <Eyebrow tracking="md">Intro</Eyebrow>
+          <Eyebrow tracking="md" className="text-cyan-200/65">
+            Intro
+          </Eyebrow>
           <AutosaveField
             multiline
             rows={3}
             initialValue={content.intro ?? ""}
             onSave={saveIntro}
-            placeholder="Une phrase d'accroche pour démarrer la page…"
-            ariaLabel="Intro de la page"
-            className="w-full resize-y rounded-md border border-white/10 bg-white/[0.02] p-4 font-serif italic text-base text-[#F5F5F7]/90 placeholder:text-white/30 focus:border-white/40 focus:outline-none md:text-lg"
+            placeholder="Une phrase d'accroche pour démarrer le parchemin…"
+            ariaLabel="Intro du parchemin"
+            className="w-full resize-y rounded-md border border-cyan-200/15 bg-cyan-200/[0.02] p-4 font-serif italic text-base text-[#F5F5F7]/90 caret-cyan-200 placeholder:text-white/30 focus:border-cyan-200/50 focus:outline-none md:text-lg"
           />
         </div>
 
         {/* Sections OU livrables OU mockups Meta, selon style */}
         {isMetaAds ? (
           <div className="flex flex-col gap-6">
-            <Eyebrow tracking="md">Mockups</Eyebrow>
+            <Eyebrow tracking="md" className="text-cyan-200/65">
+              Mockups
+            </Eyebrow>
             <MetaAdsAdminEditor
               ctx={context}
               initialMockups={initialMetaAdsMockups}
@@ -369,7 +394,9 @@ export function PageEditor({
           </div>
         ) : isDeliverables ? (
           <div className="flex flex-col gap-6">
-            <Eyebrow tracking="md">Livrables</Eyebrow>
+            <Eyebrow tracking="md" className="text-cyan-200/65">
+              Livrables
+            </Eyebrow>
             <DeliverablesAdminEditor
               ctx={context}
               initialDeliverables={initialDeliverables ?? []}
@@ -380,12 +407,15 @@ export function PageEditor({
         ) : (
           <div className="flex flex-col gap-6">
             <div className="flex items-baseline justify-between">
-              <Eyebrow tracking="md">Sections · {sections.length}</Eyebrow>
+              <Eyebrow tracking="md" className="text-cyan-200/65">
+                Sections · {sections.length}
+              </Eyebrow>
             </div>
 
             {sections.length === 0 ? (
-              <p className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-8 text-center font-serif italic text-white/45">
-                Cette page n&apos;a aucune section. Ajoute-en une ci-dessous.
+              <p className="rounded-xl border border-dashed border-cyan-200/20 bg-cyan-200/[0.02] p-8 text-center font-serif italic text-white/55">
+                Ce parchemin n&apos;a aucune section. Ajoute-en une
+                ci-dessous.
               </p>
             ) : (
               <div className="flex flex-col gap-5">
@@ -413,7 +443,7 @@ export function PageEditor({
             href={`/admin/clients/${clientId}/projects/${projectId}`}
             variant="ghost"
           >
-            ← Retour projet
+            ← Retour mission
           </Button>
         </div>
       </section>
@@ -421,9 +451,9 @@ export function PageEditor({
       <ConfirmDialog
         open={confirmDeleteOpen}
         tone="danger"
-        title="Supprimer définitivement cette page ?"
+        title="Effacer définitivement ce parchemin ?"
         description="Toutes les sections et leurs médias seront effacés. Action irréversible."
-        confirmLabel="Supprimer la page"
+        confirmLabel="Effacer le parchemin"
         cancelLabel="Annuler"
         pending={pending}
         onConfirm={() => {
@@ -444,8 +474,8 @@ function AddSectionBar({
   disabled?: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-3 rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-5">
-      <span className="text-[11px] uppercase tracking-[0.32em] text-white/55">
+    <div className="flex flex-col gap-3 rounded-xl border border-dashed border-cyan-200/20 bg-cyan-200/[0.02] p-5">
+      <span className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/65">
         + Ajouter une section
       </span>
       <ul className="flex flex-wrap gap-2">
@@ -455,12 +485,12 @@ function AddSectionBar({
               type="button"
               onClick={() => onAdd(t.value)}
               disabled={disabled}
-              className="group inline-flex flex-col items-start gap-1 rounded-md border border-white/10 bg-black/30 px-3 py-2 text-left transition-colors hover:border-white/40 hover:bg-white/[0.04] disabled:opacity-50"
+              className="group inline-flex flex-col items-start gap-1 rounded-md border border-cyan-200/15 bg-black/30 px-3 py-2 text-left transition-colors hover:border-cyan-200/45 hover:bg-cyan-200/[0.04] disabled:opacity-50"
             >
-              <span className="text-[11px] uppercase tracking-[0.32em] text-white/70 transition-colors group-hover:text-white">
+              <span className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/75 transition-colors group-hover:text-cyan-100">
                 {t.label}
               </span>
-              <span className="font-serif text-xs italic text-white/40">
+              <span className="font-serif text-xs italic text-white/55">
                 {t.tagline}
               </span>
             </button>
