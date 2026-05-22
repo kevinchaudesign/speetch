@@ -7,7 +7,7 @@ import { NewProjectForm } from "./new-project-form";
 import { TypePicker } from "./type-picker";
 
 export const metadata: Metadata = {
-  title: "Nouveau projet",
+  title: "Nouvelle mission",
   robots: { index: false, follow: false },
 };
 

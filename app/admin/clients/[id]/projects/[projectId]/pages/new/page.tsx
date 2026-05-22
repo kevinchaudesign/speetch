@@ -12,7 +12,7 @@ import { NewRawHtmlPageForm } from "./new-raw-html-page-form";
 import { TemplatePicker } from "./template-picker";
 
 export const metadata: Metadata = {
-  title: "Nouvelle page",
+  title: "Nouveau parchemin",
   robots: { index: false, follow: false },
 };
 

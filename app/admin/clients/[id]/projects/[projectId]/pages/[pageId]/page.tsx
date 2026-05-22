@@ -8,7 +8,7 @@ import { RawHtmlPageEditor } from "./_raw/raw-html-page-editor";
 import type { MetaAdMockup } from "@/types/database";
 
 export const metadata: Metadata = {
-  title: "Éditer la page",
+  title: "Affûter le parchemin",
   robots: { index: false, follow: false },
 };
 
