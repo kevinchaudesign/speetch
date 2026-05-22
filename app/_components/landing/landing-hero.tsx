@@ -18,6 +18,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { startAmbientDrone, type AmbientHandle } from "@/lib/sw/audio";
+import { SpeetchLogo } from "../speetch-logo";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const EASE_IN_OUT_QUART: [number, number, number, number] = [0.65, 0, 0.35, 1];
@@ -190,14 +191,18 @@ export function LandingHero() {
         className="absolute inset-x-0 top-0 z-30 flex items-center justify-between px-6 py-6 md:px-12"
       >
         <a
-          href="#contact"
-          className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
+          href="#top"
+          aria-label="Speetch — retour en haut"
+          className="group inline-flex items-center gap-3 transition-opacity duration-300 hover:opacity-80"
         >
-          <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-70" />
-            <span className="sw-cyan-dot relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-300" />
+          <SpeetchLogo size="md" loading="eager" />
+          <span className="hidden text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 md:inline">
+            <span className="relative mr-3 inline-flex h-1.5 w-1.5">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-70" />
+              <span className="sw-cyan-dot relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-300" />
+            </span>
+            Studio ouvert · prise de brief
           </span>
-          Studio ouvert · prise de brief
         </a>
 
         <div className="flex items-center gap-5">

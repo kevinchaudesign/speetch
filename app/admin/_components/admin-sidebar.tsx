@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Eyebrow } from "@/lib/ds";
 import { AudioToggle } from "./audio-toggle";
 import { AurebeshMark } from "@/app/_components/aurebesh-mark";
+import { SpeetchLogo } from "@/app/_components/speetch-logo";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const COLLAPSE_DURATION_MS = 500;
@@ -166,10 +167,18 @@ export function AdminSidebar({
           <Link
             href="/"
             aria-label="Speetch — Accueil"
-            className="block min-w-0 select-none overflow-hidden whitespace-nowrap font-sans font-extralight leading-none tracking-[-0.04em] text-[#F5F5F7] transition-colors duration-300 hover:text-cyan-100"
-            style={{ fontSize: "1.5rem" }}
+            className="group flex min-w-0 items-center gap-3 overflow-hidden whitespace-nowrap font-sans font-extralight leading-none tracking-[-0.04em] text-[#F5F5F7] transition-opacity duration-300 hover:opacity-80"
           >
-            Speetch
+            <SpeetchLogo size="md" loading="eager" />
+            <span
+              className={cn(
+                "transition-opacity duration-300",
+                collapsed && "pointer-events-none opacity-0",
+              )}
+              style={{ fontSize: "1.5rem" }}
+            >
+              Speetch
+            </span>
           </Link>
           <button
             type="button"

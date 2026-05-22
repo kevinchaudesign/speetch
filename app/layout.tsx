@@ -64,14 +64,24 @@ export const metadata: Metadata = {
     title: "Speetch — Agence de Communication",
     description: "Paris · 25 ans d'expérience.",
   },
-  robots: { index: false, follow: false },
+  robots: { index: true, follow: true },
+  // Icônes auto-discoverable via `app/icon.png` et `app/apple-icon.png` —
+  // Next.js 15 génère les balises <link> appropriées. On surcharge ici pour
+  // exposer aussi les tailles PWA et la cover OG.
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/logo/speetch-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/logo/speetch-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/logo/speetch-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: "/logo/speetch-180.png",
+    shortcut: "/logo/speetch-32.png",
   },
+  manifest: "/manifest.webmanifest",
 };
 
 export const viewport: Viewport = {
-  themeColor: "#000000",
+  themeColor: "#0B1220",
   colorScheme: "dark",
   width: "device-width",
   initialScale: 1,

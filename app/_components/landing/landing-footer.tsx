@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { AurebeshMark } from "../aurebesh-mark";
+import { SpeetchLogo } from "../speetch-logo";
 
 export function LandingFooter() {
   return (
@@ -10,7 +11,8 @@ export function LandingFooter() {
       <div className="mx-auto flex max-w-6xl flex-col gap-10">
         <div className="grid grid-cols-2 gap-10 md:grid-cols-4">
           <div className="flex flex-col gap-3">
-            <span className="text-[10px] uppercase tracking-[0.4em] text-cyan-200/45">
+            <SpeetchLogo size="md" />
+            <span className="mt-2 text-[10px] uppercase tracking-[0.4em] text-cyan-200/45">
               Studio
             </span>
             <span className="text-[13px] text-white/75">Speetch</span>
