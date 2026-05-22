@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { NewClientForm } from "./new-client-form";
 
 export const metadata: Metadata = {
-  title: "Nouvel Espace Client",
+  title: "Forger un holocron",
   robots: { index: false, follow: false },
 };
 
