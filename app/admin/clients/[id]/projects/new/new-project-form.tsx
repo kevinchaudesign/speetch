@@ -16,10 +16,10 @@ function SubmitButton() {
     <Button
       type="submit"
       pending={pending}
-      pendingLabel="Création"
+      pendingLabel="Scellement"
       variant="primary"
     >
-      Créer le projet
+      Sceller la mission
     </Button>
   );
 }
@@ -39,7 +39,21 @@ export function NewProjectForm({
   const selectedType = getProjectType(initialType);
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines + sabre — thème Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       {/* Header — mobile only */}
       <motion.header
         initial={{ opacity: 0, y: -8 }}
@@ -53,8 +67,8 @@ export function NewProjectForm({
         >
           Changer de type
         </Button>
-        <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
-          Nouveau projet
+        <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/55">
+          Nouvelle mission
         </span>
       </motion.header>
 
@@ -66,10 +80,10 @@ export function NewProjectForm({
           transition={{ duration: 0.8, delay: 0.2 }}
           className="flex w-full flex-wrap items-center justify-between gap-3"
         >
-          <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">
-            <span className="text-white/30">Nouveau projet</span>
-            <span className="mx-3 text-white/15">→</span>
-            <span className="text-white/80">
+          <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55">
+            <span className="text-cyan-200/45">Nouvelle mission</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
+            <span className="text-cyan-200/90">
               {selectedType?.label ?? "Type inconnu"}
             </span>
           </p>
@@ -77,7 +91,7 @@ export function NewProjectForm({
           <Button
             href={`/admin/clients/${clientId}/projects/new`}
             variant="return"
-            className="text-white/40"
+            className="text-cyan-200/55"
           >
             Changer de type
           </Button>
@@ -89,10 +103,10 @@ export function NewProjectForm({
           transition={{ duration: 1.1, delay: 0.3, ease: EASE_OUT_EXPO }}
           className="flex flex-col gap-3"
         >
-          <p className="text-[11px] uppercase tracking-[0.32em] text-white/55">
-            Client : {clientName}
+          <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/65">
+            Holocron : {clientName}
             {clientSlug && (
-              <span className="ml-2 font-mono text-white/35">
+              <span className="ml-2 font-mono text-white/40">
                 /clients/{clientSlug}
               </span>
             )}
@@ -101,10 +115,10 @@ export function NewProjectForm({
             className="font-sans font-extralight leading-[0.85] tracking-[-0.05em] text-[#F5F5F7]"
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
-            {selectedType?.label ?? "Nouveau projet"}
+            {selectedType?.label ?? "Nouvelle mission"}
           </h1>
           {selectedType?.tagline && (
-            <p className="max-w-lg font-serif text-base italic text-white/45 md:text-lg">
+            <p className="max-w-lg font-serif text-base italic text-white/55 md:text-lg">
               {selectedType.tagline}
             </p>
           )}
@@ -120,7 +134,7 @@ export function NewProjectForm({
           <input type="hidden" name="profile_id" value={clientId} />
           <input type="hidden" name="project_type" value={initialType} />
 
-          <Field label="Nom du projet">
+          <Field label="Nom de la mission">
             <input
               type="text"
               name="name"
@@ -128,7 +142,7 @@ export function NewProjectForm({
               autoFocus
               autoComplete="off"
               placeholder="Campagne printemps · 2026"
-              className="border-b border-white/20 bg-transparent pb-3 font-sans text-xl font-light text-[#F5F5F7] caret-[#F5F5F7] placeholder:text-white/25 focus:border-white/80 focus:outline-none md:text-2xl"
+              className="border-b border-cyan-200/25 bg-transparent pb-3 font-sans text-xl font-light text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none md:text-2xl"
             />
           </Field>
 
@@ -138,7 +152,7 @@ export function NewProjectForm({
               name="subtitle"
               autoComplete="off"
               placeholder="Direction artistique · Mai 2026"
-              className="border-b border-white/20 bg-transparent pb-3 font-sans text-lg font-light text-[#F5F5F7] caret-[#F5F5F7] placeholder:text-white/25 focus:border-white/80 focus:outline-none"
+              className="border-b border-cyan-200/25 bg-transparent pb-3 font-sans text-lg font-light text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none"
             />
           </Field>
 
@@ -147,9 +161,11 @@ export function NewProjectForm({
               type="checkbox"
               name="is_published"
               defaultChecked
-              className="h-4 w-4 cursor-pointer accent-[#F5F5F7]"
+              className="h-4 w-4 cursor-pointer accent-cyan-300"
             />
-            <Eyebrow tracking="md">Publier ce projet immédiatement</Eyebrow>
+            <Eyebrow tracking="md" className="text-cyan-200/70">
+              Activer cette mission immédiatement
+            </Eyebrow>
           </label>
 
           <AnimatePresence>
@@ -160,14 +176,15 @@ export function NewProjectForm({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
-                className="text-[11px] uppercase tracking-[0.32em] text-red-300/80"
+                className="text-[11px] uppercase tracking-[0.32em] text-red-300/85"
+                style={{ textShadow: "0 0 8px rgba(252, 165, 165, 0.35)" }}
               >
                 {state.error}
               </motion.p>
             )}
           </AnimatePresence>
 
-          <div className="flex items-center justify-between border-t border-white/10 pt-6">
+          <div className="flex items-center justify-between border-t border-cyan-200/15 pt-6">
             <Button href="/admin/clients" variant="ghost">
               Annuler
             </Button>

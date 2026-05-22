@@ -16,10 +16,10 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/75 transition-colors duration-300 hover:text-white disabled:cursor-wait disabled:opacity-50"
+      className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-100/80 transition-colors duration-300 hover:text-cyan-100 disabled:cursor-wait disabled:opacity-50"
     >
-      <span>{pending ? "Import en cours…" : "Importer et créer la page"}</span>
-      <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-12" />
+      <span>{pending ? "Scellement…" : "Sceller le parchemin"}</span>
+      <span className="inline-block h-px w-6 bg-cyan-200/85 transition-all duration-500 ease-out group-hover:w-12 group-hover:bg-cyan-100" />
     </button>
   );
 }
@@ -36,7 +36,21 @@ export function NewRawHtmlPageForm({
   const [state, formAction] = useActionState(createRawHtmlPage, INITIAL_STATE);
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines + sabre — thème Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       <motion.header
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
@@ -45,13 +59,13 @@ export function NewRawHtmlPageForm({
       >
         <Link
           href={`/admin/clients/${clientId}/projects/${projectId}/pages/new`}
-          className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors duration-300 hover:text-white"
+          className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
-          <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10" />
-          Changer de template
+          <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
+          Changer de blueprint
         </Link>
-        <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
-          Nouvelle page
+        <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/55">
+          Nouveau parchemin
         </span>
       </motion.header>
 
@@ -62,18 +76,18 @@ export function NewRawHtmlPageForm({
           transition={{ duration: 0.8, delay: 0.2 }}
           className="flex w-full flex-wrap items-center justify-between gap-3"
         >
-          <p className="text-[11px] uppercase tracking-[0.32em] text-white/40">
-            <span className="text-white/30">Nouvelle page</span>
-            <span className="mx-3 text-white/15">→</span>
-            <span className="text-white/80">Reproduction fidèle</span>
+          <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55">
+            <span className="text-cyan-200/45">Nouveau parchemin</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
+            <span className="text-cyan-200/90">Réplique fidèle</span>
           </p>
 
           <Link
             href={`/admin/clients/${clientId}/projects/${projectId}/pages/new`}
-            className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white"
+            className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
           >
-            <span className="inline-block h-px w-3 bg-current transition-all duration-500 ease-out group-hover:w-6" />
-            <span>Changer de template</span>
+            <span className="inline-block h-px w-3 bg-current transition-all duration-500 ease-out group-hover:w-6 group-hover:bg-cyan-200" />
+            <span>Changer de blueprint</span>
           </Link>
         </motion.div>
 
@@ -83,20 +97,20 @@ export function NewRawHtmlPageForm({
           transition={{ duration: 1.1, delay: 0.3, ease: EASE_OUT_EXPO }}
           className="flex flex-col gap-3"
         >
-          <p className="text-[11px] uppercase tracking-[0.32em] text-white/55">
-            Projet : {projectName}
+          <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/65">
+            Mission : {projectName}
           </p>
           <h1
             className="font-sans font-extralight leading-[0.85] tracking-[-0.05em] text-[#F5F5F7]"
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
-            Reproduction{" "}
-            <span className="font-serif italic font-normal text-white/85">
+            Réplique{" "}
+            <span className="sw-hologram-text font-serif italic font-normal">
               fidèle
             </span>
           </h1>
-          <p className="max-w-lg font-serif text-base italic text-white/45 md:text-lg">
-            Téléverse un fichier HTML. La page publique l&apos;affichera tel
+          <p className="max-w-lg font-serif text-base italic text-white/55 md:text-lg">
+            Confie un parchemin HTML. La page publique l&apos;affichera tel
             quel dans un iframe sandbox, mise en page d&apos;origine
             préservée à l&apos;identique.
           </p>
@@ -113,7 +127,7 @@ export function NewRawHtmlPageForm({
           <input type="hidden" name="profile_id" value={clientId} />
           <input type="hidden" name="project_id" value={projectId} />
 
-          <Field label="Titre de la page">
+          <Field label="Titre du parchemin">
             <input
               type="text"
               name="name"
@@ -121,17 +135,17 @@ export function NewRawHtmlPageForm({
               autoFocus
               autoComplete="off"
               placeholder="Brief production V2"
-              className="border-b border-white/20 bg-transparent pb-3 font-sans text-xl font-light text-[#F5F5F7] caret-[#F5F5F7] placeholder:text-white/25 focus:border-white/80 focus:outline-none md:text-2xl"
+              className="border-b border-cyan-200/25 bg-transparent pb-3 font-sans text-xl font-light text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none md:text-2xl"
             />
           </Field>
 
-          <Field label="Fichier HTML" hint="max 2 MB">
+          <Field label="Parchemin HTML" hint="max 2 MB">
             <input
               type="file"
               name="file"
               required
               accept=".html,.htm,text/html"
-              className="block w-full text-sm text-white/70 file:mr-4 file:rounded-md file:border-0 file:bg-white/10 file:px-4 file:py-2 file:text-[11px] file:uppercase file:tracking-[0.32em] file:text-white/80 hover:file:bg-white/20"
+              className="block w-full text-sm text-white/70 file:mr-4 file:rounded-md file:border-0 file:bg-cyan-200/10 file:px-4 file:py-2 file:text-[11px] file:uppercase file:tracking-[0.32em] file:text-cyan-100/85 hover:file:bg-cyan-200/20"
             />
           </Field>
 
@@ -139,10 +153,10 @@ export function NewRawHtmlPageForm({
             <input
               type="checkbox"
               name="is_published"
-              className="h-4 w-4 cursor-pointer accent-[#F5F5F7]"
+              className="h-4 w-4 cursor-pointer accent-cyan-300"
             />
-            <span className="text-[11px] uppercase tracking-[0.32em] text-white/55">
-              Publier cette page immédiatement
+            <span className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/70">
+              Sceller ce parchemin immédiatement
             </span>
           </label>
 
@@ -154,23 +168,24 @@ export function NewRawHtmlPageForm({
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0 }}
                 transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
-                className="border-l-2 border-red-400/40 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/80"
+                className="border-l-2 border-red-400/50 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/85"
+                style={{ textShadow: "0 0 8px rgba(252, 165, 165, 0.35)" }}
               >
                 {state.error}
               </motion.p>
             )}
           </AnimatePresence>
 
-          <p className="text-[10px] uppercase tracking-[0.32em] text-white/30">
-            Le HTML est sauvegardé inline dans la page. Pour le mettre à jour
-            plus tard, il faudra créer une nouvelle page (ou utiliser le mode
-            template via Réglages → Templates).
+          <p className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/40">
+            Le HTML est scellé inline dans le parchemin. Pour le mettre à jour
+            plus tard, il faudra forger un nouveau parchemin (ou passer par la
+            Forge → Blueprints).
           </p>
 
-          <div className="flex items-center justify-between border-t border-white/10 pt-6">
+          <div className="flex items-center justify-between border-t border-cyan-200/15 pt-6">
             <Link
               href={`/admin/clients/${clientId}/projects/${projectId}`}
-              className="text-[11px] uppercase tracking-[0.32em] text-white/40 hover:text-white"
+              className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55 hover:text-cyan-100"
             >
               Annuler
             </Link>
