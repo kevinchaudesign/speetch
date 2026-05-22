@@ -55,6 +55,28 @@ function HolocronIcon({ className }: { className?: string }) {
   );
 }
 
+function GalerieIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* Cadre + lune + soleil — cristal kyber holographique stylisé */}
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <circle cx="9" cy="11" r="2" />
+      <path d="M3 17 L9 12 L13 15 L21 9" />
+    </svg>
+  );
+}
+
 function ForgeIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -84,27 +106,51 @@ type NavItem = {
   Icon: ({ className }: { className?: string }) => React.ReactElement;
 };
 
-const NAV_ITEMS: NavItem[] = [
-  {
-    label: "Conseil",
-    href: "/admin",
-    matches: (p) => p === "/admin",
-    Icon: ConseilIcon,
-  },
-  {
-    label: "Holocrons",
-    href: "/admin/clients",
-    matches: (p) => p.startsWith("/admin/clients"),
-    Icon: HolocronIcon,
-  },
-  {
+function buildNavItems(ownerProfileId: string | null): NavItem[] {
+  const galleryPath = ownerProfileId
+    ? `/admin/clients/${ownerProfileId}/media`
+    : null;
+
+  const base: NavItem[] = [
+    {
+      label: "Conseil",
+      href: "/admin",
+      matches: (p) => p === "/admin",
+      Icon: ConseilIcon,
+    },
+    {
+      label: "Holocrons",
+      href: "/admin/clients",
+      matches: (p) => {
+        if (!p.startsWith("/admin/clients")) return false;
+        // La médiathèque du studio (owner profile) appartient à Galerie,
+        // pas à Holocrons.
+        if (galleryPath && p.startsWith(galleryPath)) return false;
+        return true;
+      },
+      Icon: HolocronIcon,
+    },
+  ];
+
+  if (galleryPath) {
+    base.push({
+      label: "Galerie",
+      href: galleryPath,
+      matches: (p) => p.startsWith(galleryPath),
+      Icon: GalerieIcon,
+    });
+  }
+
+  base.push({
     label: "Forge",
     href: "/admin/settings",
     matches: (p) =>
       p.startsWith("/admin/settings") || p.startsWith("/admin/templates"),
     Icon: ForgeIcon,
-  },
-];
+  });
+
+  return base;
+}
 
 function ChevronIcon({ collapsed }: { collapsed: boolean }) {
   return (
@@ -130,14 +176,17 @@ function ChevronIcon({ collapsed }: { collapsed: boolean }) {
 
 export function AdminSidebar({
   email,
+  ownerProfileId,
   collapsed,
   onToggle,
 }: {
   email: string;
+  ownerProfileId: string | null;
   collapsed: boolean;
   onToggle: () => void;
 }) {
   const pathname = usePathname();
+  const navItems = buildNavItems(ownerProfileId);
 
   return (
     <motion.aside
@@ -211,7 +260,7 @@ export function AdminSidebar({
         className="relative flex flex-col gap-5"
         aria-label="Navigation principale"
       >
-        {NAV_ITEMS.map((item) => {
+        {navItems.map((item) => {
           const isActive = item.matches(pathname);
           const Icon = item.Icon;
           return (

@@ -14,11 +14,13 @@ const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 export function AdminShell({
   email,
   displayName,
+  ownerProfileId,
   initialCollapsed,
   children,
 }: {
   email: string;
   displayName: string | null;
+  ownerProfileId: string | null;
   initialCollapsed: boolean;
   children: ReactNode;
 }) {
@@ -37,6 +39,7 @@ export function AdminShell({
     <div className="min-h-svh w-full">
       <AdminSidebar
         email={email}
+        ownerProfileId={ownerProfileId}
         collapsed={collapsed}
         onToggle={handleToggle}
       />

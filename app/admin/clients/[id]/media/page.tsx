@@ -48,7 +48,9 @@ export default async function ClientMediaPage({
     .select("id, full_name, is_owner")
     .eq(clientLookupColumn(id), id)
     .maybeSingle();
-  if (!profile || profile.is_owner) notFound();
+  // L'owner Speetch accède à sa propre médiathèque (Galerie studio) via
+  // la même route que les Holocrons clients — pas de notFound sur owner.
+  if (!profile) notFound();
 
   const { data: foldersData } = await admin
     .from("client_media_folders" as never)
