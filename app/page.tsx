@@ -1,7 +1,9 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { AurebeshMark } from "./_components/aurebesh-mark";
+import { startAmbientDrone, type AmbientHandle } from "@/lib/sw/audio";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const EASE_IN_OUT_QUART: [number, number, number, number] = [0.65, 0, 0.35, 1];
@@ -13,6 +15,29 @@ export default function HomePage() {
   const [mouse, setMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
 
   const letters = useMemo(() => "SPEETCH".split(""), []);
+  const [ambientOn, setAmbientOn] = useState(false);
+  const ambientRef = useRef<AmbientHandle | null>(null);
+
+  function toggleAmbient() {
+    if (ambientOn) {
+      ambientRef.current?.stop();
+      ambientRef.current = null;
+      setAmbientOn(false);
+    } else {
+      const handle = startAmbientDrone();
+      if (handle) {
+        ambientRef.current = handle;
+        setAmbientOn(true);
+      }
+    }
+  }
+
+  // Cleanup au unmount
+  useEffect(() => {
+    return () => {
+      ambientRef.current?.stop();
+    };
+  }, []);
 
   // Préchargement simulé 0 → 100 (easing cubic-out)
   useEffect(() => {
@@ -150,10 +175,28 @@ export default function HomePage() {
           Conseil Jedi en formation
         </div>
 
-        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 tabular-nums">
-          <span>{time}</span>
-          <span className="text-cyan-200/25"> · </span>
-          <span>PAR</span>
+        <div className="flex items-center gap-5">
+          <button
+            type="button"
+            onClick={toggleAmbient}
+            title={ambientOn ? "Couper l'ambient" : "Activer l'ambient hyperespace"}
+            aria-pressed={ambientOn}
+            className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
+          >
+            <span
+              className={`inline-block h-1.5 w-1.5 rounded-full transition-all duration-500 ${
+                ambientOn
+                  ? "sw-cyan-dot bg-cyan-300"
+                  : "bg-cyan-200/30"
+              }`}
+            />
+            <span>{ambientOn ? "Hyperespace · ON" : "Ambient"}</span>
+          </button>
+          <span className="font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 tabular-nums">
+            <span>{time}</span>
+            <span className="text-cyan-200/25"> · </span>
+            <span>PAR</span>
+          </span>
         </div>
       </motion.header>
 
@@ -234,7 +277,10 @@ export default function HomePage() {
         className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between px-6 py-6 text-[11px] uppercase tracking-[0.28em] text-white/45 md:px-12"
       >
         <span className="text-cyan-200/55">Transmission imminente</span>
-        <span className="text-white/40">Temple Jedi · An 2026</span>
+        <div className="flex items-center gap-6">
+          <AurebeshMark size={11} />
+          <span className="text-white/40">Temple Jedi · An 2026</span>
+        </div>
       </motion.footer>
     </div>
   );

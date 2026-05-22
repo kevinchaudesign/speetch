@@ -435,12 +435,19 @@ function newId(): string {
   return Math.random().toString(36).slice(2);
 }
 
+/**
+ * Greeting time-of-day en mode Conseil Jedi — métaphores célestes Star Wars
+ * plutôt que les neutres « Bonjour / Bonsoir ».
+ */
 function greetingForNow(date: Date): string {
   const h = date.getHours();
-  if (h < 5) return "Bonne nuit";
-  if (h < 12) return "Bonjour";
-  if (h < 18) return "Bonjour";
-  return "Bonsoir";
+  if (h < 5) return "L'heure des étoiles";
+  if (h < 9) return "Lumière du matin";
+  if (h < 12) return "Soleils jumeaux levés";
+  if (h < 14) return "Plein midi de Tatooine";
+  if (h < 18) return "Après-midi du Temple";
+  if (h < 22) return "Les deux soleils descendent";
+  return "Nuit de l'hyperespace";
 }
 
 function firstNameFromEmail(email: string): string {
@@ -568,6 +575,17 @@ export function AdminAssistant({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
+
+  // Titre d'onglet dynamique pendant que Yoda médite — le Maître voit que
+  // l'IA travaille même si l'onglet est en arrière-plan.
+  useEffect(() => {
+    if (!pending) return;
+    const original = document.title;
+    document.title = "⌬ Yoda médite…";
+    return () => {
+      document.title = original;
+    };
+  }, [pending]);
 
   // Auto-scroll en bas pendant le streaming, seulement si l'utilisateur n'a
   // pas remonté la conversation à la main.

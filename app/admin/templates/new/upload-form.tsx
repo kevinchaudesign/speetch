@@ -170,7 +170,7 @@ export function UploadForm() {
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Forger un{" "}
-            <span className="sw-hologram-text font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
               blueprint
             </span>
           </h1>

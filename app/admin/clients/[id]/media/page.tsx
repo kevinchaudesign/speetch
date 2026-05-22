@@ -166,7 +166,7 @@ export default async function ClientMediaPage({
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Médiathèque{" "}
-            <span className="sw-hologram-text font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
               {clientName}
             </span>
           </h1>

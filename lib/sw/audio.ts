@@ -238,3 +238,70 @@ export function playClickBlip(): void {
   osc.start(now);
   osc.stop(now + 0.1);
 }
+
+/* ─── Ambient drone (boucle indéfinie pour landing) ──────────────────────
+   Hum de vaisseau hyperespace : 3 sines basses (50/74/110 Hz) avec léger
+   détune + LFO d'amplitude. Ignore l'opt-in admin — c'est un toggle séparé
+   visible uniquement sur la landing. Retourne un handle `{ stop }` ou
+   null si indispo. */
+
+export type AmbientHandle = { stop: () => void };
+
+export function startAmbientDrone(): AmbientHandle | null {
+  if (typeof window === "undefined") return null;
+  if (prefersReducedMotion()) return null;
+  const ctx = getContext();
+  if (!ctx) return null;
+  if (ctx.state === "suspended") void ctx.resume();
+
+  const now = ctx.currentTime;
+  const baseFreqs = [50, 74, 110]; // fondamentale + 5te + octave+5te
+  const oscillators: OscillatorNode[] = [];
+
+  const masterGain = ctx.createGain();
+  masterGain.gain.setValueAtTime(0, now);
+  masterGain.gain.linearRampToValueAtTime(0.045, now + 1.8); // fade in lent
+  masterGain.connect(ctx.destination);
+
+  const filter = ctx.createBiquadFilter();
+  filter.type = "lowpass";
+  filter.frequency.value = 600;
+  filter.Q.value = 0.8;
+  filter.connect(masterGain);
+
+  // LFO d'amplitude — battements subtils ~8s par cycle
+  const lfo = ctx.createOscillator();
+  lfo.type = "sine";
+  lfo.frequency.value = 0.13;
+  const lfoGain = ctx.createGain();
+  lfoGain.gain.value = 0.18;
+  lfo.connect(lfoGain);
+
+  baseFreqs.forEach((freq, i) => {
+    const osc = ctx.createOscillator();
+    osc.type = "sine";
+    osc.frequency.value = freq + (i % 2 === 0 ? 0 : 0.5); // micro-détune
+    const g = ctx.createGain();
+    g.gain.value = 1 / baseFreqs.length;
+    lfoGain.connect(g.gain);
+    osc.connect(g);
+    g.connect(filter);
+    osc.start(now);
+    oscillators.push(osc);
+  });
+  lfo.start(now);
+
+  let stopped = false;
+  return {
+    stop: () => {
+      if (stopped) return;
+      stopped = true;
+      const t = ctx.currentTime;
+      masterGain.gain.cancelScheduledValues(t);
+      masterGain.gain.setValueAtTime(masterGain.gain.value, t);
+      masterGain.gain.linearRampToValueAtTime(0, t + 1.4);
+      oscillators.forEach((o) => o.stop(t + 1.5));
+      lfo.stop(t + 1.5);
+    },
+  };
+}

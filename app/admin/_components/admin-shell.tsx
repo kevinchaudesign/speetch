@@ -5,6 +5,8 @@ import { cn } from "@/lib/utils";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminAssistant } from "./admin-assistant";
 import { KonamiCode } from "./konami-code";
+import { AdminCursor } from "./admin-cursor";
+import { RouteTransition } from "./route-transition";
 
 const COOKIE_NAME = "speetch_admin_sidebar_collapsed";
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
@@ -48,6 +50,8 @@ export function AdminShell({
       </div>
       <AdminAssistant email={email} displayName={displayName} />
       <KonamiCode />
+      <AdminCursor />
+      <RouteTransition />
     </div>
   );
 }

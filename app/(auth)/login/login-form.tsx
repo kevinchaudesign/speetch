@@ -106,7 +106,7 @@ export function LoginForm({
           style={{ fontSize: "clamp(2.75rem, 9vw, 7rem)" }}
         >
           Le Conseil{" "}
-          <span className="sw-hologram-text font-serif italic font-normal">
+          <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
             t&apos;attend
           </span>
         </motion.h1>

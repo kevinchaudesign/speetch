@@ -1,10 +1,11 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { useFormStatus } from "react-dom";
 import { updateOwnerProfile, type UpdateOwnerState } from "./actions";
 import { Field } from "@/lib/ds";
+import { playR2Beep } from "@/lib/sw/audio";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: UpdateOwnerState = { status: "idle" };
@@ -36,6 +37,11 @@ export function ProfileForm({
     updateOwnerProfile,
     INITIAL_STATE,
   );
+
+  // Beep R2-D2 sur scellement réussi (no-op si audio off).
+  useEffect(() => {
+    if (state.status === "success") playR2Beep();
+  }, [state.status]);
 
   return (
     <motion.form

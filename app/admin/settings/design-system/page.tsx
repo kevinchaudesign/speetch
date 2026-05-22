@@ -182,7 +182,7 @@ export default async function DesignSystemPage() {
             style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)" }}
           >
             Le{" "}
-            <span className="sw-hologram-text font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
               Codex
             </span>
           </h1>

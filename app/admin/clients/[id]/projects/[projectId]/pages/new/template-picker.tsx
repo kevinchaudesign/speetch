@@ -56,7 +56,7 @@ export function TemplatePicker({
             style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
           >
             Quel{" "}
-            <span className="sw-hologram-text font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
               blueprint
             </span>{" "}
             ?

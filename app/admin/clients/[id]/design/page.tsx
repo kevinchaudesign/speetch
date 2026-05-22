@@ -145,7 +145,7 @@ export default async function DesignPage({
             style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
           >
             Charte{" "}
-            <span className="sw-hologram-text font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
               visuelle
             </span>
           </h1>

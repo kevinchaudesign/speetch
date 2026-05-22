@@ -44,7 +44,7 @@ export default function NotFound() {
           style={{ fontSize: "clamp(3rem, 12vw, 9rem)" }}
         >
           Route{" "}
-          <span className="sw-hologram-text font-serif italic font-normal">
+          <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
             perdue
           </span>
         </h1>

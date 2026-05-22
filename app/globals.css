@@ -241,11 +241,57 @@
     50% { opacity: 1; filter: brightness(1.15); }
   }
 
+  /* ─── Glitch hologrammique sur H1 — projection holocron instable ─────
+     Cycle long (11s) avec la quasi-totalité en état stable + 2 micro-coups
+     de chromatic aberration. Pose sur les gros titres `<h1>` immersifs. */
+
+  .sw-hologram-glitch {
+    animation: sw-h1-glitch 11s infinite;
+    animation-timing-function: linear;
+  }
+
+  @keyframes sw-h1-glitch {
+    0%, 87%, 92.5%, 100% {
+      transform: translateX(0);
+      text-shadow:
+        0 0 8px rgba(125, 211, 252, 0.6),
+        0 0 18px rgba(125, 211, 252, 0.3);
+    }
+    88% {
+      transform: translateX(-2px) skewX(-0.5deg);
+      text-shadow:
+        -3px 0 0 rgba(255, 60, 100, 0.6),
+        3px 0 0 rgba(60, 220, 255, 0.6),
+        0 0 8px rgba(125, 211, 252, 0.6);
+    }
+    89% {
+      transform: translateX(3px) skewX(0.4deg);
+      text-shadow:
+        3px 0 0 rgba(255, 60, 100, 0.55),
+        -3px 0 0 rgba(60, 220, 255, 0.55),
+        0 0 8px rgba(125, 211, 252, 0.6);
+    }
+    90% {
+      transform: translateX(-1px);
+      text-shadow:
+        -1px 0 0 rgba(255, 100, 130, 0.45),
+        1px 0 0 rgba(100, 230, 255, 0.45),
+        0 0 8px rgba(125, 211, 252, 0.6);
+    }
+    91% {
+      transform: translateX(0);
+      text-shadow:
+        0 0 12px rgba(125, 211, 252, 0.7),
+        0 0 18px rgba(125, 211, 252, 0.3);
+    }
+  }
+
   @media (prefers-reduced-motion: reduce) {
     .sw-starfield,
     .sw-scanlines,
     .sw-cyan-dot,
-    .sw-lightsaber-bar {
+    .sw-lightsaber-bar,
+    .sw-hologram-glitch {
       animation: none;
     }
   }

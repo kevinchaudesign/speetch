@@ -1,9 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Button, Eyebrow } from "@/lib/ds";
+import { playR2Beep } from "@/lib/sw/audio";
 import {
   updateChatbotPrompt,
   type UpdateChatbotPromptState,
@@ -39,6 +40,12 @@ export function ChatbotPromptForm({
     updateChatbotPrompt,
     INITIAL_STATE,
   );
+
+  // Beep R2-D2 sur scellement réussi (no-op si audio off).
+  useEffect(() => {
+    if (state.status === "success") playR2Beep();
+  }, [state.status]);
+
   /* Le textarea est pré-rempli :
      - avec le custom stocké en BDD si défini,
      - sinon avec le DEFAULT_PRODUCT_BRIEF pour que le Maître ait une base

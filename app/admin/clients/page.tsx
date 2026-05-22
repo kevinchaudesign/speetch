@@ -93,7 +93,7 @@ export default async function ClientsListPage() {
               style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)" }}
             >
               Les{" "}
-              <span className="sw-hologram-text font-serif italic font-normal">
+              <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
                 Holocrons
               </span>
             </h1>

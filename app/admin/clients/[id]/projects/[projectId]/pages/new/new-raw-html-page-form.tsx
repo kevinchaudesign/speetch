@@ -105,7 +105,7 @@ export function NewRawHtmlPageForm({
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Réplique{" "}
-            <span className="sw-hologram-text font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
               fidèle
             </span>
           </h1>

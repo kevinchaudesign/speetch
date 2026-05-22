@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { Eyebrow } from "@/lib/ds";
 import { AudioToggle } from "./audio-toggle";
+import { AurebeshMark } from "@/app/_components/aurebesh-mark";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const COLLAPSE_DURATION_MS = 500;
@@ -274,6 +275,16 @@ export function AdminSidebar({
         </div>
 
         <AudioToggle collapsed={collapsed} />
+
+        {/* Signature Aurebesh — petite frise décorative, hide collapsed */}
+        <div
+          className={cn(
+            "overflow-hidden transition-all duration-500 ease-out",
+            collapsed ? "max-h-0 opacity-0" : "max-h-8 opacity-100 pt-1",
+          )}
+        >
+          <AurebeshMark size={10} />
+        </div>
 
         <form action="/auth/signout" method="post">
           <button

@@ -87,7 +87,7 @@ export default async function OwnerProfilePage() {
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Identité{" "}
-            <span className="sw-hologram-text font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
               Jedi
             </span>
           </h1>

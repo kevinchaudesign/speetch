@@ -150,7 +150,7 @@ export default async function AdminPage() {
           style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
         >
           Bienvenue,{" "}
-          <span className="sw-hologram-text font-serif italic font-normal">
+          <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
             Maître {masterName}
           </span>
         </h1>
