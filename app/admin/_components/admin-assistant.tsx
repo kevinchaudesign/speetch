@@ -22,7 +22,12 @@
  * - Hairline qui s'étend sur focus de l'input.
  */
 
-import { AnimatePresence, motion } from "framer-motion";
+import {
+  AnimatePresence,
+  motion,
+  useDragControls,
+  useMotionValue,
+} from "framer-motion";
 import { marked } from "marked";
 import { usePathname } from "next/navigation";
 import {
@@ -1130,27 +1135,97 @@ function ChatPanel({
         : isClientContext
           ? "sparkle"
           : "happy";
+
+  /* ── Drag : panneau flottant déplaçable depuis le header ─────────────────
+     - dragControls + dragListener=false : drag déclenché uniquement par
+       pointerdown sur le header, pas n'importe où sur le panneau.
+     - Position persistée en localStorage entre ouvertures.
+     - dragConstraints lié à un wrapper plein-écran → panneau contraint au
+       viewport (rubber band léger via dragElastic=0.06). */
+  const dragControls = useDragControls();
+  const dragX = useMotionValue(0);
+  const dragY = useMotionValue(0);
+  const constraintsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("speetch-panel-position");
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as { x?: unknown; y?: unknown };
+      if (typeof parsed.x === "number") dragX.set(parsed.x);
+      if (typeof parsed.y === "number") dragY.set(parsed.y);
+    } catch {
+      /* localStorage indisponible ou JSON corrompu → on garde 0/0 */
+    }
+  }, [dragX, dragY]);
+
+  const handleDragEnd = useCallback(() => {
+    try {
+      localStorage.setItem(
+        "speetch-panel-position",
+        JSON.stringify({ x: dragX.get(), y: dragY.get() }),
+      );
+    } catch {
+      /* noop */
+    }
+  }, [dragX, dragY]);
+
+  const handleHeaderPointerDown = useCallback(
+    (e: React.PointerEvent<HTMLElement>) => {
+      dragControls.start(e);
+    },
+    [dragControls],
+  );
+
+  /* Double-clic sur le header : reset position → ré-ancre le panneau à
+     sa position d'origine (bas-droite). Filet de sécurité si l'utilisateur
+     drag hors viewport sur un autre écran. */
+  const handleHeaderDoubleClick = useCallback(() => {
+    dragX.set(0);
+    dragY.set(0);
+    try {
+      localStorage.removeItem("speetch-panel-position");
+    } catch {
+      /* noop */
+    }
+  }, [dragX, dragY]);
+
   return (
-    <motion.div
-      role="dialog"
-      aria-modal="false"
-      aria-labelledby={panelTitleId}
-      initial={{ opacity: 0, y: 24, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={{ opacity: 0, y: 18, scale: 0.97 }}
-      transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
-      className={cn(
-        "fixed z-[59] flex flex-col overflow-hidden",
-        // Mobile : bottom sheet plein-largeur, laisse l'orb visible bas-droite.
-        "bottom-24 right-4 left-4 max-h-[min(78vh,660px)]",
-        // Desktop : panneau ancré bas-droite.
-        "md:bottom-24 md:right-6 md:left-auto md:w-[420px] md:max-h-[min(78vh,640px)]",
-        "rounded-2xl border border-white/[0.1]",
-        "bg-gradient-to-br from-white/[0.04] via-[#0a0a0a]/95 to-[#0a0a0a]/95",
-        "backdrop-blur-2xl",
-        "shadow-[0_40px_120px_-30px_rgba(0,0,0,0.95),inset_1px_1px_0_0_rgba(255,255,255,0.06)]",
-      )}
-    >
+    <>
+      {/* Wrapper invisible plein-écran pour borner le drag au viewport */}
+      <div
+        ref={constraintsRef}
+        aria-hidden
+        className="pointer-events-none fixed inset-0 z-[55]"
+      />
+      <motion.div
+        role="dialog"
+        aria-modal="false"
+        aria-labelledby={panelTitleId}
+        drag
+        dragControls={dragControls}
+        dragListener={false}
+        dragMomentum={false}
+        dragElastic={0.06}
+        dragConstraints={constraintsRef}
+        onDragEnd={handleDragEnd}
+        style={{ x: dragX, y: dragY }}
+        initial={{ opacity: 0, scale: 0.96 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.97 }}
+        transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
+        className={cn(
+          "fixed z-[59] flex flex-col overflow-hidden",
+          // Mobile : bottom sheet plein-largeur, laisse l'orb visible bas-droite.
+          "bottom-24 right-4 left-4 max-h-[min(78vh,660px)]",
+          // Desktop : panneau ancré bas-droite (point de départ avant drag).
+          "md:bottom-24 md:right-6 md:left-auto md:w-[420px] md:max-h-[min(78vh,640px)]",
+          "rounded-2xl border border-white/[0.1]",
+          "bg-gradient-to-br from-white/[0.04] via-[#0a0a0a]/95 to-[#0a0a0a]/95",
+          "backdrop-blur-2xl",
+          "shadow-[0_40px_120px_-30px_rgba(0,0,0,0.95),inset_1px_1px_0_0_rgba(255,255,255,0.06)]",
+        )}
+      >
       {/* Grain de film */}
       <span
         aria-hidden
@@ -1162,10 +1237,15 @@ function ChatPanel({
         className="pointer-events-none absolute -left-20 -top-20 h-56 w-56 rounded-full bg-white/[0.06] blur-3xl"
       />
 
-      {/* Header */}
-      <header className="relative flex items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4">
+      {/* Header — zone de prise pour le drag du panneau (double-clic = reset position) */}
+      <header
+        onPointerDown={handleHeaderPointerDown}
+        onDoubleClick={handleHeaderDoubleClick}
+        className="relative flex cursor-grab select-none items-center justify-between gap-3 border-b border-white/[0.08] px-5 py-4 active:cursor-grabbing"
+        style={{ touchAction: "none" }}
+      >
         <div className="flex items-center gap-3">
-          {/* Mascotte partagée — l'ara vole littéralement depuis l'orb fermé */}
+          {/* Mascotte partagée — vole littéralement depuis l'orb fermé via layoutId */}
           <motion.div
             layoutId="speetch-orb"
             transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
@@ -1195,7 +1275,8 @@ function ChatPanel({
             <button
               type="button"
               onClick={onReset}
-              className="text-[10px] uppercase tracking-[0.32em] text-white/35 transition-colors hover:text-white"
+              onPointerDown={(e) => e.stopPropagation()}
+              className="cursor-pointer text-[10px] uppercase tracking-[0.32em] text-white/35 transition-colors hover:text-white"
             >
               Effacer
             </button>
@@ -1203,8 +1284,9 @@ function ChatPanel({
           <button
             type="button"
             onClick={onClose}
+            onPointerDown={(e) => e.stopPropagation()}
             aria-label="Fermer l'assistant"
-            className="text-[10px] uppercase tracking-[0.32em] text-white/35 transition-colors hover:text-white"
+            className="cursor-pointer text-[10px] uppercase tracking-[0.32em] text-white/35 transition-colors hover:text-white"
           >
             Fermer
           </button>
@@ -1379,6 +1461,7 @@ function ChatPanel({
         )}
       </form>
     </motion.div>
+    </>
   );
 }
 
