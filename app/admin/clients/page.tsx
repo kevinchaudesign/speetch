@@ -5,7 +5,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button, Eyebrow } from "@/lib/ds";
 
 export const metadata: Metadata = {
-  title: "Espaces clients",
+  title: "Holocrons",
   robots: { index: false, follow: false },
 };
 
@@ -53,24 +53,38 @@ export default async function ClientsListPage() {
   const totalPublishedClients = clients.filter((c) => c.is_published).length;
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines + sabre vertical — thème Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
         <Link
           href="/admin"
-          className="text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors hover:text-white"
+          className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
-          ← Admin
+          ← Conseil
         </Link>
-        <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
-          Espaces clients
+        <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/55">
+          Holocrons
         </span>
       </header>
 
       <section className="mx-auto flex max-w-5xl flex-col gap-12 pt-24 md:pt-20">
         <div className="flex flex-col gap-8">
-          <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
-            Administration
+          <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
+            Conseil Jedi
           </p>
 
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -78,27 +92,30 @@ export default async function ClientsListPage() {
               className="font-sans font-extralight leading-[0.85] tracking-[-0.05em] text-[#F5F5F7]"
               style={{ fontSize: "clamp(2.5rem, 7vw, 5rem)" }}
             >
-              Espaces{" "}
-              <span className="font-serif italic font-normal text-white/85">
-                clients
+              Les{" "}
+              <span className="sw-hologram-text font-serif italic font-normal">
+                Holocrons
               </span>
             </h1>
 
             <Button href="/admin/clients/new" variant="return">
-              Nouveau client
+              Forger un holocron
             </Button>
           </div>
 
-          <Eyebrow tracking="md" intensity="default">
+          <Eyebrow tracking="md" className="text-cyan-200/70">
             {totalClients === 0
-              ? "Aucun client pour le moment"
-              : `${totalClients} client${totalClients > 1 ? "s" : ""} · ${totalPublishedClients} publié${totalPublishedClients > 1 ? "s" : ""}`}
+              ? "Aucun holocron forgé pour le moment"
+              : `${totalClients} holocron${totalClients > 1 ? "s" : ""} · ${totalPublishedClients} scellé${totalPublishedClients > 1 ? "s" : ""}`}
           </Eyebrow>
         </div>
 
         {error && (
-          <p className="border-l-2 border-red-400/40 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/80">
-            Erreur de chargement · {error.message}
+          <p
+            className="border-l-2 border-red-400/50 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/85"
+            style={{ textShadow: "0 0 8px rgba(252, 165, 165, 0.35)" }}
+          >
+            Erreur de transmission · {error.message}
           </p>
         )}
 
@@ -118,13 +135,17 @@ export default async function ClientsListPage() {
 
 function EmptyState() {
   return (
-    <div className="flex flex-col items-start gap-8 border-t border-white/10 pt-16">
-      <p className="max-w-md text-balance font-serif text-base italic text-white/40 md:text-lg">
-        Aucun espace client n&apos;a encore été créé. Le premier apparaîtra ici
-        dès qu&apos;il sera ajouté.
+    <div className="relative flex flex-col items-start gap-8 pt-16">
+      <div
+        aria-hidden
+        className="sw-hologram-line absolute inset-x-0 top-0"
+      />
+      <p className="max-w-md text-balance font-serif text-base italic text-white/55 md:text-lg">
+        Le Conseil n&apos;a pas encore d&apos;archive holocron. Le premier
+        prendra forme dès qu&apos;il sera forgé.
       </p>
       <Button href="/admin/clients/new" variant="large">
-        Créer le premier client
+        Forger le premier holocron
       </Button>
     </div>
   );
@@ -139,29 +160,29 @@ function ClientCard({ client }: { client: ClientRow }) {
     <li>
       <Link
         href={href}
-        className="group flex h-full flex-col gap-4 border border-white/10 bg-white/[0.02] px-5 py-6 transition-colors hover:border-white/25 hover:bg-white/[0.04]"
+        className="group flex h-full flex-col gap-4 border border-cyan-200/15 bg-cyan-200/[0.015] px-5 py-6 transition-colors hover:border-cyan-200/40 hover:bg-cyan-200/[0.04]"
       >
         <div className="flex items-start justify-between gap-3">
-          <h2 className="text-xl font-light text-[#F5F5F7] transition-colors md:text-2xl">
+          <h2 className="text-xl font-light text-[#F5F5F7] transition-colors group-hover:text-cyan-100 md:text-2xl">
             {client.full_name ?? "Sans nom"}
           </h2>
           {client.is_published ? (
             <span
-              className="mt-2 block h-1.5 w-1.5 shrink-0 rounded-full bg-emerald-300"
-              title="Espace publié"
+              className="sw-cyan-dot mt-2 block h-1.5 w-1.5 shrink-0 rounded-full bg-cyan-300"
+              title="Holocron scellé (publié)"
             />
           ) : (
             <span
               className="mt-2 block h-1.5 w-1.5 shrink-0 rounded-full bg-amber-300"
-              title="Espace caché"
+              title="Holocron en forge (caché)"
             />
           )}
         </div>
 
-        <p className="text-[10px] uppercase tracking-[0.32em] text-white/45">
+        <p className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/55">
           {projects.length === 0
-            ? "Aucun projet"
-            : `${projects.length} projet${projects.length > 1 ? "s" : ""} · ${publishedProjects} publié${publishedProjects > 1 ? "s" : ""}`}
+            ? "Aucune mission"
+            : `${projects.length} mission${projects.length > 1 ? "s" : ""} · ${publishedProjects} active${publishedProjects > 1 ? "s" : ""}`}
         </p>
 
         <p className="mt-auto break-all font-mono text-[11px] text-white/35">
@@ -171,4 +192,3 @@ function ClientCard({ client }: { client: ClientRow }) {
     </li>
   );
 }
-
