@@ -33,10 +33,14 @@ export default async function SettingsHome() {
       .select("id", { count: "exact", head: true }),
     admin
       .from("profiles")
-      .select("full_name, avatar_url")
+      .select("full_name, avatar_url, chatbot_system_prompt")
       .eq("is_owner", true)
       .maybeSingle(),
   ]);
+
+  const hasCustomChatbotPrompt =
+    typeof ownerProfile?.chatbot_system_prompt === "string" &&
+    ownerProfile.chatbot_system_prompt.trim().length > 0;
 
   const cards = [
     {
@@ -46,6 +50,15 @@ export default async function SettingsHome() {
         ? ownerProfile.full_name
         : "Configure ton nom de Maître",
       summary: "Nom de Maître, avatar, signature owner.",
+    },
+    {
+      href: "/admin/settings/chatbot",
+      label: "Voix de Yoda",
+      hint: hasCustomChatbotPrompt
+        ? "Instructions personnalisées"
+        : "Default Conseil Jedi",
+      summary:
+        "Réécris les system instructions du chatbot — pivote la personnalité, le ton, le vocabulaire. La voix de la Force, tu la modèles.",
     },
     {
       href: "/admin/settings/design-system",

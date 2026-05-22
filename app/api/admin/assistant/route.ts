@@ -1,6 +1,6 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { NextResponse, type NextRequest } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { requireOwner } from "@/lib/auth/owner";
 import { buildSystemPrompt } from "@/lib/chatbot/system-prompt";
 import { loadClientContextSnapshot } from "@/lib/chatbot/client-context";
@@ -112,11 +112,27 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // Custom system prompt défini par le Maître depuis `/admin/settings/chatbot`.
+  // Si non-null, remplace `DEFAULT_PRODUCT_BRIEF` dans le préfixe cacheable.
+  let customBrief: string | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data: ownerProfile } = await admin
+      .from("profiles")
+      .select("chatbot_system_prompt")
+      .eq("is_owner", true)
+      .maybeSingle();
+    customBrief = ownerProfile?.chatbot_system_prompt ?? null;
+  } catch (err) {
+    console.error("[assistant] custom brief fetch error:", err);
+  }
+
   const { cacheable, contextual, clientSnapshot: snapshot } = buildSystemPrompt(
     {
       pathname,
       email: owner.email || "session inconnue",
       clientSnapshot,
+      customBrief,
     },
   );
 

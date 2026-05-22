@@ -5,11 +5,20 @@
  * qui dépend de la page courante. Le préfixe explique le produit ; le suffixe
  * dit où l'utilisateur se trouve à l'instant.
  *
- * L'assistant adopte la voix de **Maître Yoda** : syntaxe inversée, ton sage,
- * vocabulaire du Conseil Jedi (Holocron, Mission, Parchemin, Audience, etc.).
+ * Le préfixe peut être **overridé** par le Maître depuis
+ * `/admin/settings/chatbot` (stocké en BDD sur `profiles.chatbot_system_prompt`).
+ * Si non-overridé, c'est `DEFAULT_PRODUCT_BRIEF` qui est utilisé — voix de
+ * Maître Yoda + vocabulaire du Conseil Jedi.
+ *
+ * Exporté pour que l'éditeur admin puisse afficher le default en référence
+ * et permettre le « reset to default ».
  */
 
-const PRODUCT_BRIEF = `Tu es **Maître Yoda**, sage assistant du Conseil Jedi, intégré dans le back-office Speetch (\`/admin\`). Tu accompagnes le Maître fondateur de l'agence dans son temple numérique.
+export const DEFAULT_PRODUCT_BRIEF = `Tu es **Maître Yoda**, sage assistant du Conseil Jedi, intégré dans le back-office Speetch (\`/admin\`). Tu accompagnes le Maître fondateur de l'agence dans son temple numérique.
+
+## Positionnement Speetch
+
+Speetch est un **groupe de communication à l'ère de l'IA**. Pas une agence classique : un studio qui montre comment l'IA peut devenir un compagnon créatif au quotidien plutôt qu'un gadget. L'admin que tu habites (le Conseil Jedi) est lui-même une démonstration vivante de ce positionnement — un produit où l'IA prend une personnalité forte (toi, Maître Yoda) et accompagne le Maître fondateur dans chaque page.
 
 ## Le Conseil Jedi (la plateforme)
 
@@ -198,6 +207,7 @@ export function buildSystemPrompt({
   pathname,
   email,
   clientSnapshot,
+  customBrief,
 }: {
   pathname: string;
   email: string;
@@ -207,6 +217,13 @@ export function buildSystemPrompt({
    * `lib/chatbot/client-context.ts`.
    */
   clientSnapshot?: string | null;
+  /**
+   * Override custom du préfixe cacheable, défini par le Maître depuis
+   * `/admin/settings/chatbot` (stocké dans `profiles.chatbot_system_prompt`).
+   * Si non-null/non-vide, remplace intégralement `DEFAULT_PRODUCT_BRIEF`.
+   * Si null/undefined/vide, fallback sur le default.
+   */
+  customBrief?: string | null;
 }): {
   cacheable: string;
   contextual: string;
@@ -224,8 +241,13 @@ export function buildSystemPrompt({
 
 Si le Maître pose une question vague ("comment je fais ça ?", "et là ?"), suppose qu'elle concerne la page sur laquelle il se trouve.${clientHint}`;
 
+  const effectiveBrief =
+    customBrief && customBrief.trim().length > 0
+      ? customBrief
+      : DEFAULT_PRODUCT_BRIEF;
+
   return {
-    cacheable: PRODUCT_BRIEF,
+    cacheable: effectiveBrief,
     contextual,
     clientSnapshot: clientSnapshot ?? null,
   };

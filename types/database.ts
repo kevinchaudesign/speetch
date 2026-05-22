@@ -25,6 +25,7 @@ export type Database = {
       profiles: {
         Row: {
           avatar_url: string | null;
+          chatbot_system_prompt: string | null;
           client_email: string | null;
           content: Json;
           created_at: string;
@@ -41,6 +42,7 @@ export type Database = {
         };
         Insert: {
           avatar_url?: string | null;
+          chatbot_system_prompt?: string | null;
           client_email?: string | null;
           content?: Json;
           created_at?: string;
@@ -57,6 +59,7 @@ export type Database = {
         };
         Update: {
           avatar_url?: string | null;
+          chatbot_system_prompt?: string | null;
           client_email?: string | null;
           content?: Json;
           created_at?: string;
