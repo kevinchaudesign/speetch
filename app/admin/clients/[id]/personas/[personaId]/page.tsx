@@ -13,7 +13,7 @@ import type {
 import type { MediaRow } from "../../media/_lib/types";
 
 export const metadata: Metadata = {
-  title: "Persona",
+  title: "Audience · Holocron",
   robots: { index: false, follow: false },
 };
 
@@ -139,32 +139,46 @@ export default async function PersonaDetailPage({
   const clientName = profile.full_name ?? "Client";
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines + sabre — thème Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       <section className="mx-auto flex max-w-5xl flex-col gap-12 pt-12 md:pt-20">
         <header className="flex flex-col gap-6">
-          <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
+          <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
             <Link
               href="/admin/clients"
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-cyan-100"
             >
-              Espaces clients
+              Holocrons
             </Link>
-            <span className="mx-3 text-white/20">→</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
             <Link
               href={`/admin/clients/${id}`}
-              className="text-white/55 transition-colors hover:text-white"
+              className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
             </Link>
-            <span className="mx-3 text-white/20">·</span>
+            <span className="mx-3 text-cyan-200/20">·</span>
             <Link
               href={`/admin/clients/${id}/personas`}
-              className="text-white/55 transition-colors hover:text-white"
+              className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
-              Personas
+              Audiences
             </Link>
-            <span className="mx-3 text-white/20">·</span>
-            <span className="text-white/55">
+            <span className="mx-3 text-cyan-200/20">·</span>
+            <span className="text-cyan-200/55">
               {persona.name || "Sans nom"}
             </span>
           </p>
@@ -177,7 +191,7 @@ export default async function PersonaDetailPage({
             href={`/admin/clients/${id}/personas`}
             variant="ghost"
           >
-            ← Retour personas
+            ← Retour Audiences
           </Button>
         </div>
       </section>

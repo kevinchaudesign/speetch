@@ -19,7 +19,7 @@ import type { MediaRow } from "../media/_lib/types";
 const MEDIA_BUCKET = "page-media";
 
 export const metadata: Metadata = {
-  title: "Personas",
+  title: "Audiences · Holocron",
   robots: { index: false, follow: false },
 };
 
@@ -174,39 +174,53 @@ export default async function ClientPersonasPage({
   const clientName = profile.full_name ?? "Client";
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines + sabre — thème Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       <section className="mx-auto flex max-w-5xl flex-col gap-12 pt-12 md:pt-20">
         <header className="flex flex-col gap-6">
-          <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
+          <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
             <Link
               href="/admin/clients"
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-cyan-100"
             >
-              Espaces clients
+              Holocrons
             </Link>
-            <span className="mx-3 text-white/20">→</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
             <Link
               href={`/admin/clients/${id}`}
-              className="text-white/55 transition-colors hover:text-white"
+              className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
             </Link>
-            <span className="mx-3 text-white/20">·</span>
-            <span className="text-white/55">Personas</span>
+            <span className="mx-3 text-cyan-200/20">·</span>
+            <span className="text-cyan-200/55">Audiences</span>
           </p>
           <h1
             className="font-sans font-extralight leading-[0.85] tracking-[-0.05em] text-[#F5F5F7]"
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
-            Personas{" "}
-            <span className="font-serif italic font-normal text-white/85">
+            Audiences{" "}
+            <span className="sw-hologram-text font-serif italic font-normal">
               {clientName}
             </span>
           </h1>
-          <p className="max-w-xl font-serif text-base italic text-white/45 md:text-lg">
-            Fiches utilisateur cible pour ce client : rôle, objectifs,
-            frustrations, citations. Sert de base pour orienter les pages
-            publiques et les décisions de design.
+          <p className="max-w-xl font-serif text-base italic text-white/55 md:text-lg">
+            Fiches d&apos;audience cible pour cet holocron : rôle, objectifs,
+            frustrations, citations. Sert de boussole pour orienter les
+            parchemins publics et les décisions de design.
           </p>
         </header>
 
@@ -224,7 +238,7 @@ export default async function ClientPersonasPage({
             ← Retour {clientName}
           </Button>
           <Button href="/admin/clients" variant="ghost">
-            Tous les clients
+            Tous les Holocrons
           </Button>
         </div>
       </section>
