@@ -11,7 +11,7 @@ import { PublishingPanel } from "./publishing-panel";
 import { RawHtmlContextView } from "./raw-html-context-view";
 
 export const metadata: Metadata = {
-  title: "Note de contexte · Admin",
+  title: "Parchemin · Archives",
   robots: { index: false, follow: false },
 };
 
@@ -110,37 +110,51 @@ export default async function ContextDetailPage({
   );
 
   return (
-    <div className="relative min-h-svh w-full px-6 py-10 md:px-16 md:py-14">
+    <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
+      {/* Star field + scanlines + sabre — thème Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-50"
+      />
+      <div
+        aria-hidden
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-16 left-2 top-24 hidden w-[2px] rounded-full md:block"
+      />
+
       <header className="flex items-center justify-between md:hidden">
         <Link
           href={`/admin/clients/${id}/context`}
-          className="text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors hover:text-white"
+          className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
-          ← Contexte
+          ← Archives
         </Link>
-        <span className="text-[11px] uppercase tracking-[0.28em] text-white/40">
-          Note
+        <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/55">
+          Parchemin
         </span>
       </header>
 
       <article className="mx-auto flex max-w-3xl flex-col gap-12 pt-20">
         <div className="flex flex-col gap-6">
-          <p className="text-[11px] uppercase tracking-[0.4em] text-white/40">
+          <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
             <Link
               href="/admin/clients"
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-cyan-100"
             >
-              Espaces clients
+              Holocrons
             </Link>
-            <span className="mx-3 text-white/20">→</span>
+            <span className="mx-3 text-cyan-200/20">→</span>
             <Link
               href={`/admin/clients/${id}/context`}
-              className="transition-colors hover:text-white"
+              className="transition-colors hover:text-cyan-100"
             >
               {clientName}
             </Link>
-            <span className="mx-3 text-white/20">·</span>
-            <span className="text-white/55">Contexte interne</span>
+            <span className="mx-3 text-cyan-200/20">·</span>
+            <span className="text-cyan-200/55">Archives</span>
           </p>
 
           <div className="flex flex-wrap items-end justify-between gap-6">
@@ -160,7 +174,7 @@ export default async function ContextDetailPage({
                 </Chip>
                 {isRawHtml && (
                   <Chip tone="warning" className="w-fit">
-                    Reproduction fidèle
+                    Réplique fidèle
                   </Chip>
                 )}
               </div>

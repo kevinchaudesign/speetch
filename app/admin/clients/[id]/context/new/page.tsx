@@ -5,7 +5,7 @@ import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { NewContextForm } from "./new-context-form";
 
 export const metadata: Metadata = {
-  title: "Nouvelle note de contexte",
+  title: "Forger un parchemin",
   robots: { index: false, follow: false },
 };
 
