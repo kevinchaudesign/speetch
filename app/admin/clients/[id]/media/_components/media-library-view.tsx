@@ -590,9 +590,9 @@ export function MediaLibraryView({
 
       <ConfirmDialog
         open={!!deleteFolderState}
-        title={`Supprimer « ${deleteFolderState?.name ?? ""} » ?`}
-        description="Les médias du dossier ne sont pas supprimés : ils repassent en « Hors dossier »."
-        confirmLabel="Supprimer le dossier"
+        title={`Effacer «&nbsp;${deleteFolderState?.name ?? ""}&nbsp;» ?`}
+        description="Les médias du dossier ne sont pas effacés : ils repassent en «&nbsp;Hors dossier&nbsp;»."
+        confirmLabel="Effacer le dossier"
         tone="danger"
         pending={pending}
         onCancel={() => setDeleteFolderState(null)}
@@ -660,17 +660,17 @@ export function MediaLibraryView({
 
       <ConfirmDialog
         open={!!deleteMediaState}
-        title="Supprimer ce média ?"
+        title="Effacer ce média ?"
         description={
           <>
             <span className="font-mono not-italic text-white/75">
               {deleteMediaState?.filename}
             </span>{" "}
-            sera retiré du stockage. Les pages qui l'utilisent en référence
-            cassée.
+            sera retiré du stockage. Les parchemins qui l&apos;utilisent en
+            référence cassée.
           </>
         }
-        confirmLabel="Supprimer"
+        confirmLabel="Effacer"
         tone="danger"
         pending={pending}
         onCancel={() => setDeleteMediaState(null)}
@@ -739,11 +739,11 @@ export function MediaLibraryView({
         open={batchDeleteOpen}
         title={
           selectedIds.size === 1
-            ? "Supprimer le média sélectionné ?"
-            : `Supprimer ${selectedIds.size} médias sélectionnés ?`
+            ? "Effacer le média sélectionné ?"
+            : `Effacer ${selectedIds.size} médias sélectionnés ?`
         }
-        description="Les fichiers seront retirés du stockage. Les pages qui les utilisent verront des références cassées."
-        confirmLabel="Supprimer"
+        description="Les fichiers seront retirés du stockage. Les parchemins qui les utilisent verront des références cassées."
+        confirmLabel="Effacer"
         tone="danger"
         pending={batchPending}
         onCancel={() => setBatchDeleteOpen(false)}

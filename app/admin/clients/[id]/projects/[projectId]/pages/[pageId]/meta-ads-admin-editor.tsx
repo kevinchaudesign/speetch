@@ -174,7 +174,7 @@ export function MetaAdsAdminEditor({
 
       <ConfirmDialog
         open={confirmTarget !== null}
-        title="Supprimer ce mockup ?"
+        title="Effacer ce mockup ?"
         description={
           confirmTarget ? (
             <span>
@@ -183,12 +183,12 @@ export function MetaAdsAdminEditor({
                   getMetaAdFormatSpec(confirmTarget.format)?.label ||
                   "Mockup"}
               </span>{" "}
-              sera définitivement supprimé. Le média source dans la médiathèque
+              sera définitivement effacé. Le média source dans la médiathèque
               n&apos;est pas touché.
             </span>
           ) : null
         }
-        confirmLabel="Supprimer"
+        confirmLabel="Effacer"
         tone="danger"
         pending={pending}
         onConfirm={() => {

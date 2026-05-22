@@ -547,17 +547,17 @@ function SortableLotSection({
       <ConfirmDialog
         open={confirmDelete}
         tone="danger"
-        title={`Supprimer ${label} ?`}
+        title={`Effacer ${label} ?`}
         description={
           items.length > 0
             ? `Les ${items.length} élément${
                 items.length > 1 ? "s" : ""
               } rattaché${
                 items.length > 1 ? "s" : ""
-              } repasseront en « Hors lot » — rien n'est supprimé.`
-            : "Aucun élément n'y est rattaché — la suppression est sans effet collatéral."
+              } repasseront en «&nbsp;Hors lot&nbsp;» — rien n'est effacé.`
+            : "Aucun élément n'y est rattaché — l'effacement est sans effet collatéral."
         }
-        confirmLabel="Supprimer"
+        confirmLabel="Effacer"
         cancelLabel="Annuler"
         onConfirm={() => {
           setConfirmDelete(false);
@@ -803,9 +803,9 @@ function SortablePageRow({
               {page.name}
             </h3>
             {page.is_published ? (
-              <StatusBadge tone="success">Publiée</StatusBadge>
+              <StatusBadge tone="success">Active</StatusBadge>
             ) : (
-              <StatusBadge tone="warning">Brouillon</StatusBadge>
+              <StatusBadge tone="warning">En forge</StatusBadge>
             )}
           </div>
           {templateLabel && (
@@ -851,7 +851,7 @@ function SortablePageRow({
           href={`/admin/clients/${profileId}/projects/${projectId}/pages/${page.id}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
         >
-          <span>Éditer</span>
+          <span>Affûter</span>
           <Hairline width="sm" hover="lg" />
         </Link>
       </div>
