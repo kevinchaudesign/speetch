@@ -15,10 +15,10 @@ function SubmitButton() {
     <button
       type="submit"
       disabled={pending}
-      className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/75 transition-colors duration-300 hover:text-white disabled:cursor-wait disabled:opacity-50"
+      className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-100/80 transition-colors duration-300 hover:text-cyan-100 disabled:cursor-wait disabled:opacity-50"
     >
-      <span>{pending ? "Enregistrement…" : "Enregistrer"}</span>
-      <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-12" />
+      <span>{pending ? "Scellement…" : "Sceller"}</span>
+      <span className="inline-block h-px w-6 bg-cyan-200/85 transition-all duration-500 ease-out group-hover:w-12 group-hover:bg-cyan-100" />
     </button>
   );
 }
@@ -45,35 +45,32 @@ export function ProfileForm({
       transition={{ duration: 0.9, delay: 0.2, ease: EASE_OUT_EXPO }}
       className="flex w-full max-w-2xl flex-col gap-10"
     >
-      <Field
-        label="Compte"
-        hint="lecture seule"
-      >
-        <span className="border-b border-white/10 bg-transparent pb-3 font-mono text-base text-white/55">
+      <Field label="Identifiant Conseil" hint="lecture seule">
+        <span className="border-b border-cyan-200/15 bg-transparent pb-3 font-mono text-base text-white/55">
           {ownerEmail ?? "—"}
         </span>
       </Field>
 
-      <Field label="Nom affiché">
+      <Field label="Nom de Maître">
         <input
           type="text"
           name="full_name"
           required
           autoComplete="off"
           defaultValue={initialFullName}
-          placeholder="Speetch"
-          className="border-b border-white/20 bg-transparent pb-3 font-sans text-xl font-light text-[#F5F5F7] caret-[#F5F5F7] placeholder:text-white/25 focus:border-white/80 focus:outline-none md:text-2xl"
+          placeholder="Yoda"
+          className="border-b border-cyan-200/25 bg-transparent pb-3 font-sans text-xl font-light text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none md:text-2xl"
         />
       </Field>
 
-      <Field label="Avatar (URL)" hint="optionnel">
+      <Field label="Sigil holographique" hint="optionnel — URL de l'avatar">
         <input
           type="url"
           name="avatar_url"
           autoComplete="off"
           defaultValue={initialAvatarUrl}
           placeholder="https://…"
-          className="border-b border-white/20 bg-transparent pb-3 font-sans text-base font-light text-[#F5F5F7] caret-[#F5F5F7] placeholder:text-white/25 focus:border-white/80 focus:outline-none"
+          className="border-b border-cyan-200/25 bg-transparent pb-3 font-sans text-base font-light text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none"
         />
       </Field>
 
@@ -85,7 +82,8 @@ export function ProfileForm({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
-            className="border-l-2 border-red-400/40 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/80"
+            className="border-l-2 border-red-400/50 pl-4 text-[11px] uppercase tracking-[0.32em] text-red-300/85"
+            style={{ textShadow: "0 0 8px rgba(252, 165, 165, 0.35)" }}
           >
             {state.error}
           </motion.p>
@@ -97,16 +95,17 @@ export function ProfileForm({
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
-            className="border-l-2 border-emerald-400/40 pl-4 text-[11px] uppercase tracking-[0.32em] text-emerald-300/80"
+            className="border-l-2 border-cyan-300/50 pl-4 text-[11px] uppercase tracking-[0.32em] text-cyan-200/90"
+            style={{ textShadow: "0 0 8px rgba(125, 211, 252, 0.45)" }}
           >
-            Profil mis à jour.
+            Identité scellée.
           </motion.p>
         )}
       </AnimatePresence>
 
-      <div className="flex items-center justify-between border-t border-white/10 pt-6">
-        <span className="text-[10px] uppercase tracking-[0.32em] text-white/30">
-          Mot de passe géré via ton compte Supabase Auth
+      <div className="flex items-center justify-between border-t border-cyan-200/15 pt-6">
+        <span className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/35">
+          Code holocron géré via Supabase Auth
         </span>
         <SubmitButton />
       </div>
