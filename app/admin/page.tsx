@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button, Eyebrow, Hairline } from "@/lib/ds";
+import { isStarWarsDay } from "@/lib/sw/star-wars-day";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -117,6 +118,29 @@ export default async function AdminPage() {
 
       {/* Centre */}
       <section className="mx-auto flex max-w-4xl flex-col items-start gap-12 pt-24 md:pt-20">
+        {/* Easter egg — bannière May the 4th uniquement le 4 mai */}
+        {isStarWarsDay() && (
+          <div
+            className="w-full rounded-md border border-cyan-200/35 bg-cyan-200/[0.06] px-6 py-4 backdrop-blur-sm"
+            style={{
+              boxShadow:
+                "0 0 24px rgba(125, 211, 252, 0.25), inset 0 0 12px rgba(125, 211, 252, 0.04)",
+            }}
+          >
+            <p className="text-[10px] uppercase tracking-[0.4em] text-cyan-200/85">
+              ✦ Star Wars Day ✦
+            </p>
+            <p
+              className="mt-2 font-serif text-xl font-light italic text-[#F5F5F7]"
+              style={{
+                textShadow: "0 0 12px rgba(125, 211, 252, 0.55)",
+              }}
+            >
+              May the 4th be with you, Maître.
+            </p>
+          </div>
+        )}
+
         <Eyebrow tracking="lg" className="text-cyan-200/80">
           Conseil Jedi
         </Eyebrow>

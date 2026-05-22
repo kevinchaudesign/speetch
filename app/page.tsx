@@ -61,21 +61,31 @@ export default function HomePage() {
 
   return (
     <div className="relative h-svh w-screen overflow-hidden">
-      {/* Curseur personnalisé */}
+      {/* Star field + scanlines hologramme — fond cinématique Conseil Jedi */}
+      <div
+        aria-hidden
+        className="sw-starfield pointer-events-none absolute inset-0 -z-10"
+      />
+      <div
+        aria-hidden
+        className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-40"
+      />
+
+      {/* Curseur personnalisé — passe cyan une fois loaded */}
       <motion.div
         aria-hidden
-        className="pointer-events-none fixed left-0 top-0 z-[70] hidden h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border border-white/40 mix-blend-difference md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[70] hidden h-6 w-6 -translate-x-1/2 -translate-y-1/2 rounded-full border border-cyan-200/55 mix-blend-difference md:block"
         animate={{ x: mouse.x, y: mouse.y }}
         transition={{ type: "spring", stiffness: 380, damping: 28, mass: 0.4 }}
       />
       <motion.div
         aria-hidden
-        className="pointer-events-none fixed left-0 top-0 z-[71] hidden h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#F5F5F7] mix-blend-difference md:block"
+        className="pointer-events-none fixed left-0 top-0 z-[71] hidden h-1 w-1 -translate-x-1/2 -translate-y-1/2 rounded-full bg-cyan-200 mix-blend-difference md:block"
         animate={{ x: mouse.x, y: mouse.y }}
         transition={{ type: "spring", stiffness: 800, damping: 36 }}
       />
 
-      {/* Preloader */}
+      {/* Preloader — « Réception transmission » */}
       <AnimatePresence mode="wait">
         {!loaded && (
           <motion.div
@@ -85,8 +95,8 @@ export default function HomePage() {
             className="absolute inset-0 z-50 flex items-end justify-between bg-black px-6 py-8 md:px-12 md:py-12"
           >
             <div className="flex flex-col gap-3">
-              <span className="text-[10px] uppercase tracking-[0.32em] text-white/40">
-                Chargement
+              <span className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/55">
+                Transmission entrante
               </span>
               <span className="font-sans text-7xl font-light leading-none tabular-nums md:text-9xl">
                 {String(progress).padStart(3, "0")}
@@ -94,21 +104,36 @@ export default function HomePage() {
             </div>
 
             <div className="flex max-w-[40%] flex-col items-end gap-3">
-              <span className="text-right text-[10px] uppercase tracking-[0.32em] text-white/40">
+              <span className="text-right text-[10px] uppercase tracking-[0.32em] text-cyan-200/55">
                 Speetch — Édition 2026
               </span>
-              <div className="h-px w-40 overflow-hidden bg-white/10 md:w-64">
+              <div className="h-px w-40 overflow-hidden bg-cyan-200/15 md:w-64">
                 <motion.div
-                  className="h-full origin-left bg-[#F5F5F7]"
+                  className="h-full origin-left bg-cyan-200"
                   initial={{ scaleX: 0 }}
                   animate={{ scaleX: progress / 100 }}
                   transition={{ ease: "linear" }}
+                  style={{
+                    boxShadow: "0 0 8px rgba(125, 211, 252, 0.6)",
+                  }}
                 />
               </div>
             </div>
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Sabre vertical — accent immersif (desktop seulement) */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0, scaleY: 0 }}
+        animate={{
+          opacity: loaded ? 1 : 0,
+          scaleY: loaded ? 1 : 0,
+        }}
+        transition={{ duration: 1.4, delay: 0.4, ease: EASE_OUT_EXPO }}
+        className="sw-lightsaber-bar pointer-events-none absolute bottom-20 left-6 top-24 hidden w-[2px] origin-bottom rounded-full md:block"
+      />
 
       {/* Header */}
       <motion.header
@@ -117,17 +142,17 @@ export default function HomePage() {
         transition={{ duration: 0.9, delay: 0.2, ease: EASE_OUT_EXPO }}
         className="absolute inset-x-0 top-0 z-30 flex items-center justify-between px-6 py-6 md:px-12"
       >
-        <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-white/55">
+        <div className="flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65">
           <span className="relative flex h-1.5 w-1.5">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#F5F5F7] opacity-60" />
-            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#F5F5F7]" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-70" />
+            <span className="sw-cyan-dot relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-300" />
           </span>
-          En construction
+          Conseil Jedi en formation
         </div>
 
-        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-white/55 tabular-nums">
+        <div className="font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 tabular-nums">
           <span>{time}</span>
-          <span className="text-white/25"> · </span>
+          <span className="text-cyan-200/25"> · </span>
           <span>PAR</span>
         </div>
       </motion.header>
@@ -138,9 +163,9 @@ export default function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: loaded ? 1 : 0 }}
           transition={{ duration: 0.8, delay: 0.4, ease: EASE_OUT_EXPO }}
-          className="mb-6 text-[11px] uppercase tracking-[0.4em] text-white/45 md:mb-10"
+          className="mb-6 text-[11px] uppercase tracking-[0.4em] text-cyan-200/65 md:mb-10"
         >
-          Agence de Communication
+          Groupe de communication · ère de l&apos;IA
         </motion.p>
 
         <h1
@@ -160,6 +185,11 @@ export default function HomePage() {
                   ease: EASE_OUT_EXPO,
                 }}
                 className="inline-block"
+                style={{
+                  textShadow: loaded
+                    ? "0 0 24px rgba(125, 211, 252, 0.18), 0 0 60px rgba(125, 211, 252, 0.08)"
+                    : undefined,
+                }}
               >
                 {letter}
               </motion.span>
@@ -171,10 +201,17 @@ export default function HomePage() {
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 8 }}
           transition={{ duration: 0.9, delay: 1.55, ease: EASE_OUT_EXPO }}
-          className="mt-10 flex items-center gap-6 text-[11px] uppercase tracking-[0.32em] text-white/55 md:mt-14"
+          className="mt-10 flex items-center gap-6 text-[11px] uppercase tracking-[0.32em] text-cyan-200/65 md:mt-14"
         >
-          <span>Paris</span>
-          <span className="block h-px w-10 bg-white/30" />
+          <span>Temple Jedi · Paris</span>
+          <span
+            className="block h-px w-10"
+            style={{
+              background:
+                "linear-gradient(90deg, transparent, rgba(125,211,252,0.85), transparent)",
+              boxShadow: "0 0 6px rgba(125, 211, 252, 0.5)",
+            }}
+          />
           <span>25 ans d&apos;expérience</span>
         </motion.div>
 
@@ -183,9 +220,9 @@ export default function HomePage() {
           initial={{ opacity: 0 }}
           animate={{ opacity: loaded ? 1 : 0 }}
           transition={{ duration: 1, delay: 1.9 }}
-          className="mt-12 max-w-md text-balance text-center font-serif text-base italic text-white/40 md:text-lg"
+          className="mt-12 max-w-md text-balance text-center font-serif text-base italic text-white/55 md:text-lg"
         >
-          Direction artistique, marques, expériences numériques.
+          Direction artistique, marques, expériences forgées avec la Force.
         </motion.p>
       </div>
 
@@ -196,8 +233,8 @@ export default function HomePage() {
         transition={{ duration: 0.9, delay: 1.8, ease: EASE_OUT_EXPO }}
         className="absolute inset-x-0 bottom-0 z-30 flex items-end justify-between px-6 py-6 text-[11px] uppercase tracking-[0.28em] text-white/45 md:px-12"
       >
-        <span>Bientôt disponible</span>
-        <span className="text-white/30">Paris · 2026</span>
+        <span className="text-cyan-200/55">Transmission imminente</span>
+        <span className="text-white/40">Temple Jedi · An 2026</span>
       </motion.footer>
     </div>
   );
