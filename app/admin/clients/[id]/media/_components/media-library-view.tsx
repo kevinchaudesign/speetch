@@ -73,6 +73,34 @@ function isVideo(mime: string) {
   return mime.startsWith("video/");
 }
 
+/**
+ * Convertit un mime_type ou un nom de fichier en label format court
+ * affiché en badge sur la tuile (JPG, PNG, WEBP, GIF, AVIF, SVG, MP4…).
+ * Préfère l'extension du filename si elle existe (plus fidèle que le
+ * mime — ex : "image/jpeg" pour un .heic recompressé).
+ */
+function formatLabel(mime: string, filename?: string): string {
+  // 1. Essaye l'extension du filename d'abord
+  if (filename) {
+    const dot = filename.lastIndexOf(".");
+    if (dot > 0 && dot < filename.length - 1) {
+      const ext = filename.slice(dot + 1).toLowerCase();
+      if (ext === "jpeg") return "JPG";
+      if (ext.length >= 2 && ext.length <= 5) return ext.toUpperCase();
+    }
+  }
+  // 2. Fallback sur le mime_type
+  const slash = mime.indexOf("/");
+  if (slash < 0) return mime.toUpperCase();
+  let sub = mime.slice(slash + 1).toLowerCase();
+  // Normalisations courantes
+  if (sub === "jpeg") sub = "jpg";
+  if (sub === "svg+xml") sub = "svg";
+  if (sub === "x-matroska") sub = "mkv";
+  if (sub === "quicktime") sub = "mov";
+  return sub.toUpperCase();
+}
+
 function formatSize(bytes: number) {
   if (bytes < 1024) return `${bytes} o`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} ko`;
@@ -943,6 +971,15 @@ function MediaTile({
           </span>
         )}
 
+        {/* Badge format — JPG / PNG / WEBP / SVG / GIF / AVIF / MP4 / etc.
+            Toujours visible sur image et vidéo, opacité subtile pour ne
+            pas dominer la vignette. */}
+        {(img || vid) && (
+          <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">
+            {formatLabel(item.mime_type, item.filename)}
+          </span>
+        )}
+
         {/* Checkbox de sélection — toujours visible quand une sélection
             existe, sinon apparaît au hover (group-hover). Clic dédié pour
             toggle sans déclencher le preview. */}
@@ -1467,9 +1504,14 @@ function PreviewModal({
             className="relative flex max-h-full max-w-5xl flex-col gap-4"
           >
             <div className="flex items-center justify-between gap-6">
-              <span className="min-w-0 truncate font-mono text-xs text-white/55">
-                {item.filename}
-              </span>
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="min-w-0 truncate font-mono text-xs text-white/55">
+                  {item.filename}
+                </span>
+                <span className="shrink-0 rounded-full border border-white/15 bg-white/[0.04] px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/70">
+                  {formatLabel(item.mime_type, item.filename)}
+                </span>
+              </div>
               <button
                 type="button"
                 onClick={onClose}
