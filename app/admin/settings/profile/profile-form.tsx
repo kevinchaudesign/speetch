@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { updateOwnerProfile, type UpdateOwnerState } from "./actions";
 import { Field } from "@/lib/ds";
@@ -37,11 +37,55 @@ export function ProfileForm({
     updateOwnerProfile,
     INITIAL_STATE,
   );
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>(initialAvatarUrl);
+  const [pendingFileName, setPendingFileName] = useState<string | null>(null);
+  const [clearRequested, setClearRequested] = useState(false);
+  const objectUrlRef = useRef<string | null>(null);
 
-  // Beep R2-D2 sur scellement réussi (no-op si audio off).
+  // Cleanup des object URLs créés pour la preview locale (mémoire).
   useEffect(() => {
-    if (state.status === "success") playR2Beep();
+    return () => {
+      if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    };
+  }, []);
+
+  // Beep R2-D2 + reset des états locaux sur scellement réussi.
+  useEffect(() => {
+    if (state.status === "success") {
+      playR2Beep();
+      setPendingFileName(null);
+      setClearRequested(false);
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+      // Reset l'input file pour qu'un même fichier puisse être re-sélectionné.
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
   }, [state.status]);
+
+  function onPickFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setClearRequested(false);
+    setPendingFileName(file.name);
+    if (objectUrlRef.current) URL.revokeObjectURL(objectUrlRef.current);
+    const url = URL.createObjectURL(file);
+    objectUrlRef.current = url;
+    setPreviewUrl(url);
+  }
+
+  function onClearAvatar() {
+    if (objectUrlRef.current) {
+      URL.revokeObjectURL(objectUrlRef.current);
+      objectUrlRef.current = null;
+    }
+    if (fileInputRef.current) fileInputRef.current.value = "";
+    setPreviewUrl("");
+    setPendingFileName(null);
+    setClearRequested(true);
+  }
 
   return (
     <motion.form
@@ -50,6 +94,7 @@ export function ProfileForm({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.9, delay: 0.2, ease: EASE_OUT_EXPO }}
       className="flex w-full max-w-2xl flex-col gap-10"
+      encType="multipart/form-data"
     >
       <Field label="Identifiant Conseil" hint="lecture seule">
         <span className="border-b border-cyan-200/15 bg-transparent pb-3 font-mono text-base text-white/55">
@@ -69,7 +114,82 @@ export function ProfileForm({
         />
       </Field>
 
-      <Field label="Sigil holographique" hint="optionnel — URL de l'avatar">
+      <Field
+        label="Sigil holographique"
+        hint="JPG / PNG / WEBP / SVG · 5 MB max"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center gap-5">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="group relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-full border border-cyan-200/25 bg-white/[0.03] transition-colors hover:border-cyan-200/55 hover:bg-cyan-200/[0.04]"
+              aria-label="Changer la photo de profil"
+            >
+              {previewUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={previewUrl}
+                  alt="Aperçu avatar"
+                  className="h-full w-full object-cover"
+                />
+              ) : (
+                <span className="text-[9px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors group-hover:text-cyan-100">
+                  Aucun
+                </span>
+              )}
+            </button>
+
+            <div className="flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-100/80 transition-colors hover:text-cyan-100"
+              >
+                <span>
+                  {pendingFileName
+                    ? "Choisir un autre fichier"
+                    : previewUrl
+                      ? "Remplacer la photo"
+                      : "Téléverser une photo"}
+                </span>
+                <span className="inline-block h-px w-5 bg-cyan-200/65 transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-100" />
+              </button>
+              {(previewUrl || pendingFileName) && (
+                <button
+                  type="button"
+                  onClick={onClearAvatar}
+                  className="text-left text-[10px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-red-300"
+                >
+                  Retirer
+                </button>
+              )}
+              {pendingFileName && (
+                <span className="font-mono text-[10px] text-cyan-200/65">
+                  {pendingFileName}
+                </span>
+              )}
+            </div>
+          </div>
+
+          <input
+            ref={fileInputRef}
+            type="file"
+            name="avatar_file"
+            accept="image/png,image/jpeg,image/webp,image/gif,image/avif,image/svg+xml"
+            onChange={onPickFile}
+            className="hidden"
+          />
+          {clearRequested && (
+            <input type="hidden" name="clear_avatar" value="1" />
+          )}
+        </div>
+      </Field>
+
+      <Field
+        label="Ou colle une URL externe"
+        hint="optionnel — utilisée si aucun fichier n'est téléversé"
+      >
         <input
           type="url"
           name="avatar_url"
