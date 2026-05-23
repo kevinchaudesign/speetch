@@ -210,39 +210,24 @@ export function AdminSidebar({
         "md:flex",
       )}
     >
-      {/* Brand + toggle + eyebrow Conseil Jedi */}
+      {/* Brand + eyebrow Conseil Jedi (toggle de la sidebar est en bas) */}
       <div className="relative flex flex-col gap-2">
-        <div className="flex items-start justify-between gap-2">
-          <Link
-            href="/"
-            aria-label="Speetch — Accueil"
-            className="group flex min-w-0 items-center gap-3 overflow-hidden whitespace-nowrap font-sans font-extralight leading-none tracking-[-0.04em] text-[#F5F5F7] transition-opacity duration-300 hover:opacity-80"
+        <Link
+          href="/"
+          aria-label="Speetch — Accueil"
+          className="group flex min-w-0 items-center gap-3 overflow-hidden whitespace-nowrap font-sans font-extralight leading-none tracking-[-0.04em] text-[#F5F5F7] transition-opacity duration-300 hover:opacity-80"
+        >
+          <SpeetchLogo size="md" loading="eager" />
+          <span
+            className={cn(
+              "transition-opacity duration-300",
+              collapsed && "pointer-events-none opacity-0",
+            )}
+            style={{ fontSize: "1.5rem" }}
           >
-            <SpeetchLogo size="md" loading="eager" />
-            <span
-              className={cn(
-                "transition-opacity duration-300",
-                collapsed && "pointer-events-none opacity-0",
-              )}
-              style={{ fontSize: "1.5rem" }}
-            >
-              Speetch
-            </span>
-          </Link>
-          <button
-            type="button"
-            onClick={onToggle}
-            aria-label={
-              collapsed
-                ? "Étendre la barre latérale"
-                : "Replier la barre latérale"
-            }
-            aria-expanded={!collapsed}
-            className="group flex h-6 w-6 shrink-0 items-center justify-center rounded-md border border-cyan-200/15 bg-cyan-100/[0.03] text-cyan-200/65 transition-colors duration-300 hover:border-cyan-200/40 hover:bg-cyan-100/[0.08] hover:text-cyan-100"
-          >
-            <ChevronIcon collapsed={collapsed} />
-          </button>
-        </div>
+            Speetch
+          </span>
+        </Link>
         <Eyebrow
           tracking="lg"
           className={cn(
@@ -368,6 +353,34 @@ export function AdminSidebar({
             </span>
           </button>
         </form>
+
+        {/* Toggle replier / déplier — placé en bas pour rester accessible
+            sans bouger l'œil du logo. */}
+        <div
+          className={cn(
+            "flex pt-2",
+            collapsed ? "justify-center" : "justify-end",
+          )}
+        >
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-label={
+              collapsed
+                ? "Étendre la barre latérale"
+                : "Replier la barre latérale"
+            }
+            aria-expanded={!collapsed}
+            title={
+              collapsed
+                ? "Étendre la barre latérale"
+                : "Replier la barre latérale"
+            }
+            className="group flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-cyan-200/15 bg-cyan-100/[0.03] text-cyan-200/65 transition-colors duration-300 hover:border-cyan-200/40 hover:bg-cyan-100/[0.08] hover:text-cyan-100"
+          >
+            <ChevronIcon collapsed={collapsed} />
+          </button>
+        </div>
       </div>
     </motion.aside>
   );
