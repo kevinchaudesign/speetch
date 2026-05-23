@@ -63,35 +63,35 @@ export function AdminTopbar({
       role="toolbar"
       aria-label="Barre utilisateur admin"
     >
-      {/* Icône Calendrier — agenda du Conseil Jedi (route à venir) */}
+      {/* Chronomètre galactique — agenda du Conseil Jedi (route à venir) */}
       <Link
         href="/admin/calendar"
-        aria-label="Calendrier"
-        title="Calendrier"
+        aria-label="Chronomètre galactique"
+        title="Chronomètre galactique"
         className="inline-flex h-10 w-10 items-center justify-center text-cyan-200/70 transition-colors duration-300 hover:text-cyan-100"
       >
-        <CalendarIcon />
+        <ChronometerIcon />
       </Link>
 
-      {/* Icône To-Do — Tâches Jedi */}
+      {/* Codex datapad — Tâches Jedi */}
       <Link
         href="/admin/todo"
-        aria-label="Tâches Jedi"
-        title="Tâches Jedi"
+        aria-label="Codex des tâches"
+        title="Codex des tâches"
         className="inline-flex h-10 w-10 items-center justify-center text-cyan-200/70 transition-colors duration-300 hover:text-cyan-100"
       >
-        <TodoIcon />
+        <CodexIcon />
       </Link>
 
-      {/* Icône Boîte de réception — emails (route à venir).
+      {/* Émetteur holographique — transmissions reçues (route à venir).
           Maître Yoda reste accessible via la floating orb en bas-droite. */}
       <Link
         href="/admin/inbox"
-        aria-label="Boîte de réception"
-        title="Boîte de réception"
+        aria-label="Transmissions holographiques"
+        title="Transmissions holographiques"
         className="inline-flex h-10 w-10 items-center justify-center text-cyan-200/70 transition-colors duration-300 hover:text-cyan-100"
       >
-        <InboxIcon />
+        <TransmissionIcon />
       </Link>
 
       {/* Avatar du Maître — déclenche le menu profil */}
@@ -195,7 +195,14 @@ export function AdminTopbar({
   );
 }
 
-function InboxIcon() {
+/* ──────────────────────────────────────────────────────────────────────
+   Icônes topbar — grammaire visuelle SW / Conseil Jedi.
+   Géométrie épurée (cercles concentriques, hexagones, triangles), dots
+   pleins pour le feel "holocron". Stroke 1.3 pour cohérence avec la
+   sidebar.
+   ────────────────────────────────────────────────────────────────────── */
+
+function TransmissionIcon() {
   return (
     <svg
       width="26"
@@ -208,14 +215,20 @@ function InboxIcon() {
       strokeLinejoin="round"
       aria-hidden
     >
-      {/* Boîte de réception : enveloppe avec rabat triangulaire */}
-      <rect x="3" y="5" width="18" height="14" rx="2" />
-      <path d="M3 7l9 7 9-7" />
+      {/* Émetteur holographique — base disque + cône de projection
+          triangulaire + données scintillantes à l'intérieur, look R2-D2
+          qui projette un message. */}
+      <ellipse cx="12" cy="20" rx="7" ry="1.4" />
+      <path d="M6 20 L12 5 L18 20" />
+      <path d="M9 20 L12 11 L15 20" />
+      <circle cx="12" cy="16.5" r="0.7" fill="currentColor" stroke="none" />
+      <circle cx="11" cy="14" r="0.5" fill="currentColor" stroke="none" />
+      <circle cx="13" cy="13" r="0.5" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-function TodoIcon() {
+function CodexIcon() {
   return (
     <svg
       width="26"
@@ -228,16 +241,18 @@ function TodoIcon() {
       strokeLinejoin="round"
       aria-hidden
     >
-      {/* Clipboard avec cocher — liste de tâches */}
-      <rect x="5" y="4" width="14" height="17" rx="2" />
-      <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
-      <path d="M9 11l2 2 4-4" />
-      <path d="M9 17h6" />
+      {/* Codex datapad — face hexagonale (silhouette holocron) + lignes
+          de mission + dot lumineux marquant la tâche active. */}
+      <path d="M7 3.5 L17 3.5 L21 12 L17 20.5 L7 20.5 L3 12 Z" />
+      <path d="M9 10 L16 10" />
+      <path d="M9 13 L16 13" />
+      <path d="M9 16 L13.5 16" />
+      <circle cx="7.2" cy="10" r="0.8" fill="currentColor" stroke="none" />
     </svg>
   );
 }
 
-function CalendarIcon() {
+function ChronometerIcon() {
   return (
     <svg
       width="26"
@@ -250,12 +265,18 @@ function CalendarIcon() {
       strokeLinejoin="round"
       aria-hidden
     >
-      {/* Calendrier : tête + grille + jour pointé */}
-      <rect x="3" y="5" width="18" height="16" rx="2" />
-      <line x1="3" y1="10" x2="21" y2="10" />
-      <line x1="8" y1="3" x2="8" y2="7" />
-      <line x1="16" y1="3" x2="16" y2="7" />
-      <circle cx="12" cy="15" r="1.4" fill="currentColor" stroke="none" />
+      {/* Chronomètre galactique — dial concentrique avec ticks cardinaux,
+          stem en couronne et noyau plein. Évoque un instrument de bord
+          d'un X-wing plutôt qu'un calendrier mural. */}
+      <circle cx="12" cy="13" r="8" />
+      <circle cx="12" cy="13" r="4.5" />
+      <path d="M12 5.5 L12 7" />
+      <path d="M19.5 13 L18 13" />
+      <path d="M12 21 L12 19.5" />
+      <path d="M4.5 13 L6 13" />
+      <path d="M10.5 2.5 L13.5 2.5" />
+      <path d="M12 4.5 L12 2.5" />
+      <circle cx="12" cy="13" r="1.1" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -274,8 +295,10 @@ function ProfileIcon() {
       className="shrink-0 text-cyan-200/65 transition-colors group-hover:text-cyan-100"
       aria-hidden
     >
-      <circle cx="12" cy="8" r="3.5" />
-      <path d="M5 20c0-3.5 3-6 7-6s7 2.5 7 6" />
+      {/* Jedi encapuchonné — hood triangulaire + visage plein, plus
+          énigmatique que la classique silhouette épaules/tête. */}
+      <path d="M12 3 L19.5 20.5 L4.5 20.5 Z" />
+      <circle cx="12" cy="11" r="2.2" fill="currentColor" stroke="none" />
     </svg>
   );
 }
@@ -294,9 +317,13 @@ function ExitIcon() {
       className="shrink-0 text-white/40 transition-colors group-hover:text-red-300"
       aria-hidden
     >
-      <path d="M14 4h4a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-4" />
-      <path d="M10 16l-4-4 4-4" />
-      <path d="M6 12h12" />
+      {/* Sas du Temple — porte verrouillée à gauche, double chevron de
+          fuite en hyperespace à droite. */}
+      <rect x="3.5" y="3.5" width="9" height="17" rx="0.8" />
+      <circle cx="9.5" cy="12" r="0.8" fill="currentColor" stroke="none" />
+      <path d="M14 12 L21 12" />
+      <path d="M17 8 L21 12 L17 16" />
+      <path d="M14.5 9.5 L17 12 L14.5 14.5" />
     </svg>
   );
 }
