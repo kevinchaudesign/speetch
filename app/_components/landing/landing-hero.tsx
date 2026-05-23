@@ -329,7 +329,7 @@ export function LandingHero() {
         </h1>
 
         {/* Tagline rotating — sous le titre, 11px caps cyan */}
-        <div className="relative mt-6 flex h-7 items-center md:mt-8">
+        <div className="relative mt-2 flex h-7 items-center md:mt-3">
           <AnimatePresence mode="wait">
             <motion.span
               key={taglineIndex}
@@ -344,15 +344,6 @@ export function LandingHero() {
           </AnimatePresence>
         </div>
 
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: loaded ? 1 : 0 }}
-          transition={{ duration: 1, delay: 1.9 }}
-          className="mt-6 max-w-lg text-balance text-center font-serif text-base italic text-white/55 md:mt-8 md:text-lg"
-        >
-          Marques fortes, produits désirables, plateformes pensées avec
-          l&apos;IA comme partenaire créatif.
-        </motion.p>
 
         {/* Scroll cue */}
         <motion.a
