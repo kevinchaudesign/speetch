@@ -69,8 +69,17 @@ export function AdminTopbar({
       role="toolbar"
       aria-label="Barre utilisateur admin"
     >
-      {/* Icône To-Do — liste de tâches Jedi (placeholder, route à venir).
-          Pas de cercle d'arrière-plan : l'icône respire dans l'espace. */}
+      {/* Icône Calendrier — agenda du Conseil Jedi (route à venir) */}
+      <Link
+        href="/admin/calendar"
+        aria-label="Calendrier"
+        title="Calendrier"
+        className="inline-flex h-10 w-10 items-center justify-center text-cyan-200/70 transition-colors duration-300 hover:text-cyan-100"
+      >
+        <CalendarIcon />
+      </Link>
+
+      {/* Icône To-Do — Tâches Jedi */}
       <Link
         href="/admin/todo"
         aria-label="Tâches Jedi"
@@ -229,6 +238,29 @@ function TodoIcon() {
       <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
       <path d="M9 11l2 2 4-4" />
       <path d="M9 17h6" />
+    </svg>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* Calendrier : tête + grille + jour pointé */}
+      <rect x="3" y="5" width="18" height="16" rx="2" />
+      <line x1="3" y1="10" x2="21" y2="10" />
+      <line x1="8" y1="3" x2="8" y2="7" />
+      <line x1="16" y1="3" x2="16" y2="7" />
+      <circle cx="12" cy="15" r="1.4" fill="currentColor" stroke="none" />
     </svg>
   );
 }
