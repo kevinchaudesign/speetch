@@ -23,8 +23,15 @@ import Placeholder from "@tiptap/extension-placeholder";
 import TaskList from "@tiptap/extension-task-list";
 import TaskItem from "@tiptap/extension-task-item";
 import Underline from "@tiptap/extension-underline";
+import { CodeBlock } from "@tiptap/extension-code-block";
+import { Table } from "@tiptap/extension-table";
+import { TableRow } from "@tiptap/extension-table-row";
+import { TableCell } from "@tiptap/extension-table-cell";
+import { TableHeader } from "@tiptap/extension-table-header";
 import { cn } from "@/lib/utils";
 import type { TodoNoteItem } from "../_lib/types";
+import { MediaEmbed, type MediaKind } from "./media-embed-node";
+import { MediaPicker, type MediaPickerKind } from "./media-picker";
 
 const DEBOUNCE_MS = 600;
 
@@ -52,6 +59,7 @@ export function NoteEditor({
     "idle",
   );
   const [savedAt, setSavedAt] = useState<Date | null>(null);
+  const [pickerKind, setPickerKind] = useState<MediaPickerKind | null>(null);
 
   const editor = useEditor({
     extensions: [
@@ -59,10 +67,22 @@ export function NoteEditor({
         heading: { levels: [1, 2, 3] },
         bulletList: { keepMarks: true },
         orderedList: { keepMarks: true },
+        codeBlock: false, // surchargé ci-dessous
       }),
       Underline,
       TaskList,
       TaskItem.configure({ nested: true }),
+      CodeBlock.configure({
+        HTMLAttributes: { class: "todo-code-block" },
+      }),
+      Table.configure({
+        resizable: false,
+        HTMLAttributes: { class: "todo-table" },
+      }),
+      TableRow,
+      TableHeader,
+      TableCell,
+      MediaEmbed,
       Placeholder.configure({
         placeholder: ({ node }) => {
           // Titre attendu sur le tout premier nœud
@@ -97,6 +117,18 @@ export function NoteEditor({
           "[&_li[data-type=taskItem][data-checked=true]>div]:line-through [&_li[data-type=taskItem][data-checked=true]>div]:text-white/40",
           "[&_p.is-editor-empty:first-child]:before:pointer-events-none [&_p.is-editor-empty:first-child]:before:float-left [&_p.is-editor-empty:first-child]:before:h-0 [&_p.is-editor-empty:first-child]:before:text-white/30 [&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]",
           "[&_h1.is-empty]:before:pointer-events-none [&_h1.is-empty]:before:float-left [&_h1.is-empty]:before:h-0 [&_h1.is-empty]:before:text-white/30 [&_h1.is-empty]:before:content-[attr(data-placeholder)]",
+          // Code block — fond techy + accent cyan
+          "[&_pre]:my-4 [&_pre]:rounded-lg [&_pre]:border [&_pre]:border-cyan-200/15 [&_pre]:bg-black/60 [&_pre]:p-4 [&_pre]:font-mono [&_pre]:text-[13px] [&_pre]:leading-relaxed",
+          "[&_pre_code]:text-cyan-100/90 [&_pre_code]:bg-transparent [&_pre_code]:p-0",
+          "[&_code]:rounded [&_code]:border [&_code]:border-cyan-200/15 [&_code]:bg-cyan-200/[0.05] [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-[13px] [&_code]:text-cyan-100",
+          // Table — bordures cyan thin, header bg cyan/8
+          "[&_table]:my-4 [&_table]:w-full [&_table]:border-collapse [&_table]:overflow-hidden [&_table]:rounded-md [&_table]:border [&_table]:border-cyan-200/15",
+          "[&_th]:bg-cyan-200/[0.08] [&_th]:p-2.5 [&_th]:text-left [&_th]:text-[12px] [&_th]:uppercase [&_th]:tracking-[0.2em] [&_th]:text-cyan-100 [&_th]:border [&_th]:border-cyan-200/15",
+          "[&_td]:p-2.5 [&_td]:text-[14px] [&_td]:text-[#F5F5F7]/85 [&_td]:border [&_td]:border-cyan-200/10",
+          // MediaEmbed — image/video/audio insérés depuis la médiathèque
+          "[&_img[data-media-kind]]:my-4 [&_img[data-media-kind]]:max-w-full [&_img[data-media-kind]]:rounded-lg [&_img[data-media-kind]]:border [&_img[data-media-kind]]:border-cyan-200/15",
+          "[&_video[data-media-kind]]:my-4 [&_video[data-media-kind]]:w-full [&_video[data-media-kind]]:rounded-lg [&_video[data-media-kind]]:border [&_video[data-media-kind]]:border-cyan-200/15",
+          "[&_audio[data-media-kind]]:my-4 [&_audio[data-media-kind]]:w-full",
         ),
       },
     },
@@ -310,8 +342,108 @@ export function NoteEditor({
           >
             <OrderedIcon />
           </ToolbarBtn>
+          <Separator />
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleCodeBlock().run()}
+            active={editor.isActive("codeBlock")}
+            label="Bloc de code"
+            hint="⌘⌥C"
+          >
+            <CodeIcon />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() =>
+              editor
+                .chain()
+                .focus()
+                .insertTable({ rows: 3, cols: 3, withHeaderRow: true })
+                .run()
+            }
+            label="Tableau"
+          >
+            <TableIcon />
+          </ToolbarBtn>
+          <Separator />
+          <ToolbarBtn
+            onClick={() => setPickerKind("image")}
+            label="Insérer une image"
+          >
+            <ImageIcon />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => setPickerKind("video")}
+            label="Insérer une vidéo"
+          >
+            <VideoIcon />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => setPickerKind("audio")}
+            label="Insérer un audio"
+          >
+            <AudioIcon />
+          </ToolbarBtn>
+          {editor.isActive("table") && (
+            <>
+              <Separator />
+              <ToolbarBtn
+                onClick={() => editor.chain().focus().addColumnAfter().run()}
+                label="+ Colonne"
+              >
+                +Col
+              </ToolbarBtn>
+              <ToolbarBtn
+                onClick={() => editor.chain().focus().addRowAfter().run()}
+                label="+ Ligne"
+              >
+                +Ln
+              </ToolbarBtn>
+              <ToolbarBtn
+                onClick={() => editor.chain().focus().deleteColumn().run()}
+                label="− Colonne"
+              >
+                −Col
+              </ToolbarBtn>
+              <ToolbarBtn
+                onClick={() => editor.chain().focus().deleteRow().run()}
+                label="− Ligne"
+              >
+                −Ln
+              </ToolbarBtn>
+              <ToolbarBtn
+                onClick={() => editor.chain().focus().deleteTable().run()}
+                label="Effacer le tableau"
+              >
+                ×Tbl
+              </ToolbarBtn>
+            </>
+          )}
         </div>
       )}
+
+      {/* Picker médiathèque inline */}
+      <MediaPicker
+        open={pickerKind !== null}
+        kind={pickerKind ?? "all"}
+        onClose={() => setPickerKind(null)}
+        onSelect={(item) => {
+          if (!editor) return;
+          const kind: MediaKind = item.mime_type.startsWith("video/")
+            ? "video"
+            : item.mime_type.startsWith("audio/")
+              ? "audio"
+              : "image";
+          editor
+            .chain()
+            .focus()
+            .insertMediaEmbed({
+              src: item.public_url,
+              kind,
+              alt: item.filename,
+              filename: item.filename,
+            })
+            .run();
+        }}
+      />
 
       {/* Zone d'édition */}
       <div className="flex flex-1 overflow-y-auto px-6 py-8 md:px-12 md:py-10">
@@ -446,6 +578,56 @@ function OrderedIcon() {
       <line x1="10" y1="7" x2="20" y2="7" />
       <line x1="10" y1="13" x2="20" y2="13" />
       <line x1="10" y1="19" x2="20" y2="19" />
+    </svg>
+  );
+}
+
+function CodeIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <polyline points="16 18 22 12 16 6" />
+      <polyline points="8 6 2 12 8 18" />
+    </svg>
+  );
+}
+
+function TableIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="1" />
+      <line x1="3" y1="9" x2="21" y2="9" />
+      <line x1="3" y1="15" x2="21" y2="15" />
+      <line x1="9" y1="3" x2="9" y2="21" />
+      <line x1="15" y1="3" x2="15" y2="21" />
+    </svg>
+  );
+}
+
+function ImageIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <circle cx="9" cy="9" r="1.5" />
+      <path d="M21 16l-5-5L5 21" />
+    </svg>
+  );
+}
+
+function VideoIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="2" y="6" width="14" height="12" rx="2" />
+      <polygon points="22 8 16 12 22 16" fill="currentColor" />
+    </svg>
+  );
+}
+
+function AudioIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M9 18V6l9-2v12" />
+      <circle cx="6" cy="18" r="2.5" />
+      <circle cx="15" cy="16" r="2.5" />
     </svg>
   );
 }

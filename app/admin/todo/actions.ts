@@ -215,6 +215,87 @@ export async function moveTodoNoteToList(
   return { ok: true };
 }
 
+/* ─── Médiathèque owner — pour l'insertion inline dans une note ────── */
+
+export type OwnerMediaFolder = { id: string; name: string };
+export type OwnerMediaItem = {
+  id: string;
+  folder_id: string | null;
+  filename: string;
+  mime_type: string;
+  size_bytes: number;
+  public_url: string;
+};
+
+const STORAGE_BUCKET = "page-media";
+
+/**
+ * Liste tous les médias du Maître (owner profile) avec leur public_url
+ * et les dossiers, pour alimenter le picker inline de l'éditeur Tâches.
+ */
+export async function fetchOwnerMedia(): Promise<
+  | { ok: true; folders: OwnerMediaFolder[]; items: OwnerMediaItem[] }
+  | Err
+> {
+  const auth = await requireOwnerProfile();
+  if (!auth.ok) return auth;
+
+  const [foldersRes, itemsRes] = await Promise.all([
+    auth.admin
+      .from("client_media_folders" as never)
+      .select("id, name, position")
+      .eq("profile_id", auth.profileId)
+      .order("position", { ascending: true })
+      .returns<Array<{ id: string; name: string; position: number }>>(),
+    auth.admin
+      .from("client_media" as never)
+      .select(
+        "id, folder_id, filename, mime_type, size_bytes, storage_path, position, created_at",
+      )
+      .eq("profile_id", auth.profileId)
+      .order("position", { ascending: true })
+      .order("created_at", { ascending: false })
+      .returns<
+        Array<{
+          id: string;
+          folder_id: string | null;
+          filename: string;
+          mime_type: string;
+          size_bytes: number;
+          storage_path: string;
+        }>
+      >(),
+  ]);
+
+  if (foldersRes.error || itemsRes.error) {
+    return {
+      ok: false,
+      error: foldersRes.error?.message ?? itemsRes.error?.message ?? "Lecture impossible.",
+    };
+  }
+
+  const folders: OwnerMediaFolder[] = (foldersRes.data ?? []).map((f) => ({
+    id: f.id,
+    name: f.name,
+  }));
+
+  const items: OwnerMediaItem[] = (itemsRes.data ?? []).map((m) => {
+    const { data: pub } = auth.admin.storage
+      .from(STORAGE_BUCKET)
+      .getPublicUrl(m.storage_path);
+    return {
+      id: m.id,
+      folder_id: m.folder_id,
+      filename: m.filename,
+      mime_type: m.mime_type,
+      size_bytes: m.size_bytes,
+      public_url: pub.publicUrl,
+    };
+  });
+
+  return { ok: true, folders, items };
+}
+
 export async function deleteTodoNote(id: string): Promise<Ok<object> | Err> {
   if (!UUID_REGEX.test(id)) return { ok: false, error: "ID invalide." };
   const auth = await requireOwnerProfile();
