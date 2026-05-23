@@ -13,6 +13,16 @@
     --color-tech: #222222;
     --color-muted: #6b6b70;
 
+    /* ─── Palette de marque — extraite du logo ara bleu+jaune ───
+     * Documentée dans /admin/settings/design-system, section 01b. */
+    --color-brand-navy: #0B1220;        /* fond brand / OG / theme PWA */
+    --color-brand-blue: #1E90FF;        /* bleu cobalt principal */
+    --color-brand-sky: #38BDF8;         /* highlights bleus */
+    --color-brand-cyan: #7DD3FC;        /* halo cyan UI (sabres, dots) */
+    --color-brand-yellow: #FACC15;      /* jaune chaud principal */
+    --color-brand-gold: #FDE047;        /* highlights jaunes */
+    --color-brand-beak: #1E293B;        /* gris-noir détail bec */
+
     /* Couleurs sémantiques (statuts) */
     --color-success: rgb(110 231 183); /* emerald-300 */
     --color-warning: rgb(252 211 77);  /* amber-300 */

@@ -37,6 +37,49 @@ const SWATCHES: Swatch[] = [
   },
 ];
 
+/**
+ * Palette de marque — extraite du logo officiel Speetch (perroquet ara
+ * bleu+jaune en tourbillon Firefox-style). Référencée dans globals.css
+ * via les variables --color-brand-*.
+ */
+const BRAND_SWATCHES: Swatch[] = [
+  {
+    name: "Navy",
+    hex: "#0B1220",
+    role: "Fond brand · OG image · manifest theme",
+  },
+  {
+    name: "Bleu Speetch",
+    hex: "#1E90FF",
+    role: "Couleur principale brand · plumage bleu cobalt",
+  },
+  {
+    name: "Sky Speetch",
+    hex: "#38BDF8",
+    role: "Highlights bleus du logo · accents secondaires",
+  },
+  {
+    name: "Cyan halo",
+    hex: "#7DD3FC",
+    role: "Glow holocron · UI admin (sw-cyan-dot, sabres)",
+  },
+  {
+    name: "Jaune Speetch",
+    hex: "#FACC15",
+    role: "Couleur secondaire brand · plumage jaune chaud",
+  },
+  {
+    name: "Or solaire",
+    hex: "#FDE047",
+    role: "Highlights jaunes du logo · accents lumineux",
+  },
+  {
+    name: "Bec",
+    hex: "#1E293B",
+    role: "Détail sombre du logo · alternative au noir absolu",
+  },
+];
+
 const DOC_SWATCHES: Swatch[] = [
   { name: "Paper", hex: "#F8F1E0", role: "Fond document éditorial" },
   { name: "Cream", hex: "#F2E6C2", role: "Surface alt." },
@@ -230,9 +273,22 @@ export default async function DesignSystemPage() {
           </ul>
         </Block>
 
+        {/* PALETTE de marque — couleurs extraites du logo ara bleu+jaune */}
+        <Block
+          eyebrow="01b · Palette de marque"
+          title="Logo Speetch — ara cobalt & or solaire"
+          intro="Couleurs signature du logo (perroquet ara en tourbillon Firefox-style). Le bleu et le jaune sont les deux teintes brand officielles ; le cyan halo sert d'accent UI dans tout l'admin (sw-cyan-dot, sabres, OG image)."
+        >
+          <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-white/[0.08] sm:grid-cols-2 lg:grid-cols-3">
+            {BRAND_SWATCHES.map((s) => (
+              <SwatchCard key={s.name} swatch={s} />
+            ))}
+          </ul>
+        </Block>
+
         {/* PALETTE Document */}
         <Block
-          eyebrow="01b · Palette alternative"
+          eyebrow="01c · Palette alternative"
           title="Mode document éditorial"
           intro="Pour les pages issues d'un template HTML en mode “document” : papier crème, bordeaux profond, or pour les numéros."
         >
