@@ -69,6 +69,16 @@ export function AdminTopbar({
       role="toolbar"
       aria-label="Barre utilisateur admin"
     >
+      {/* Icône To-Do — liste de tâches Jedi (placeholder, route à venir) */}
+      <Link
+        href="/admin/todo"
+        aria-label="Tâches Jedi"
+        title="Tâches Jedi"
+        className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-cyan-200/15 bg-black/40 text-cyan-200/70 backdrop-blur-md transition-colors duration-300 hover:border-cyan-200/45 hover:bg-cyan-200/[0.08] hover:text-cyan-100"
+      >
+        <TodoIcon />
+      </Link>
+
       {/* Icône messagerie — ouvre Maître Yoda */}
       <button
         type="button"
@@ -196,6 +206,28 @@ function MessageIcon() {
     >
       <path d="M21 12c0 4.5-4 8-9 8-1.3 0-2.6-.2-3.7-.7L3 21l1.7-4.6C3.6 15.2 3 13.6 3 12c0-4.5 4-8 9-8s9 3.5 9 8Z" />
       <circle cx="12" cy="12" r="0.8" fill="currentColor" stroke="none" />
+    </svg>
+  );
+}
+
+function TodoIcon() {
+  return (
+    <svg
+      width="16"
+      height="16"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.4"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* Clipboard avec cocher — liste de tâches */}
+      <rect x="5" y="4" width="14" height="17" rx="2" />
+      <path d="M9 4V3a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v1" />
+      <path d="M9 11l2 2 4-4" />
+      <path d="M9 17h6" />
     </svg>
   );
 }
