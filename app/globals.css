@@ -237,6 +237,12 @@
     40% { transform: scale(1); opacity: 1; }
   }
 
+  /* Idem pour le concierge Speetch (cf. <ContactAvatar>). */
+  @keyframes contactBotDot {
+    0%, 80%, 100% { transform: scale(0.55); opacity: 0.3; }
+    40% { transform: scale(1.05); opacity: 1; }
+  }
+
   .sw-lightsaber-bar {
     background: linear-gradient(
       180deg,

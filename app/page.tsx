@@ -5,6 +5,7 @@ import { LandingDisciplines } from "./_components/landing/landing-disciplines";
 import { LandingAbout } from "./_components/landing/landing-about";
 import { LandingContact } from "./_components/landing/landing-contact";
 import { LandingFooter } from "./_components/landing/landing-footer";
+import { ContactAvatar } from "./_components/landing/contact-avatar";
 
 const SITE_URL = "https://speetch.com";
 const SITE_TITLE = "Speetch — Direction artistique à l'ère de l'IA · Paris";
@@ -108,6 +109,10 @@ export default function HomePage() {
       <LandingAbout />
       <LandingContact />
       <LandingFooter />
+
+      {/* Avatar flottant Speetch — bottom-right, ouvre le chatbot
+          concierge pour mise en relation visiteur ↔ studio. */}
+      <ContactAvatar />
     </main>
   );
 }

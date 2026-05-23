@@ -304,7 +304,7 @@ export async function loadClientContextSnapshot(
   let pages: PageSnapshot[] = [];
   let lots: LotSnapshot[] = [];
   let annotations: AnnotationCounters = { total: 0 };
-  let editableSections: EditableImageSection[] = [];
+  const editableSections: EditableImageSection[] = [];
   if (projects.length > 0) {
     const projectIds = projects.map((p) => p.id);
     const [pagesRes, lotsRes, annotationsRes] = await Promise.all([

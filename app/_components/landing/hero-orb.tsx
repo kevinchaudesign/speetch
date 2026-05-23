@@ -22,6 +22,7 @@
  */
 
 import { useEffect, useMemo, useState } from "react";
+import type { Skill } from "@/lib/skills";
 
 type Node = { x: number; y: number; r: number; orbit: 0 | 1 };
 type Edge = { from: number; to: number };
@@ -30,30 +31,9 @@ const SIZE = 600;
 const CX = SIZE / 2;
 const CY = SIZE / 2;
 
-/**
- * Compétences IA — un label par nœud, orbitant avec le réseau.
- *  - Index 0-7 : orbite intérieure (8 nœuds)
- *  - Index 8-15 : orbite extérieure (8 nœuds)
- * Tout en MAJ + format court (≤ 14 chars) pour éviter les chevauchements.
- */
-const LABELS = [
-  "AUTOMATISATIONS",
-  "AGENTS IA",
-  "PROMPTS",
-  "LLMS CUSTOM",
-  "FINE-TUNING",
-  "RAG",
-  "EMBEDDINGS",
-  "WORKFLOWS",
-  "GEO",
-  "VOIX SYNTH.",
-  "IMAGE GÉN.",
-  "VIDÉO GÉN.",
-  "ÉDITION IA",
-  "SEARCH AUG.",
-  "DATA PIPES",
-  "BRAND VOICE",
-] as const;
+/* Les labels et leurs métadonnées vivent dans lib/skills.ts (source
+   de vérité partagée avec le panneau de description). Ici on lit
+   juste SKILLS[i].label pour l'affichage. */
 
 /** Place N nœuds régulièrement sur un cercle, avec un offset angulaire. */
 function placeRing(count: number, radius: number, offsetDeg = 0, orbit: 0 | 1 = 0): Node[] {
@@ -117,10 +97,21 @@ export function HeroOrb({
   loaded,
   mouse,
   viewport,
+  onSkillClick,
+  active = false,
+  skills,
 }: {
   loaded: boolean;
   mouse: { x: number; y: number };
   viewport: { w: number; h: number };
+  /** Appelé quand un label de skill est cliqué — remonte l'id Skill. */
+  onSkillClick?: (skillId: string) => void;
+  /** Vrai quand un skill est ouvert dans le panel — l'orbe zoom vers
+   *  son centre (scale 4) pour la sensation d'« entrer dedans ». */
+  active?: boolean;
+  /** Skills à afficher sur l'orbe (16 attendus). Vient du domaine
+   *  actif passé par <LandingHero>. */
+  skills: readonly Skill[];
 }) {
   // 8 nœuds sur orbite intérieure (r=140) + 8 sur orbite extérieure (r=215)
   const nodes = useMemo<Node[]>(
@@ -158,7 +149,7 @@ export function HeroOrb({
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-[5] flex items-start justify-center overflow-hidden pt-[8vh] md:pt-[5vh]"
+      className="pointer-events-none absolute inset-0 z-[5] flex items-start justify-center overflow-hidden pt-[12vh] md:pt-[10vh]"
       style={{
         opacity: loaded ? 1 : 0,
         transition: "opacity 2400ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -169,14 +160,21 @@ export function HeroOrb({
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         overflow="visible"
-        className="speetch-orb h-auto w-[100vw] md:w-[min(70vw,580px)]"
+        className="speetch-orb h-auto w-[100vw] md:w-[min(78vw,640px)]"
         style={{
-          transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
+          // Quand actif : scale 4 vers le centre + glow renforcé →
+          // l'orbe sort largement du viewport, le centre vide accueille
+          // la description sans frame visible. Le tilt curseur est
+          // conservé pour garder la profondeur 3D pendant le zoom.
+          transform: `scale(${active ? 4 : 1}) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
           transition:
-            "transform 800ms cubic-bezier(0.22, 1, 0.36, 1)",
+            "transform 900ms cubic-bezier(0.22, 1, 0.36, 1), filter 700ms cubic-bezier(0.22, 1, 0.36, 1)",
           transformStyle: "preserve-3d",
-          willChange: "transform",
-          filter: "drop-shadow(0 0 60px rgba(125, 211, 252, 0.18))",
+          transformOrigin: "center center",
+          willChange: "transform, filter",
+          filter: active
+            ? "drop-shadow(0 0 120px rgba(125, 211, 252, 0.4))"
+            : "drop-shadow(0 0 60px rgba(125, 211, 252, 0.18))",
         }}
       >
         <defs>
@@ -352,10 +350,12 @@ export function HeroOrb({
           {/* Labels skills IA — orbitent AVEC les nœuds (sont dans
               `.speetch-orb-net` qui tourne CW 120s). Chaque <text> a sa
               propre contre-rotation CCW 120s pivotée sur SON centre bbox
-              (`transform-box: fill-box` + `transform-origin: center`) →
-              annule la rotation parent → reste lisible à l'horizontale.
-              Offset radial vers l'extérieur depuis chaque nœud. */}
+              → annule la rotation parent → reste lisible à l'horizontale.
+              CLIQUABLES : pointer-events:auto surclasse le pointer-events:
+              none du wrapper parent, le clic remonte onSkillClick(id). */}
           {nodes.map((n, i) => {
+            const skill = skills[i];
+            if (!skill) return null;
             const dx = n.x - CX;
             const dy = n.y - CY;
             const len = Math.hypot(dx, dy) || 1;
@@ -364,11 +364,6 @@ export function HeroOrb({
             const offset = n.orbit === 0 ? 30 : 37;
             const lx = n.x + ux * offset;
             const ly = n.y + uy * offset;
-            // Font-size en CSS px (via clamp) plutôt qu'en unités SVG :
-            // évite l'écrasement du texte par le scale du viewBox sur
-            // mobile (l'orbe est plus petit qu'en desktop, le texte
-            // resterait illisible). Le texte garde une taille lisible
-            // sur tous les viewports.
             const fontSizeCss =
               n.orbit === 0
                 ? "clamp(0.7rem, 1.7vw, 0.8rem)"
@@ -383,15 +378,27 @@ export function HeroOrb({
                 fill="rgba(186, 230, 253, 0.82)"
                 fontFamily="ui-monospace, SF Mono, Menlo, monospace"
                 letterSpacing="0.22em"
-                className="speetch-orb-label-counter"
+                className="speetch-orb-label-counter speetch-orb-label-clickable"
+                onClick={() => onSkillClick?.(skill.id)}
+                role="button"
+                aria-label={`Découvrir ${skill.title}`}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onSkillClick?.(skill.id);
+                  }
+                }}
                 style={{
                   fontSize: fontSizeCss,
                   transformBox: "fill-box",
                   transformOrigin: "center",
                   filter: "drop-shadow(0 0 5px rgba(125, 211, 252, 0.55))",
+                  pointerEvents: "auto",
+                  cursor: "pointer",
                 }}
               >
-                {LABELS[i]}
+                {skill.label}
               </text>
             );
           })}
@@ -401,7 +408,11 @@ export function HeroOrb({
         {/* Hexagramme 1 (triangle pointe haut) — rotation CW */}
         <g
           className="speetch-orb-rot-cw-fast"
-          style={{ transformOrigin: `${CX}px ${CY}px` }}
+          style={{
+            transformOrigin: `${CX}px ${CY}px`,
+            opacity: active ? 0 : 1,
+            transition: "opacity 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
         >
           <polygon
             points={triPoints(CX, CY, 56, -90)}
@@ -416,7 +427,11 @@ export function HeroOrb({
         {/* Hexagramme 2 (triangle pointe bas) — rotation CCW */}
         <g
           className="speetch-orb-rot-ccw-fast"
-          style={{ transformOrigin: `${CX}px ${CY}px` }}
+          style={{
+            transformOrigin: `${CX}px ${CY}px`,
+            opacity: active ? 0 : 1,
+            transition: "opacity 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
         >
           <polygon
             points={triPoints(CX, CY, 56, 90)}
@@ -428,21 +443,29 @@ export function HeroOrb({
           />
         </g>
 
-        {/* Noyau central pulsant */}
-        <circle
-          cx={CX}
-          cy={CY}
-          r="10"
-          fill="rgba(125, 211, 252, 0.2)"
-          className="speetch-orb-pulse"
-        />
-        <circle
-          cx={CX}
-          cy={CY}
-          r="4"
-          fill="rgb(186, 230, 253)"
-          filter="url(#orb-glow-strong)"
-        />
+        {/* Noyau central pulsant — disparaît au zoom pour ne pas
+            apparaître autour de la description. */}
+        <g
+          style={{
+            opacity: active ? 0 : 1,
+            transition: "opacity 500ms cubic-bezier(0.22, 1, 0.36, 1)",
+          }}
+        >
+          <circle
+            cx={CX}
+            cy={CY}
+            r="10"
+            fill="rgba(125, 211, 252, 0.2)"
+            className="speetch-orb-pulse"
+          />
+          <circle
+            cx={CX}
+            cy={CY}
+            r="4"
+            fill="rgb(186, 230, 253)"
+            filter="url(#orb-glow-strong)"
+          />
+        </g>
       </svg>
 
       <style>{`
@@ -463,6 +486,17 @@ export function HeroOrb({
            du SVG) → reste à l horizontale. */
         .speetch-orb-label-counter {
           animation: speetch-orb-rot-ccw 120s linear infinite;
+        }
+        /* Hover/focus state des labels cliquables — éclat plus vif +
+           texte plus lumineux, transition douce. */
+        .speetch-orb-label-clickable {
+          transition: fill 200ms ease-out, filter 200ms ease-out;
+          outline: none;
+        }
+        .speetch-orb-label-clickable:hover,
+        .speetch-orb-label-clickable:focus-visible {
+          fill: rgba(253, 224, 71, 0.98) !important;
+          filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.9)) drop-shadow(0 0 16px rgba(250, 204, 21, 0.5)) !important;
         }
 
         @keyframes speetch-orb-pulse {

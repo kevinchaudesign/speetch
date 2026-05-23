@@ -19,8 +19,10 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { SpeetchLogo } from "../speetch-logo";
 import { HeroOrb } from "./hero-orb";
+import { SatelliteOrb } from "./satellite-orb";
+import { SkillPanel } from "./skill-panel";
+import { DOMAINS, findSkill, getDomain } from "@/lib/domains";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const EASE_IN_OUT_QUART: [number, number, number, number] = [0.65, 0, 0.35, 1];
@@ -28,6 +30,23 @@ const EASE_IN_OUT_QUART: [number, number, number, number] = [0.65, 0, 0.35, 1];
 const TAGLINES = [
   "Marques · Produits · Plateformes",
   "Image · Voix · Code · Itération",
+];
+
+/** Positions cosmiques fixes des 4 orbes satellites. Tailles
+ *  variables = sensation de distance (plus petit = plus loin).
+ *  Évite H1 top-left, scroll bottom-center, contact bottom-right. */
+const SATELLITE_LAYOUT: ReadonlyArray<{
+  size: number;
+  position: React.CSSProperties;
+}> = [
+  // top-right (assez petite = loin)
+  { size: 110, position: { top: "11vh", right: "5vw" } },
+  // mid-left (moyenne)
+  { size: 140, position: { top: "44vh", left: "3vw" } },
+  // mid-right (moyenne)
+  { size: 130, position: { top: "48vh", right: "3vw" } },
+  // bottom-left (petite)
+  { size: 100, position: { bottom: "16vh", left: "6vw" } },
 ];
 
 // Segments du H1 — rendus en ligne (inline), pas empilés. « IA » en
@@ -75,6 +94,11 @@ export function LandingHero() {
     h: 1,
   });
   const [taglineIndex, setTaglineIndex] = useState(0);
+  const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
+  const activeSkill = activeSkillId ? findSkill(activeSkillId) : null;
+  const [activeDomainId, setActiveDomainId] = useState<string>("ia");
+  const activeDomain = getDomain(activeDomainId) ?? DOMAINS[0];
+  const satelliteDomains = DOMAINS.filter((d) => d.id !== activeDomainId);
 
   /* Initialise et tient à jour les dimensions viewport (SSR-safe). */
   useEffect(() => {
@@ -246,24 +270,45 @@ export function LandingHero() {
         )}
       </AnimatePresence>
 
-      {/* Header */}
-      <motion.header
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : -8 }}
-        transition={{ duration: 0.9, delay: 0.2, ease: EASE_OUT_EXPO }}
-        className="absolute inset-x-0 top-0 z-30 flex items-center justify-between px-6 py-6 md:px-12"
-      >
-        <a
-          href="#top"
-          aria-label="Speetch — retour en haut"
-          className="group inline-flex items-center gap-3 transition-opacity duration-300 hover:opacity-80"
-        >
-          <SpeetchLogo size="md" loading="eager" />
-        </a>
-      </motion.header>
+      {/* Header retiré — le logo est devenu l'avatar flottant
+          bottom-right (cf. <ContactAvatar /> dans app/page.tsx). */}
 
-      {/* ────── Couche 0 : orbe holographique central (réseau neural) ────── */}
-      <HeroOrb loaded={loaded} mouse={mouse} viewport={viewport} />
+      {/* ────── Couche 0 : orbe holographique central (domaine actif) ────── */}
+      <HeroOrb
+        loaded={loaded}
+        mouse={mouse}
+        viewport={viewport}
+        onSkillClick={setActiveSkillId}
+        active={!!activeSkillId}
+        skills={activeDomain.skills}
+      />
+
+      {/* ────── Couche 0.5 : 4 orbes satellites (autres domaines) ──────
+          Positionnées dans les coins libres : top-right, mid-left,
+          mid-right, bottom-left. Évite H1 top-left, scroll center, et
+          contact bottom-right. Cachées si un skill est ouvert. */}
+      <div
+        aria-label="Constellation des domaines Speetch"
+        className="pointer-events-none absolute inset-0 z-[8] hidden md:block"
+        style={{
+          opacity: loaded && !activeSkillId ? 1 : 0,
+          transition:
+            "opacity 700ms cubic-bezier(0.22, 1, 0.36, 1)",
+          transitionDelay: activeSkillId ? "0ms" : "1400ms",
+        }}
+      >
+        <div className="pointer-events-auto absolute inset-0">
+          {satelliteDomains.map((d, i) => (
+            <SatelliteOrb
+              key={d.id}
+              domain={d}
+              size={SATELLITE_LAYOUT[i].size}
+              position={SATELLITE_LAYOUT[i].position}
+              onClick={setActiveDomainId}
+            />
+          ))}
+        </div>
+      </div>
 
       {/* ────── Couche 1 : mots flottants asymétriques (counter-parallaxe) ────── */}
       <FloatingLabels loaded={loaded} mouse={mouse} viewport={viewport} />
@@ -300,18 +345,29 @@ export function LandingHero() {
         </div>
       </motion.div>
 
-      {/* ────── Composition centrale : H1 éditorial kinétique ──────
-          Anchorée en BAS du hero (sous le graphique orb qui occupe la
-          partie haute). Ordre : H1 → tagline → sous-titre. Padding
-          bottom large pour libérer le scroll cue. */}
-      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-6 pb-[3vh] md:pb-[4vh]">
-        {/* H1 — UNE seule ligne, segments inline. Magnétique au curseur,
-            variable weight per letter sur le sans, glow + RGB split sur
-            le segment italique « IA ». Lettres animées via CSS variables
-            (--mx/--my/--w) pilotées par raf hors React. */}
+      {/* ────── Composition H1 éditorial kinétique ──────
+          Anchorée en HAUT À GAUCHE du hero. Ordre : H1 → tagline.
+          Au zoom skill : s'éloigne vers le haut-gauche + fade out. */}
+      <div
+        className="absolute left-0 top-0 z-20 flex flex-col items-start px-6 pt-[5vh] md:px-10 md:pt-[6vh]"
+        style={{
+          // Quand un skill est ouvert (orbe zoomée), le bloc H1+tagline
+          // s'éloigne vers le haut-gauche + fade. Revient au dézoom.
+          opacity: activeSkillId ? 0 : 1,
+          transform: activeSkillId
+            ? "translate(-40px, -40px)"
+            : "translate(0, 0)",
+          transition:
+            "opacity 420ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1)",
+          pointerEvents: activeSkillId ? "none" : "auto",
+        }}
+      >
+        {/* H1 — magnétique au curseur, variable weight per letter, glow
+            + RGB split jaune/cyan sur « IA ». Coin haut-gauche donc
+            text-left + clamp réduit (corner placement compact). */}
         <h1
-          className="select-none whitespace-nowrap text-center font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7]"
-          style={{ fontSize: "clamp(1.5rem, 5.4vw, 4.5rem)" }}
+          className="select-none whitespace-nowrap text-left font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7]"
+          style={{ fontSize: "clamp(1.1rem, 3.4vw, 2.5rem)" }}
         >
           <span className="block overflow-hidden py-[0.05em]">
             {HEADLINE_WORDS.map((w, segIdx) => (
@@ -327,16 +383,16 @@ export function LandingHero() {
           </span>
         </h1>
 
-        {/* Tagline rotating — sous le titre, 11px caps cyan */}
-        <div className="relative mt-2 flex h-7 items-center md:mt-3">
+        {/* Tagline rotating — sous le titre, alignée à gauche */}
+        <div className="relative mt-2 flex h-6 items-center md:mt-3">
           <AnimatePresence mode="wait">
             <motion.span
               key={taglineIndex}
-              initial={{ opacity: 0, y: 8 }}
-              animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 8 }}
-              exit={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 6 }}
+              exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
-              className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/85"
+              className="text-left text-[10px] uppercase tracking-[0.32em] text-cyan-200/85"
             >
               {TAGLINES[taglineIndex]}
             </motion.span>
@@ -345,6 +401,34 @@ export function LandingHero() {
 
       </div>
 
+      {/* ────── Scroll indicator — bottom-center ──────
+          Mini glyph « SCROLL » + barre verticale dans laquelle un point
+          lumineux descend en boucle. Anchore #approche au clic. Masqué
+          quand un skill est ouvert (cohérent avec le H1). */}
+      <motion.a
+        href="#approche"
+        initial={{ opacity: 0 }}
+        animate={{
+          opacity: loaded && !activeSkillId ? 0.85 : 0,
+        }}
+        transition={{ duration: 0.8, delay: 1.4, ease: EASE_OUT_EXPO }}
+        className="group absolute bottom-4 left-1/2 z-20 inline-flex -translate-x-1/2 flex-col items-center gap-1.5 text-[9px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors duration-300 hover:text-cyan-100 md:bottom-5"
+        aria-label="Faire défiler vers le contenu"
+        style={{ pointerEvents: activeSkillId ? "none" : "auto" }}
+      >
+        <span>Scroll</span>
+        <span className="relative inline-block h-4 w-px overflow-hidden bg-cyan-200/20">
+          <span
+            aria-hidden
+            className="absolute left-0 top-0 h-1.5 w-px bg-cyan-200"
+            style={{
+              animation: "speetch-scroll-indicator 1.8s cubic-bezier(0.65, 0, 0.35, 1) infinite",
+              boxShadow: "0 0 6px rgba(125, 211, 252, 0.85)",
+            }}
+          />
+        </span>
+      </motion.a>
+
       {/* Keyframes pour le marquee vertical + chromatic pulse audio-react.
           Pas dans globals.css : usage strictement local au hero, mieux
           de garder la définition à côté de l'usage. */}
@@ -352,6 +436,13 @@ export function LandingHero() {
         @keyframes speetch-marquee-y {
           0% { transform: translateY(0); }
           100% { transform: translateY(-50%); }
+        }
+        /* Point lumineux qui descend en boucle dans le scroll indicator. */
+        @keyframes speetch-scroll-indicator {
+          0%   { transform: translateY(-100%); opacity: 0; }
+          15%  { opacity: 1; }
+          85%  { opacity: 1; }
+          100% { transform: translateY(400%); opacity: 0; }
         }
         /* Chromatic aberration jaune (brand) + halo cyan (logo ara
            bleu+jaune). Offset gauche = cyan, offset droit = gold,
@@ -364,6 +455,12 @@ export function LandingHero() {
             0 0 56px rgba(250, 204, 21, 0.15);
         }
       `}</style>
+
+      {/* Modal de description quand une compétence est cliquée */}
+      <SkillPanel
+        skill={activeSkill}
+        onClose={() => setActiveSkillId(null)}
+      />
     </section>
   );
 }
