@@ -9,7 +9,10 @@ import {
 import { listTemplatesForProject, loadTemplate } from "@/lib/page-templates-db";
 import { NewPageForm } from "./new-page-form";
 import { NewRawHtmlPageForm } from "./new-raw-html-page-form";
+import { BusinessPlanPicker } from "./business-plan-picker";
 import { TemplatePicker } from "./template-picker";
+
+const BUSINESS_PLAN_TEMPLATE_ID = "business_plan";
 
 export const metadata: Metadata = {
   title: "Nouveau parchemin",
@@ -26,10 +29,10 @@ export default async function NewPagePage({
   searchParams,
 }: {
   params: Promise<{ id: string; projectId: string }>;
-  searchParams: Promise<{ template?: string }>;
+  searchParams: Promise<{ template?: string; mode?: string }>;
 }) {
   const { id, projectId } = await params;
-  const { template } = await searchParams;
+  const { template, mode } = await searchParams;
 
   if (!UUID_REGEX.test(projectId)) {
     notFound();
@@ -76,6 +79,20 @@ export default async function NewPagePage({
   if (template === RAW_HTML_VIRTUAL_TEMPLATE_ID) {
     return (
       <NewRawHtmlPageForm
+        clientId={profile.id}
+        projectId={projectId}
+        projectName={project.name}
+      />
+    );
+  }
+
+  // Étape 2b — flow spécial "Business plan" : écran 4 options (structure /
+  // vierge / import docx / import HTML artifact Claude). Le param
+  // `?mode=create` lève la garde et continue vers le form de création
+  // standard avec le template business_plan pré-rempli.
+  if (template === BUSINESS_PLAN_TEMPLATE_ID && mode !== "create") {
+    return (
+      <BusinessPlanPicker
         clientId={profile.id}
         projectId={projectId}
         projectName={project.name}

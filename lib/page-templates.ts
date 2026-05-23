@@ -201,6 +201,81 @@ export const PAGE_TEMPLATES: readonly PageTemplate[] = [
       ],
     },
   },
+  {
+    id: "business_plan",
+    label: "Business plan",
+    tagline: "Structure complète + import .docx / artifact Claude",
+    description:
+      "Parchemin business plan avec 10 sections standard pré-remplies (résumé exécutif, marché, modèle économique, projections financières…). À l'ouverture, choix entre démarrer vierge, partir de la structure pré-remplie, importer un .docx Word ou importer un fichier HTML d'artifacts Claude.",
+    source: "code",
+    projectType: null,
+    defaultContent: {
+      intro:
+        "Business plan structuré — vision, marché, modèle économique, équipe et projections.",
+      sections: [
+        {
+          id: "__SECTION_1__",
+          type: "text",
+          title: "01 · Résumé exécutif",
+          body: "Synthèse en une page : projet, problème adressé, solution, marché, équipe, traction, besoins. Le lecteur doit pouvoir comprendre l'opportunité en 2 minutes.",
+        },
+        {
+          id: "__SECTION_2__",
+          type: "text",
+          title: "02 · Vision & mission",
+          body: "Ambition long terme (vision), raison d'être (mission), valeurs structurantes. Pourquoi cette entreprise existe et où elle veut aller.",
+        },
+        {
+          id: "__SECTION_3__",
+          type: "text",
+          title: "03 · Marché & segments cibles",
+          body: "Taille du marché (TAM / SAM / SOM), segments adressés, tendances structurantes, opportunités identifiées. Sources et chiffres clés.",
+        },
+        {
+          id: "__SECTION_4__",
+          type: "text",
+          title: "04 · Problème & solution",
+          body: "Pain points clients, jobs to be done. Solution proposée et différenciation par rapport aux alternatives existantes (status quo + concurrents).",
+        },
+        {
+          id: "__SECTION_5__",
+          type: "text",
+          title: "05 · Concurrence & positionnement",
+          body: "Cartographie concurrentielle, forces et faiblesses des acteurs en place, espace de positionnement unique de Speetch.",
+        },
+        {
+          id: "__SECTION_6__",
+          type: "text",
+          title: "06 · Modèle économique",
+          body: "Sources de revenus, pricing, marges. Coûts variables et fixes. Unit economics (CAC, LTV, payback). Hypothèses structurantes.",
+        },
+        {
+          id: "__SECTION_7__",
+          type: "text",
+          title: "07 · Stratégie commerciale",
+          body: "Canaux d'acquisition prioritaires, GTM, cycle de vente. Marketing, distribution, partenariats. Étapes 0 → 1 puis 1 → N.",
+        },
+        {
+          id: "__SECTION_8__",
+          type: "text",
+          title: "08 · Équipe & gouvernance",
+          body: "Fondateurs, key hires, advisory board. Compétences en place vs. à recruter. Organisation et gouvernance prévues.",
+        },
+        {
+          id: "__SECTION_9__",
+          type: "text",
+          title: "09 · Projections financières (3 ans)",
+          body: "Compte de résultat prévisionnel, plan de trésorerie, hypothèses de croissance. Année 1 mensuelle, années 2-3 trimestrielles ou annuelles. Scénarios bas / médian / haut.",
+        },
+        {
+          id: "__SECTION_10__",
+          type: "text",
+          title: "10 · Roadmap & besoins en financement",
+          body: "Jalons sur 18-24 mois (produit, commercial, recrutement). Besoin de financement requis, usage des fonds, milestones de levée.",
+        },
+      ],
+    },
+  },
 ];
 
 const UUID_REGEX =
