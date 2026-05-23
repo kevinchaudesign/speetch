@@ -104,6 +104,13 @@ export default async function SettingsHome() {
         "Identité légale de l'agence : raison sociale, SIREN, n° TVA, adresse, IBAN, mentions obligatoires, préfixes de numérotation. Prêt pour la réforme facturation électronique.",
     },
     {
+      href: "/admin/settings/facturation-electronique",
+      label: "Facturation électronique",
+      hint: emitter?.pdp_provider ?? "PDP à choisir",
+      summary:
+        "Réforme française 09/2026 : où Speetch en est, calendrier, comment choisir un PDP (Chorus Pro vs PDP privé), ce qui marche déjà et ce qui reste à brancher.",
+    },
+    {
       href: "/admin/settings/design-system",
       label: "Codex",
       hint: "Grammaire visuelle Speetch",
