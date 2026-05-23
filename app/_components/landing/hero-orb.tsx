@@ -162,7 +162,7 @@ export function HeroOrb({
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-[5] flex items-center justify-center overflow-hidden"
+      className="pointer-events-none absolute inset-0 z-[5] flex items-start justify-center overflow-hidden pt-[8vh] md:pt-[5vh]"
       style={{
         opacity: loaded ? 1 : 0,
         transition: "opacity 2400ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -172,7 +172,7 @@ export function HeroOrb({
     >
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className="speetch-orb h-auto w-[min(92vw,720px)]"
+        className="speetch-orb h-auto w-[min(78vw,540px)]"
         style={{
           transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
           transition:

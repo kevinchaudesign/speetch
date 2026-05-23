@@ -32,11 +32,11 @@ const TAGLINES = [
   "Studio parisien · Depuis 2026",
 ];
 
-// Composantes du H1 éditorial — animées mot par mot.
+// Segments du H1 — rendus en ligne (inline), pas empilés. « IA » en
+// italique jaune + glow brand pour signer la couleur.
 const HEADLINE_WORDS = [
-  { text: "Direction", italic: false },
-  { text: "artistique", italic: false },
-  { text: "à l'ère de l'IA.", italic: true },
+  { text: "Direction artistique ×", italic: false },
+  { text: " IA", italic: true },
 ] as const;
 
 /** Tokens du marquee vertical droit — défile en continu. */
@@ -123,9 +123,11 @@ export function LandingHero() {
   }, []);
 
   /* Curseur — double système :
-   *  - `mouse` (state) → ghost cursor + parallaxe ghost wordmark (rare refs)
-   *  - `mouseRef` (ref) → magnétisme des lettres du H1 (lu en raf, zéro
-   *    rerender React pour rester à 60fps avec 30+ spans)
+   *  - `mouse` (state) → ghost cursor + parallaxes (orbe tilt, floating
+   *    labels counter-parallaxe). React rerender, acceptable car peu
+   *    de listeners abonnés.
+   *  - `mouseRef` (ref) → magnétisme des lettres du H1 (lu en raf,
+   *    zéro rerender React pour rester à 60fps avec 30+ spans)
    */
   const mouseRef = useRef({ x: 0, y: 0 });
   useEffect(() => {
@@ -339,34 +341,7 @@ export function LandingHero() {
         </div>
       </motion.header>
 
-      {/* ────── Couche 0 : ghost wordmark en filigrane (parallaxe) ────── */}
-      <motion.div
-        aria-hidden
-        initial={{ opacity: 0 }}
-        animate={{ opacity: loaded ? 1 : 0 }}
-        transition={{ duration: 2.2, delay: 1.2, ease: EASE_OUT_EXPO }}
-        className="pointer-events-none absolute inset-0 z-0 flex items-center justify-center overflow-hidden"
-        style={{
-          // parallaxe : translate proportionnel à la position curseur
-          // (faible amplitude, mouvement lent = ambiance, pas distraction)
-          transform: `translate3d(${(mouse.x / viewport.w) * 28 - 14}px, ${(mouse.y / viewport.h) * 28 - 14}px, 0)`,
-          transition: "transform 700ms cubic-bezier(0.22, 1, 0.36, 1)",
-          willChange: "transform",
-        }}
-      >
-        <span
-          className="select-none font-sans font-extralight leading-none tracking-[-0.08em] text-white"
-          style={{
-            fontSize: "clamp(10rem, 32vw, 36rem)",
-            opacity: 0.025,
-            textShadow: "0 0 80px rgba(125, 211, 252, 0.15)",
-          }}
-        >
-          SPEETCH
-        </span>
-      </motion.div>
-
-      {/* ────── Couche 0.5 : orbe holographique central (réseau neural) ────── */}
+      {/* ────── Couche 0 : orbe holographique central (réseau neural) ────── */}
       <HeroOrb
         loaded={loaded}
         ambientOn={ambientOn}
@@ -409,37 +384,31 @@ export function LandingHero() {
         </div>
       </motion.div>
 
-      {/* ────── Composition centrale : H1 éditorial kinétique ────── */}
-      <div className="absolute inset-0 z-20 flex flex-col items-center justify-center px-6">
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: loaded ? 1 : 0 }}
-          transition={{ duration: 0.8, delay: 0.4, ease: EASE_OUT_EXPO }}
-          className="mb-8 inline-flex items-center gap-4 text-[11px] uppercase tracking-[0.4em] text-cyan-200/65 md:mb-12"
-        >
-          <span className="inline-block h-px w-8 bg-cyan-200/40" />
-          Studio parisien · 2026
-          <span className="inline-block h-px w-8 bg-cyan-200/40" />
-        </motion.p>
-
-        {/* H1 — magnétique au curseur, variable weight per letter, glow + RGB
-            split sur la 3e ligne (« à l'ère de l'IA »). Lettres animées via
-            CSS variables (--mx/--my/--w) pilotées par raf hors React. */}
+      {/* ────── Composition centrale : H1 éditorial kinétique ──────
+          Anchorée en BAS du hero (sous le graphique orb qui occupe la
+          partie haute). Padding-bottom laisse de la place au scroll cue. */}
+      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-6 pb-[14vh] md:pb-[10vh]">
+        {/* H1 — UNE seule ligne, segments inline. Magnétique au curseur,
+            variable weight per letter sur le sans, glow + RGB split sur
+            le segment italique « IA ». Lettres animées via CSS variables
+            (--mx/--my/--w) pilotées par raf hors React. */}
         <h1
-          className="select-none text-center font-sans font-extralight leading-[0.92] tracking-[-0.04em] text-[#F5F5F7]"
-          style={{ fontSize: "clamp(2.75rem, 9vw, 7.5rem)" }}
+          className="select-none whitespace-nowrap text-center font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7]"
+          style={{ fontSize: "clamp(1.5rem, 5.4vw, 4.5rem)" }}
         >
-          {HEADLINE_WORDS.map((w, lineIdx) => (
-            <KineticLine
-              key={w.text}
-              text={w.text}
-              italic={w.italic}
-              lineIndex={lineIdx}
-              loaded={loaded}
-              letterRefs={letterRefs}
-              ambientOn={ambientOn}
-            />
-          ))}
+          <span className="block overflow-hidden py-[0.05em]">
+            {HEADLINE_WORDS.map((w, segIdx) => (
+              <KineticLine
+                key={w.text}
+                text={w.text}
+                italic={w.italic}
+                lineIndex={segIdx}
+                loaded={loaded}
+                letterRefs={letterRefs}
+                ambientOn={ambientOn}
+              />
+            ))}
+          </span>
         </h1>
 
         {/* Tagline rotating — sous le titre, 11px caps cyan */}
@@ -559,19 +528,18 @@ function KineticLine({
   );
 
   return (
-    <span className="block overflow-hidden py-[0.05em]">
-      <span
-        className={
-          italic
-            ? `inline-block font-serif italic font-normal ${ambientOn ? "speetch-rgb-pulse" : "speetch-rgb-static"}`
-            : "inline-block"
-        }
-        style={
-          italic
-            ? { color: "var(--color-brand-yellow)" }
-            : undefined
-        }
-      >
+    <span
+      className={
+        italic
+          ? `inline-block font-serif italic font-normal ${ambientOn ? "speetch-rgb-pulse" : "speetch-rgb-static"}`
+          : "inline-block"
+      }
+      style={
+        italic
+          ? { color: "var(--color-brand-yellow)" }
+          : undefined
+      }
+    >
         {Array.from(text).map((ch, i) => {
           const refIndex = baseIndex + i;
           const isSpace = ch === " ";
@@ -608,7 +576,6 @@ function KineticLine({
             </motion.span>
           );
         })}
-      </span>
     </span>
   );
 }
