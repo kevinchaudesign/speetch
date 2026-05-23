@@ -18,6 +18,18 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 const MAX_HTML_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_DOCX_SIZE = 8 * 1024 * 1024; // 8 MB
+
+const ALLOWED_DOCX_MIME = new Set([
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "application/msword", // fallback pour les .doc, on tente quand même Mammoth
+]);
+
+const ALLOWED_HTML_MIME = new Set([
+  "text/html",
+  "application/xhtml+xml",
+  "", // certains navigateurs n'envoient pas de mime pour les .html
+]);
 
 export async function createPage(
   _prev: CreatePageState,
@@ -262,6 +274,185 @@ export async function createRawHtmlPage(
 
   if (insertError) {
     console.error("[createRawHtmlPage] insert error:", insertError);
+    return {
+      status: "error",
+      error: insertError.message || "Erreur d'insertion en base.",
+    };
+  }
+
+  revalidatePath(`/admin/clients/${profileId}/projects/${projectId}`);
+  revalidatePath(`/admin/clients`);
+  redirect(`/admin/clients/${profileId}/projects/${projectId}`);
+}
+
+/* ─── Import Business plan : .docx ou HTML artifact Claude ──────────── */
+
+/**
+ * Crée un parchemin business plan en mode raw_html à partir d'un upload.
+ *
+ * Sources supportées :
+ *  - .docx (Word) : converti en HTML stylé via Mammoth
+ *  - .html (artifact Claude ou export Word HTML) : stocké tel quel
+ *
+ * Le résultat est toujours un parchemin style "raw_html" qui rend le
+ * HTML dans une iframe sandbox sur la page publique.
+ */
+export async function createBusinessPlanFromImport(
+  _prev: CreatePageState,
+  formData: FormData,
+): Promise<CreatePageState> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) {
+    return { status: "error", error: "Session expirée. Reconnecte-toi." };
+  }
+  const ownerEmail = process.env.SPEETCH_OWNER_EMAIL?.toLowerCase();
+  if (ownerEmail && user.email?.toLowerCase() !== ownerEmail) {
+    return { status: "error", error: "Accès réservé au propriétaire." };
+  }
+  if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return {
+      status: "error",
+      error:
+        "SUPABASE_SERVICE_ROLE_KEY manquant dans .env.local — impossible d'écrire dans Supabase.",
+    };
+  }
+
+  const profileId = String(formData.get("profile_id") ?? "").trim();
+  const projectId = String(formData.get("project_id") ?? "").trim();
+  const name = String(formData.get("name") ?? "").trim();
+  const source = String(formData.get("source") ?? "").trim();
+  const isPublished = formData.get("is_published") === "on";
+  const file = formData.get("file");
+
+  if (!UUID_REGEX.test(profileId)) {
+    return { status: "error", error: "Client invalide." };
+  }
+  if (!UUID_REGEX.test(projectId)) {
+    return { status: "error", error: "Projet invalide." };
+  }
+  if (name.length < 2) {
+    return {
+      status: "error",
+      error: "Le titre du parchemin doit faire au moins 2 caractères.",
+    };
+  }
+  if (source !== "docx" && source !== "html") {
+    return { status: "error", error: "Source d'import inconnue." };
+  }
+  if (!(file instanceof File) || file.size === 0) {
+    return { status: "error", error: "Aucun fichier reçu." };
+  }
+
+  let html: string;
+  if (source === "docx") {
+    if (
+      !ALLOWED_DOCX_MIME.has(file.type) &&
+      !/\.docx?$/i.test(file.name)
+    ) {
+      return {
+        status: "error",
+        error: `Format attendu : .docx (reçu : ${file.type || "inconnu"}).`,
+      };
+    }
+    if (file.size > MAX_DOCX_SIZE) {
+      return { status: "error", error: "Fichier .docx trop volumineux (max 8 MB)." };
+    }
+    try {
+      const buffer = await file.arrayBuffer();
+      const { convertDocxToHtml } = await import(
+        "@/app/admin/clients/[id]/context/_lib/context-conversion"
+      );
+      const result = await convertDocxToHtml(buffer, name);
+      html = result.html;
+    } catch (err) {
+      console.error("[createBusinessPlanFromImport] docx convert:", err);
+      return {
+        status: "error",
+        error:
+          err instanceof Error
+            ? `Conversion .docx échouée : ${err.message}`
+            : "Conversion .docx échouée.",
+      };
+    }
+  } else {
+    if (
+      !ALLOWED_HTML_MIME.has(file.type) &&
+      !/\.html?$/i.test(file.name)
+    ) {
+      return {
+        status: "error",
+        error: `Format attendu : .html (reçu : ${file.type || "inconnu"}).`,
+      };
+    }
+    if (file.size > MAX_HTML_SIZE) {
+      return {
+        status: "error",
+        error: "Fichier HTML trop volumineux (max 2 MB).",
+      };
+    }
+    html = await file.text();
+    if (html.trim().length < 20) {
+      return { status: "error", error: "HTML trop court pour être exploitable." };
+    }
+  }
+
+  const admin = createAdminClient();
+
+  const { data: project, error: projectError } = await admin
+    .from("projects")
+    .select("id, profile_id")
+    .eq("id", projectId)
+    .eq("profile_id", profileId)
+    .maybeSingle();
+  if (projectError || !project) {
+    return { status: "error", error: "Projet introuvable." };
+  }
+
+  const baseSlug = slugify(name) || "business-plan";
+  const slug = await ensureUniqueSlug(baseSlug, async (candidate) => {
+    const { data } = await admin
+      .from("pages")
+      .select("id")
+      .eq("project_id", projectId)
+      .eq("slug", candidate)
+      .maybeSingle();
+    return !!data;
+  });
+
+  const { data: existing } = await admin
+    .from("pages")
+    .select("position")
+    .eq("project_id", projectId)
+    .order("position", { ascending: false })
+    .limit(1);
+
+  const nextPosition =
+    existing && existing.length > 0 ? existing[0].position + 1 : 0;
+
+  const content: PageContent = {
+    intro: "",
+    sections: [],
+    meta: {
+      style: "raw_html",
+      raw_html: html,
+    },
+  };
+
+  const { error: insertError } = await admin.from("pages").insert({
+    project_id: projectId,
+    name,
+    slug,
+    template_id: "_raw_html",
+    content,
+    position: nextPosition,
+    is_published: isPublished,
+  });
+
+  if (insertError) {
+    console.error("[createBusinessPlanFromImport] insert error:", insertError);
     return {
       status: "error",
       error: insertError.message || "Erreur d'insertion en base.",

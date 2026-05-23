@@ -50,8 +50,8 @@ const OPTIONS: Option[] = [
     label: "Importer un .docx",
     tagline: "Fichier Word converti automatiquement",
     description:
-      "Confie un business plan existant au format Word. La Force convertit en sections, préserve les titres et la mise en forme. Phase 2 — disponible bientôt.",
-    status: "phase-2",
+      "Confie un business plan existant au format Word. Mammoth convertit en HTML stylé, préservant titres, listes, gras/italiques et tableaux. Images embarquées inlinées.",
+    status: "ready",
   },
   {
     id: "import-html",
@@ -60,8 +60,8 @@ const OPTIONS: Option[] = [
     label: "Importer un artifact Claude",
     tagline: "Fichier HTML généré par Claude",
     description:
-      "Confie un fichier HTML d'artifact Claude (export depuis une conversation). Le parchemin est créé en mode Réplique fidèle avec le rendu d'origine. Phase 2 — disponible bientôt.",
-    status: "phase-2",
+      "Confie un fichier HTML d'artifact Claude (export depuis une conversation). Le parchemin est créé en mode Réplique fidèle avec le rendu d'origine.",
+    status: "ready",
   },
 ];
 
@@ -79,8 +79,12 @@ function buildHref(
   if (option.kind === "blank") {
     return `${base}?template=blank`;
   }
-  // Stubs Phase 2 — href vers le même picker (le click sera neutralisé
-  // côté UI par l'absence d'attribut href).
+  if (option.kind === "import-docx") {
+    return `${base}?template=business_plan&mode=import-docx`;
+  }
+  if (option.kind === "import-html") {
+    return `${base}?template=business_plan&mode=import-html`;
+  }
   return "#";
 }
 

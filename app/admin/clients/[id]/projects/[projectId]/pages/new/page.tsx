@@ -10,6 +10,7 @@ import { listTemplatesForProject, loadTemplate } from "@/lib/page-templates-db";
 import { NewPageForm } from "./new-page-form";
 import { NewRawHtmlPageForm } from "./new-raw-html-page-form";
 import { BusinessPlanPicker } from "./business-plan-picker";
+import { NewBusinessPlanImportForm } from "./new-business-plan-import-form";
 import { TemplatePicker } from "./template-picker";
 
 const BUSINESS_PLAN_TEMPLATE_ID = "business_plan";
@@ -90,14 +91,37 @@ export default async function NewPagePage({
   // vierge / import docx / import HTML artifact Claude). Le param
   // `?mode=create` lève la garde et continue vers le form de création
   // standard avec le template business_plan pré-rempli.
-  if (template === BUSINESS_PLAN_TEMPLATE_ID && mode !== "create") {
-    return (
-      <BusinessPlanPicker
-        clientId={profile.id}
-        projectId={projectId}
-        projectName={project.name}
-      />
-    );
+  if (template === BUSINESS_PLAN_TEMPLATE_ID) {
+    if (mode === "import-docx") {
+      return (
+        <NewBusinessPlanImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="docx"
+        />
+      );
+    }
+    if (mode === "import-html") {
+      return (
+        <NewBusinessPlanImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="html"
+        />
+      );
+    }
+    if (mode !== "create") {
+      return (
+        <BusinessPlanPicker
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+        />
+      );
+    }
+    // mode === "create" → continue vers le form standard avec template pré-rempli
   }
 
   // Étape 2 — formulaire pré-rempli avec le template choisi
