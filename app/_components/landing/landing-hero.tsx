@@ -19,7 +19,6 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
-import { startAmbientDrone, type AmbientHandle } from "@/lib/sw/audio";
 import { SpeetchLogo } from "../speetch-logo";
 import { HeroOrb } from "./hero-orb";
 
@@ -78,8 +77,6 @@ export function LandingHero() {
     h: 1,
   });
   const [taglineIndex, setTaglineIndex] = useState(0);
-  const [ambientOn, setAmbientOn] = useState(false);
-  const ambientRef = useRef<AmbientHandle | null>(null);
 
   /* Initialise et tient à jour les dimensions viewport (SSR-safe). */
   useEffect(() => {
@@ -199,22 +196,6 @@ export function LandingHero() {
     return () => window.clearInterval(id);
   }, [loaded]);
 
-  /* Ambient drone toggle */
-  function toggleAmbient() {
-    if (ambientOn) {
-      ambientRef.current?.stop();
-      ambientRef.current = null;
-      setAmbientOn(false);
-    } else {
-      const handle = startAmbientDrone();
-      if (handle) {
-        ambientRef.current = handle;
-        setAmbientOn(true);
-      }
-    }
-  }
-  useEffect(() => () => ambientRef.current?.stop(), []);
-
   return (
     <section
       aria-label="Hero — Speetch, studio de communication à l'ère de l'IA"
@@ -304,50 +285,20 @@ export function LandingHero() {
           className="group inline-flex items-center gap-3 transition-opacity duration-300 hover:opacity-80"
         >
           <SpeetchLogo size="md" loading="eager" />
-          <span className="hidden text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 md:inline">
-            <span className="relative mr-3 inline-flex h-1.5 w-1.5">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-cyan-300 opacity-70" />
-              <span className="sw-cyan-dot relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-300" />
-            </span>
-            Studio ouvert · prise de brief
-          </span>
         </a>
 
-        <div className="flex items-center gap-5">
-          <button
-            type="button"
-            onClick={toggleAmbient}
-            title={
-              ambientOn ? "Couper l'ambient" : "Activer l'ambient sonore"
-            }
-            aria-pressed={ambientOn}
-            className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
-          >
-            <span
-              className={`inline-block h-1.5 w-1.5 rounded-full transition-all duration-500 ${
-                ambientOn ? "sw-cyan-dot bg-cyan-300" : "bg-cyan-200/30"
-              }`}
-            />
-            <span>{ambientOn ? "Ambient · ON" : "Ambient"}</span>
-          </button>
-          <span
-            className="font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 tabular-nums"
-            aria-label={`Heure de Paris : ${time}`}
-          >
-            <span>{time}</span>
-            <span className="text-cyan-200/25"> · </span>
-            <span>PAR</span>
-          </span>
-        </div>
+        <span
+          className="font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 tabular-nums"
+          aria-label={`Heure de Paris : ${time}`}
+        >
+          <span>{time}</span>
+          <span className="text-cyan-200/25"> · </span>
+          <span>PAR</span>
+        </span>
       </motion.header>
 
       {/* ────── Couche 0 : orbe holographique central (réseau neural) ────── */}
-      <HeroOrb
-        loaded={loaded}
-        ambientOn={ambientOn}
-        mouse={mouse}
-        viewport={viewport}
-      />
+      <HeroOrb loaded={loaded} mouse={mouse} viewport={viewport} />
 
       {/* ────── Couche 1 : mots flottants asymétriques (counter-parallaxe) ────── */}
       <FloatingLabels loaded={loaded} mouse={mouse} viewport={viewport} />
@@ -405,7 +356,6 @@ export function LandingHero() {
                 lineIndex={segIdx}
                 loaded={loaded}
                 letterRefs={letterRefs}
-                ambientOn={ambientOn}
               />
             ))}
           </span>
@@ -465,32 +415,13 @@ export function LandingHero() {
         }
         /* Chromatic aberration jaune (brand) + halo cyan (logo ara
            bleu+jaune). Offset gauche = cyan, offset droit = gold,
-           glow doré central. Pulse 2× plus fort si ambient ON. */
-        @keyframes speetch-rgb-pulse {
-          0%, 100% {
-            text-shadow:
-              -1px 0 0 rgba(56, 189, 248, 0.55),
-              1px 0 0 rgba(253, 224, 71, 0.65),
-              0 0 22px rgba(250, 204, 21, 0.42),
-              0 0 56px rgba(250, 204, 21, 0.18);
-          }
-          50% {
-            text-shadow:
-              -2.5px 0 0 rgba(56, 189, 248, 0.9),
-              2.5px 0 0 rgba(253, 224, 71, 0.95),
-              0 0 40px rgba(250, 204, 21, 0.7),
-              0 0 88px rgba(250, 204, 21, 0.3);
-          }
-        }
+           glow doré central. */
         .speetch-rgb-static {
           text-shadow:
             -1px 0 0 rgba(56, 189, 248, 0.5),
             1px 0 0 rgba(253, 224, 71, 0.6),
             0 0 22px rgba(250, 204, 21, 0.38),
             0 0 56px rgba(250, 204, 21, 0.15);
-        }
-        .speetch-rgb-pulse {
-          animation: speetch-rgb-pulse 3.4s ease-in-out infinite;
         }
       `}</style>
     </section>
@@ -503,22 +434,20 @@ export function LandingHero() {
 
 /** Une ligne du H1 — split en lettres individuelles, chaque lettre
  *  reçoit une ref enregistrée dans `letterRefs` pour le magnétisme,
- *  et est animée en stagger reveal. La 3e ligne (italic = true) a un
- *  effet de chromatic aberration RGB qui pulse si ambient est actif. */
+ *  et est animée en stagger reveal. Le segment italique (italic = true)
+ *  porte un effet de chromatic aberration RGB statique (cyan / gold). */
 function KineticLine({
   text,
   italic,
   lineIndex,
   loaded,
   letterRefs,
-  ambientOn,
 }: {
   text: string;
   italic: boolean;
   lineIndex: number;
   loaded: boolean;
   letterRefs: React.MutableRefObject<Array<HTMLSpanElement | null>>;
-  ambientOn: boolean;
 }) {
   // Calcule un offset global stable pour les refs (cumule les lignes
   // précédentes — chaque KineticLine connaît son numéro de ligne).
@@ -531,7 +460,7 @@ function KineticLine({
     <span
       className={
         italic
-          ? `inline-block font-serif italic font-normal ${ambientOn ? "speetch-rgb-pulse" : "speetch-rgb-static"}`
+          ? "inline-block font-serif italic font-normal speetch-rgb-static"
           : "inline-block"
       }
       style={

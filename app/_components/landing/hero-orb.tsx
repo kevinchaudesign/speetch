@@ -115,12 +115,10 @@ function wireNodes(nodes: Node[]): Edge[] {
 
 export function HeroOrb({
   loaded,
-  ambientOn,
   mouse,
   viewport,
 }: {
   loaded: boolean;
-  ambientOn: boolean;
   mouse: { x: number; y: number };
   viewport: { w: number; h: number };
 }) {
@@ -138,26 +136,24 @@ export function HeroOrb({
   const tiltX = ((mouse.y / viewport.h) * 16 - 8).toFixed(2);
   const tiltY = (8 - (mouse.x / viewport.w) * 16).toFixed(2);
 
-  // Stabilise un set d'edges "scintillantes" qui change toutes les ~2.5s
-  // → effet réseau neural qui s'allume par à-coups (plus marqué si ambient ON)
+  // Stabilise un set d'edges "scintillantes" qui change toutes les ~2.2s
+  // → effet réseau neural qui s'allume par à-coups.
   const [activeEdges, setActiveEdges] = useState<Set<number>>(new Set());
   useEffect(() => {
     if (!loaded) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
     const pick = () => {
-      const count = ambientOn ? 6 : 3;
       const next = new Set<number>();
-      while (next.size < count) {
+      while (next.size < 3) {
         next.add(Math.floor(Math.random() * edges.length));
       }
       setActiveEdges(next);
     };
     pick();
-    const intervalMs = ambientOn ? 1100 : 2200;
-    const id = window.setInterval(pick, intervalMs);
+    const id = window.setInterval(pick, 2200);
     return () => window.clearInterval(id);
-  }, [edges.length, loaded, ambientOn]);
+  }, [edges.length, loaded]);
 
   return (
     <div
@@ -172,7 +168,8 @@ export function HeroOrb({
     >
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className="speetch-orb h-auto w-[min(78vw,540px)]"
+        overflow="visible"
+        className="speetch-orb h-auto w-[min(95vw,540px)]"
         style={{
           transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
           transition:
@@ -367,6 +364,15 @@ export function HeroOrb({
             const offset = n.orbit === 0 ? 30 : 37;
             const lx = n.x + ux * offset;
             const ly = n.y + uy * offset;
+            // Font-size en CSS px (via clamp) plutôt qu'en unités SVG :
+            // évite l'écrasement du texte par le scale du viewBox sur
+            // mobile (l'orbe est plus petit qu'en desktop, le texte
+            // resterait illisible). Le texte garde une taille lisible
+            // sur tous les viewports.
+            const fontSizeCss =
+              n.orbit === 0
+                ? "clamp(0.7rem, 1.7vw, 0.8rem)"
+                : "clamp(0.78rem, 1.95vw, 0.92rem)";
             return (
               <text
                 key={`label-${i}`}
@@ -374,12 +380,12 @@ export function HeroOrb({
                 y={ly.toFixed(2)}
                 textAnchor="middle"
                 dominantBaseline="middle"
-                fontSize={n.orbit === 0 ? 9.5 : 10.5}
-                fill="rgba(186, 230, 253, 0.78)"
+                fill="rgba(186, 230, 253, 0.82)"
                 fontFamily="ui-monospace, SF Mono, Menlo, monospace"
                 letterSpacing="0.22em"
                 className="speetch-orb-label-counter"
                 style={{
+                  fontSize: fontSizeCss,
                   transformBox: "fill-box",
                   transformOrigin: "center",
                   filter: "drop-shadow(0 0 5px rgba(125, 211, 252, 0.55))",
@@ -394,11 +400,7 @@ export function HeroOrb({
         {/* ──────────────── 4. Kyber crystal central ──────────────── */}
         {/* Hexagramme 1 (triangle pointe haut) — rotation CW */}
         <g
-          className={
-            ambientOn
-              ? "speetch-orb-rot-cw-fast speetch-orb-pulse-strong"
-              : "speetch-orb-rot-cw-fast"
-          }
+          className="speetch-orb-rot-cw-fast"
           style={{ transformOrigin: `${CX}px ${CY}px` }}
         >
           <polygon
@@ -413,11 +415,7 @@ export function HeroOrb({
 
         {/* Hexagramme 2 (triangle pointe bas) — rotation CCW */}
         <g
-          className={
-            ambientOn
-              ? "speetch-orb-rot-ccw-fast speetch-orb-pulse-strong"
-              : "speetch-orb-rot-ccw-fast"
-          }
+          className="speetch-orb-rot-ccw-fast"
           style={{ transformOrigin: `${CX}px ${CY}px` }}
         >
           <polygon
@@ -476,17 +474,6 @@ export function HeroOrb({
           transform-origin: center;
           animation: speetch-orb-pulse 3.2s ease-in-out infinite;
         }
-        @keyframes speetch-orb-pulse-strong {
-          0%, 100% { filter: drop-shadow(0 0 6px rgba(125, 211, 252, 0.6)); }
-          50%      { filter: drop-shadow(0 0 18px rgba(186, 230, 253, 1));   }
-        }
-        .speetch-orb-pulse-strong {
-          animation-name: speetch-orb-pulse-strong;
-          animation-duration: 1.8s;
-          animation-timing-function: ease-in-out;
-          animation-iteration-count: infinite;
-        }
-
         @keyframes speetch-orb-sonar {
           0%   { transform: scale(0.4); opacity: 0.7; }
           80%  { opacity: 0; }
