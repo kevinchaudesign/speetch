@@ -69,6 +69,7 @@ export function RawHtmlPageView({
   initialAnnotations: AnnotationData[];
 }) {
   const iframeRef = useRef<HTMLIFrameElement | null>(null);
+  const headerRef = useRef<HTMLElement | null>(null);
   const [height, setHeight] = useState<number>(0);
   const [isAdmin, setIsAdmin] = useState(false);
   const [editMode, setEditMode] = useState(false);
@@ -131,6 +132,7 @@ export function RawHtmlPageView({
       result = injectSpeetchOverlay(result);
     }
     result = injectExternalLinksScript(result);
+    result = injectVhLockScript(result);
     result = injectAnnotationsBundle(result);
     if (isAdmin) {
       result = injectEditModeBundle(result);
@@ -162,6 +164,23 @@ export function RawHtmlPageView({
         const lower = href.toLowerCase();
         if (lower.startsWith("javascript:")) return;
         window.open(href, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      // L'iframe est auto-sized à la hauteur du contenu : pas de scroll
+      // interne. Pour qu'un click sur `<a href="#id">` scrolle réellement,
+      // c'est le parent qui doit scroller jusqu'à la position de la cible.
+      if (
+        data.type === "speetch-scroll-to-anchor" &&
+        typeof (data as { y?: unknown }).y === "number"
+      ) {
+        const iframe = iframeRef.current;
+        if (!iframe) return;
+        const yInIframe = (data as { y: number }).y;
+        const iframeTop = iframe.getBoundingClientRect().top + window.scrollY;
+        const headerH = headerRef.current?.offsetHeight ?? 0;
+        const target = Math.max(0, iframeTop + yInIframe - headerH - 8);
+        window.scrollTo({ top: target, behavior: "smooth" });
         return;
       }
 
@@ -219,7 +238,16 @@ export function RawHtmlPageView({
     const iframe = iframeRef.current;
     if (!iframe) return;
 
+    // Garde anti-boucle de feedback : si le contenu utilise `100vh` malgré
+    // injectVhLockScript (heuristique imparfaite), grandir l'iframe ferait
+    // gonfler vh → scrollHeight → … On gèle après 2 mesures successives
+    // qui croissent significativement.
+    let lastMeasured = 0;
+    let consecutiveGrowth = 0;
+    let frozen = false;
+
     function measure() {
+      if (frozen) return;
       try {
         const doc = iframe?.contentDocument;
         if (!doc) return;
@@ -231,9 +259,18 @@ export function RawHtmlPageView({
           html?.scrollHeight ?? 0,
           html?.offsetHeight ?? 0,
         );
-        if (next > 0) {
-          setHeight(next);
+        if (next <= 0) return;
+        if (lastMeasured > 0 && next > lastMeasured + 200) {
+          consecutiveGrowth++;
+          if (consecutiveGrowth >= 2) {
+            frozen = true;
+            return;
+          }
+        } else {
+          consecutiveGrowth = 0;
         }
+        lastMeasured = next;
+        setHeight(next);
       } catch {
         // Cross-origin guard — ne devrait pas arriver avec allow-same-origin
         // sur srcDoc, mais on capture par sécurité.
@@ -289,7 +326,10 @@ export function RawHtmlPageView({
   return (
     <div className="relative min-h-svh w-full bg-[#0a0a0a]">
       {/* Header sticky */}
-      <header className="sticky top-0 z-30 flex items-center justify-between gap-6 border-b border-white/5 bg-black/65 px-6 py-5 backdrop-blur-md md:px-12">
+      <header
+        ref={headerRef}
+        className="sticky top-0 z-30 flex items-center justify-between gap-6 border-b border-white/5 bg-black/65 px-6 py-5 backdrop-blur-md md:px-12"
+      >
         <Link
           href={`/clients/${clientSlug}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-white/55 transition-colors hover:text-white"
@@ -571,6 +611,14 @@ function injectOverridesScript(
  * Intercepte les clics sur les liens dans l'iframe et délègue
  * l'ouverture au parent via postMessage. Sans cette interception, un
  * clic sur un <a> navigue l'iframe elle-même → page blanche.
+ *
+ * Cas particuliers :
+ *  - `#id` : l'iframe est auto-sized à la hauteur du contenu (pas de scroll
+ *    interne), donc la nav d'ancre native ne ferait que bouger le hash sans
+ *    rien scroller visuellement. On résout la cible dans l'iframe, on
+ *    remonte sa position au parent, qui scrolle.
+ *  - URLs relatives sans schéma (`./foo`, `index.html`) : casserait l'iframe
+ *    si on laissait faire (about:srcdoc/foo invalide). On no-op.
  */
 function injectExternalLinksScript(html: string): string {
   const script = `
@@ -587,18 +635,110 @@ function injectExternalLinksScript(html: string): string {
       if (!a) return;
       var href = a.getAttribute('href') || '';
       if (!href) return;
-      if (href.charAt(0) === '#') return;
       var lower = href.toLowerCase();
       if (lower.indexOf('javascript:') === 0) return;
       if (lower.indexOf('mailto:') === 0 || lower.indexOf('tel:') === 0) return;
+
+      // Ancre interne : on délègue le scroll au parent (l'iframe ne scrolle
+      // pas elle-même, elle est sized = contenu).
+      if (href.charAt(0) === '#') {
+        var id = href.slice(1);
+        if (!id) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var target = document.getElementById(id);
+        if (!target) {
+          try { target = document.querySelector('[name="' + id + '"]'); } catch (e1) {}
+        }
+        if (!target) return;
+        var rect = target.getBoundingClientRect();
+        var y = rect.top + (window.scrollY || window.pageYOffset || 0);
+        try {
+          parent.postMessage({ type: 'speetch-scroll-to-anchor', y: y, id: id }, '*');
+        } catch (err) { /* swallow */ }
+        return;
+      }
+
+      // URL absolue http(s) : ouvre dans un nouvel onglet via le parent.
+      if (lower.indexOf('http://') === 0 || lower.indexOf('https://') === 0) {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+          parent.postMessage({ type: 'speetch-open-link', href: href }, '*');
+        } catch (err) {
+          try { window.open(href, '_blank', 'noopener,noreferrer'); } catch (e2) {}
+        }
+        return;
+      }
+
+      // URL relative (./foo, index.html, ../bar) : naviguerait l'iframe
+      // vers une route inexistante (about:srcdoc/...). On bloque
+      // silencieusement plutôt que de casser la page.
       e.preventDefault();
       e.stopPropagation();
-      try {
-        parent.postMessage({ type: 'speetch-open-link', href: href }, '*');
-      } catch (err) {
-        try { window.open(href, '_blank', 'noopener,noreferrer'); } catch (e2) {}
-      }
     }, true);
+  } catch (e) {
+    /* swallow */
+  }
+})();
+</script>`;
+  const idx = html.toLowerCase().lastIndexOf("</body>");
+  if (idx >= 0) {
+    return html.slice(0, idx) + script + html.slice(idx);
+  }
+  return html + script;
+}
+
+/**
+ * Verrouille en pixels toutes les hauteurs/min-heights/heights qui ressemblent
+ * à du `100vh` (ou proches), AVANT que le parent ne resize l'iframe.
+ *
+ * Why : srcDoc + auto-height (parent qui setHeight = body.scrollHeight) crée
+ * une boucle de feedback infinie quand le contenu utilise `100vh` :
+ *   iframe grandit → vh recalcule → hero gonfle → scrollHeight grossit →
+ *   parent re-grandit l'iframe → … → le hero finit par tout pousser hors
+ *   du viewport et le contenu "disparaît".
+ *
+ * Le fix capture la hauteur RENDUE (en px) de chaque élément vh-like quand
+ * l'iframe est à sa taille initiale, et la fige via inline style. Les resize
+ * ultérieurs ne propagent plus le feedback.
+ *
+ * Heuristique : `min-height` ou `height` dans [85%, 115%] de
+ * `window.innerHeight` ≈ vh-based. Faux positifs très improbables (il
+ * faudrait une coïncidence exacte avec le viewport).
+ */
+function injectVhLockScript(html: string): string {
+  const script = `
+<script data-speetch-vh-lock="true">
+(function() {
+  try {
+    function lockVhSized() {
+      var vh = window.innerHeight;
+      if (!vh || vh < 100) return;
+      var lo = vh * 0.85;
+      var hi = vh * 1.15;
+      var els = document.body ? document.body.querySelectorAll('*') : [];
+      for (var i = 0; i < els.length; i++) {
+        var el = els[i];
+        if (!el || el.nodeType !== 1) continue;
+        var cs;
+        try { cs = window.getComputedStyle(el); } catch (e) { continue; }
+        if (!cs) continue;
+        var minH = parseFloat(cs.minHeight);
+        var h = parseFloat(cs.height);
+        if (!isNaN(minH) && minH >= lo && minH <= hi) {
+          el.style.minHeight = Math.round(minH) + 'px';
+        }
+        if (!isNaN(h) && h >= lo && h <= hi) {
+          el.style.height = Math.round(h) + 'px';
+        }
+      }
+    }
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', lockVhSized);
+    } else {
+      lockVhSized();
+    }
   } catch (e) {
     /* swallow */
   }
