@@ -74,6 +74,33 @@ function GalerieIcon({ className }: { className?: string }) {
   );
 }
 
+function PadawansIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* Triangle de 3 cercles — Maître au sommet (plein) + 2 Padawans en
+          base, reliés par une lignée. Métaphore visuelle du clan / cohorte
+          en formation. */}
+      <circle cx="12" cy="6" r="1.8" fill="currentColor" stroke="none" />
+      <circle cx="6" cy="17" r="1.8" />
+      <circle cx="18" cy="17" r="1.8" />
+      <path d="M11 7.5 L7.5 15.5" />
+      <path d="M13 7.5 L16.5 15.5" />
+      <path d="M8 17 L16 17" />
+    </svg>
+  );
+}
+
 function ForgeIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -137,6 +164,13 @@ function buildNavItems(ownerProfileId: string | null): NavItem[] {
       Icon: GalerieIcon,
     });
   }
+
+  base.push({
+    label: "Padawans",
+    href: "/admin/crm",
+    matches: (p) => p.startsWith("/admin/crm"),
+    Icon: PadawansIcon,
+  });
 
   base.push({
     label: "Forge",
