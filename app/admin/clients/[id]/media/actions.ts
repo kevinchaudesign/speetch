@@ -15,6 +15,7 @@ const MAX_NAME_LEN = 80;
 // pète la requête (Hostinger / Supabase ont leur propre limite côté infra).
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20 MB
 const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
+const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50 MB
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/png",
@@ -30,6 +31,19 @@ const ALLOWED_VIDEO_TYPES = new Set([
   "video/webm",
   "video/quicktime",
   "video/x-matroska",
+]);
+
+const ALLOWED_AUDIO_TYPES = new Set([
+  "audio/mpeg", // MP3
+  "audio/mp4", // M4A (mp4 audio container)
+  "audio/x-m4a",
+  "audio/wav",
+  "audio/wave",
+  "audio/x-wav",
+  "audio/ogg",
+  "audio/aac",
+  "audio/flac",
+  "audio/webm",
 ]);
 
 async function requireOwnerAndAdmin() {
@@ -82,6 +96,10 @@ function cleanExt(filename: string, mime: string): string {
   if (extMatch) return extMatch[1];
   if (mime === "image/svg+xml") return "svg";
   if (mime === "image/jpeg") return "jpg";
+  if (mime === "audio/mpeg") return "mp3";
+  if (mime === "audio/x-m4a" || mime === "audio/mp4") return "m4a";
+  if (mime === "audio/wav" || mime === "audio/wave" || mime === "audio/x-wav")
+    return "wav";
   return mime.split("/").pop() ?? "bin";
 }
 
@@ -297,7 +315,8 @@ export async function uploadClientMedia(
   }
   const isImage = ALLOWED_IMAGE_TYPES.has(file.type);
   const isVideo = ALLOWED_VIDEO_TYPES.has(file.type);
-  if (!isImage && !isVideo) {
+  const isAudio = ALLOWED_AUDIO_TYPES.has(file.type);
+  if (!isImage && !isVideo && !isAudio) {
     return {
       ok: false,
       error: `Format non supporté (${file.type || "inconnu"}).`,
@@ -308,6 +327,9 @@ export async function uploadClientMedia(
   }
   if (isVideo && file.size > MAX_VIDEO_SIZE) {
     return { ok: false, error: "Vidéo trop volumineuse (max 200 MB)." };
+  }
+  if (isAudio && file.size > MAX_AUDIO_SIZE) {
+    return { ok: false, error: "Audio trop volumineux (max 50 MB)." };
   }
 
   // Path : clients/{profileId}/{timestamp}-{slugified-name}.{ext}

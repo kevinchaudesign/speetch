@@ -72,6 +72,9 @@ function isImage(mime: string) {
 function isVideo(mime: string) {
   return mime.startsWith("video/");
 }
+function isAudio(mime: string) {
+  return mime.startsWith("audio/");
+}
 
 /**
  * Convertit un mime_type ou un nom de fichier en label format court
@@ -481,14 +484,14 @@ export function MediaLibraryView({
                       : "Glisse des fichiers ici ou clique pour parcourir"}
                 </span>
                 <span className="font-serif text-sm italic text-white/35">
-                  Images 20 Mo · vidéos 200 Mo
+                  Images 20 Mo · vidéos 200 Mo · audios 50 Mo
                 </span>
               </div>
               <input
                 ref={inputRef}
                 type="file"
                 multiple
-                accept="image/*,video/*"
+                accept="image/*,video/*,audio/*"
                 onChange={onPickFiles}
                 className="hidden"
               />
@@ -899,6 +902,7 @@ function MediaTile({
 }) {
   const img = isImage(item.mime_type);
   const vid = isVideo(item.mime_type);
+  const aud = isAudio(item.mime_type);
 
   const handleTileClick = (e: React.MouseEvent) => {
     const meta = e.metaKey || e.ctrlKey;
@@ -965,16 +969,39 @@ function MediaTile({
             </span>
           </>
         )}
-        {!img && !vid && (
+        {aud && (
+          <>
+            <div className="absolute inset-0 flex items-center justify-center text-cyan-200/60">
+              <svg
+                width="48"
+                height="48"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.3"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden
+              >
+                <path d="M9 18V6l9-2v12" />
+                <circle cx="6" cy="18" r="3" />
+                <circle cx="15" cy="16" r="3" />
+              </svg>
+            </div>
+            <span className="absolute bottom-2 left-2 rounded-full bg-black/60 px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-white/80 backdrop-blur-sm">
+              Audio
+            </span>
+          </>
+        )}
+        {!img && !vid && !aud && (
           <span className="absolute inset-0 flex items-center justify-center text-[10px] uppercase tracking-[0.32em] text-white/40">
             {item.mime_type}
           </span>
         )}
 
-        {/* Badge format — JPG / PNG / WEBP / SVG / GIF / AVIF / MP4 / etc.
-            Toujours visible sur image et vidéo, opacité subtile pour ne
-            pas dominer la vignette. */}
-        {(img || vid) && (
+        {/* Badge format — JPG / PNG / WEBP / SVG / GIF / AVIF / MP4 / MP3 …
+            Toujours visible sur image, vidéo et audio. */}
+        {(img || vid || aud) && (
           <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">
             {formatLabel(item.mime_type, item.filename)}
           </span>
@@ -1537,6 +1564,32 @@ function PreviewModal({
                   autoPlay
                   className="max-h-[80vh] max-w-full"
                 />
+              ) : isAudio(item.mime_type) ? (
+                <div className="flex flex-col items-center gap-6 px-12 py-16">
+                  <div className="text-cyan-200/55">
+                    <svg
+                      width="80"
+                      height="80"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      strokeWidth="1.2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      aria-hidden
+                    >
+                      <path d="M9 18V6l9-2v12" />
+                      <circle cx="6" cy="18" r="3" />
+                      <circle cx="15" cy="16" r="3" />
+                    </svg>
+                  </div>
+                  <audio
+                    src={item.public_url}
+                    controls
+                    autoPlay
+                    className="w-full max-w-md"
+                  />
+                </div>
               ) : (
                 <p className="px-6 py-12 text-center text-sm text-white/55">
                   Aperçu non disponible pour ce format.
