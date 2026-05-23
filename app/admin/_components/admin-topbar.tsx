@@ -65,16 +65,17 @@ export function AdminTopbar({
 
   return (
     <div
-      className="fixed right-4 top-4 z-30 hidden items-center gap-3 md:flex"
+      className="fixed right-4 top-4 z-30 hidden items-center gap-5 md:flex"
       role="toolbar"
       aria-label="Barre utilisateur admin"
     >
-      {/* Icône To-Do — liste de tâches Jedi (placeholder, route à venir) */}
+      {/* Icône To-Do — liste de tâches Jedi (placeholder, route à venir).
+          Pas de cercle d'arrière-plan : l'icône respire dans l'espace. */}
       <Link
         href="/admin/todo"
         aria-label="Tâches Jedi"
         title="Tâches Jedi"
-        className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-cyan-200/15 bg-black/40 text-cyan-200/70 backdrop-blur-md transition-colors duration-300 hover:border-cyan-200/45 hover:bg-cyan-200/[0.08] hover:text-cyan-100"
+        className="inline-flex h-10 w-10 items-center justify-center text-cyan-200/70 transition-colors duration-300 hover:text-cyan-100"
       >
         <TodoIcon />
       </Link>
@@ -85,7 +86,7 @@ export function AdminTopbar({
         onClick={openAssistant}
         aria-label="Ouvrir la messagerie Maître Yoda"
         title="Ouvrir Maître Yoda"
-        className="group inline-flex h-10 w-10 items-center justify-center rounded-full border border-cyan-200/15 bg-black/40 text-cyan-200/70 backdrop-blur-md transition-colors duration-300 hover:border-cyan-200/45 hover:bg-cyan-200/[0.08] hover:text-cyan-100"
+        className="inline-flex h-10 w-10 items-center justify-center text-cyan-200/70 transition-colors duration-300 hover:text-cyan-100"
       >
         <MessageIcon />
       </button>
@@ -194,12 +195,12 @@ export function AdminTopbar({
 function MessageIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="22"
+      height="22"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.4"
+      strokeWidth="1.3"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
@@ -213,12 +214,12 @@ function MessageIcon() {
 function TodoIcon() {
   return (
     <svg
-      width="16"
-      height="16"
+      width="22"
+      height="22"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
-      strokeWidth="1.4"
+      strokeWidth="1.3"
       strokeLinecap="round"
       strokeLinejoin="round"
       aria-hidden
