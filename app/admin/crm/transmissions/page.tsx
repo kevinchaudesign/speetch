@@ -3,7 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button, StatusBadge } from "@/lib/ds";
-import { isBrevoConfigured } from "@/lib/brevo";
+import { isBrevoSettingsConfigured } from "@/lib/brevo-config";
 import {
   TRANSMISSION_STATUS_LABEL,
   TRANSMISSION_STATUS_TONE,
@@ -62,7 +62,7 @@ export default async function TransmissionsListPage() {
     .returns<TransmissionListRow[]>();
 
   const transmissions = data ?? [];
-  const brevoOk = isBrevoConfigured();
+  const brevoOk = await isBrevoSettingsConfigured();
 
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
@@ -141,23 +141,14 @@ export default async function TransmissionsListPage() {
                 Émetteur Brevo non configuré
               </p>
               <p className="font-serif italic">
-                Ajoute{" "}
-                <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-[12px]">
-                  BREVO_API_KEY
-                </code>{" "}
-                et{" "}
-                <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-[12px]">
-                  BREVO_SENDER_EMAIL
-                </code>{" "}
-                (optionnel :{" "}
-                <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-[12px]">
-                  BREVO_SENDER_NAME
-                </code>
-                ) dans{" "}
-                <code className="rounded bg-black/40 px-1.5 py-0.5 font-mono text-[12px]">
-                  .env.local
-                </code>
-                , puis redémarre le serveur.
+                Va dans{" "}
+                <Link
+                  href="/admin/settings/brevo"
+                  className="not-italic text-cyan-200 underline-offset-4 hover:underline"
+                >
+                  Forge → Émetteur Brevo
+                </Link>{" "}
+                pour sceller ta clé API et ton sender par défaut.
               </p>
             </div>
           )}

@@ -47,12 +47,14 @@ export function NewTransmissionForm({
   statusLabels,
   senderEmail,
   senderName,
+  defaultReplyTo,
 }: {
   padawans: PadawanPick[];
   statusValues: PadawanStatus[];
   statusLabels: Record<PadawanStatus, string>;
   senderEmail: string;
   senderName: string;
+  defaultReplyTo: string;
 }) {
   const router = useRouter();
   const [state, formAction] = useActionState(sendTransmission, INITIAL_STATE);
@@ -131,8 +133,11 @@ export function NewTransmissionForm({
       transition={{ duration: 0.9, delay: 0.2, ease: EASE_OUT_EXPO }}
       className="flex w-full max-w-3xl flex-col gap-10"
     >
-      {/* Sender info — lecture seule, configurée via .env */}
-      <Field label="Émetteur" hint="défini par BREVO_SENDER_*">
+      {/* Sender info — lecture seule, configurée via Forge → Émetteur Brevo */}
+      <Field
+        label="Émetteur"
+        hint="défini dans Forge → Émetteur Brevo"
+      >
         <span className="border-b border-cyan-200/15 bg-transparent pb-3 font-mono text-sm text-white/65">
           {senderName ? `${senderName} ` : ""}
           <span className="text-white/40">&lt;</span>
@@ -141,14 +146,21 @@ export function NewTransmissionForm({
         </span>
       </Field>
 
-      <Field label="Adresse de réponse" hint="optionnel — Reply-To">
+      <Field
+        label="Adresse de réponse"
+        hint={
+          defaultReplyTo
+            ? `vide = défaut Brevo (${defaultReplyTo})`
+            : "optionnel — Reply-To"
+        }
+      >
         <input
           type="email"
           name="reply_to"
           autoComplete="off"
           inputMode="email"
           spellCheck={false}
-          placeholder={senderEmail || "réponse@speetch.fr"}
+          placeholder={defaultReplyTo || senderEmail || "réponse@speetch.fr"}
           className="border-b border-cyan-200/25 bg-transparent pb-3 font-sans text-base font-light text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none"
         />
       </Field>

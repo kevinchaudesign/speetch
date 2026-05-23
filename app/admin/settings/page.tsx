@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button, Eyebrow, Hairline } from "@/lib/ds";
+import { loadBrevoSettingsMeta } from "@/lib/brevo-config";
 
 export const metadata: Metadata = {
   title: "Forge",
@@ -31,6 +32,7 @@ export default async function SettingsHome() {
     { count: templateCount },
     { data: ownerProfile },
     { data: emailAccount },
+    brevoMeta,
   ] = await Promise.all([
     admin
       .from("page_templates")
@@ -46,6 +48,7 @@ export default async function SettingsHome() {
       .order("created_at", { ascending: true })
       .limit(1)
       .maybeSingle<{ email: string }>(),
+    loadBrevoSettingsMeta(),
   ]);
 
   const hasCustomChatbotPrompt =
@@ -76,6 +79,16 @@ export default async function SettingsHome() {
       hint: emailAccount?.email ?? "Non configuré",
       summary:
         "Connecte ta boîte contact@speetch.com (Infomaniak) pour recevoir et envoyer des emails depuis le Conseil. IMAP + SMTP, mot de passe chiffré AES-256.",
+    },
+    {
+      href: "/admin/settings/brevo",
+      label: "Émetteur Brevo",
+      hint:
+        brevoMeta && brevoMeta.hasApiKey && brevoMeta.senderEmail
+          ? brevoMeta.senderEmail
+          : "Non configuré",
+      summary:
+        "Pont vers api.brevo.com pour expédier les Transmissions aux Padawans. Clé API chiffrée AES-256-GCM, sender par défaut configurable.",
     },
     {
       href: "/admin/settings/design-system",

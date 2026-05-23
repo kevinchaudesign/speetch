@@ -2,7 +2,10 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { getBrevoDefaultSender, isBrevoConfigured } from "@/lib/brevo";
+import {
+  isBrevoSettingsConfigured,
+  loadBrevoSettingsMeta,
+} from "@/lib/brevo-config";
 import {
   PADAWAN_STATUS_LABEL,
   PADAWAN_STATUS_VALUES,
@@ -42,7 +45,7 @@ export default async function NewTransmissionPage() {
 
   // Si Brevo n'est pas configuré, on renvoie vers la liste qui affichera
   // l'écran d'instruction. Évite un form qui ne mènerait nulle part.
-  if (!isBrevoConfigured()) {
+  if (!(await isBrevoSettingsConfigured())) {
     redirect("/admin/crm/transmissions");
   }
 
@@ -64,7 +67,7 @@ export default async function NewTransmissionPage() {
       : p.status,
   }));
 
-  const sender = getBrevoDefaultSender();
+  const brevo = await loadBrevoSettingsMeta();
 
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
@@ -128,8 +131,9 @@ export default async function NewTransmissionPage() {
           padawans={padawans}
           statusValues={[...PADAWAN_STATUS_VALUES]}
           statusLabels={PADAWAN_STATUS_LABEL}
-          senderEmail={sender?.email ?? ""}
-          senderName={sender?.name ?? ""}
+          senderEmail={brevo?.senderEmail ?? ""}
+          senderName={brevo?.senderName ?? ""}
+          defaultReplyTo={brevo?.replyTo ?? ""}
         />
       </section>
     </div>

@@ -3,12 +3,8 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import {
-  getBrevoDefaultSender,
-  isBrevoConfigured,
-  sendBrevoTransactional,
-  textToBrevoHtml,
-} from "@/lib/brevo";
+import { sendBrevoTransactional, textToBrevoHtml } from "@/lib/brevo";
+import { loadBrevoSettings } from "@/lib/brevo-config";
 import {
   TRANSMISSION_MAX_RECIPIENTS,
   type TransmissionRecipient,
@@ -53,18 +49,12 @@ export async function sendTransmission(
   const auth = await requireOwnerAndAdmin();
   if ("error" in auth) return { status: "error", error: auth.error };
 
-  if (!isBrevoConfigured()) {
+  const brevo = await loadBrevoSettings();
+  if (!brevo) {
     return {
       status: "error",
       error:
-        "Brevo non configuré : ajoute BREVO_API_KEY et BREVO_SENDER_EMAIL dans .env.local.",
-    };
-  }
-  const defaultSender = getBrevoDefaultSender();
-  if (!defaultSender) {
-    return {
-      status: "error",
-      error: "BREVO_SENDER_EMAIL manquant.",
+        "Émetteur Brevo non configuré. Va dans Forge → Émetteur Brevo pour le sceller.",
     };
   }
 
@@ -126,6 +116,9 @@ export async function sendTransmission(
 
   const htmlContent = textToBrevoHtml(bodyText);
 
+  // Reply-To : valeur saisie au compose, sinon valeur par défaut Brevo.
+  const replyToEmail = replyToRaw || brevo.replyTo || null;
+
   // 1) Insère la transmission en statut 'sending' (snapshot recipients).
   const { data: inserted, error: insertError } = await auth.admin
     .from("crm_transmissions" as never)
@@ -133,9 +126,9 @@ export async function sendTransmission(
       subject,
       body_text: bodyText,
       body_html: htmlContent,
-      sender_email: defaultSender.email,
-      sender_name: defaultSender.name,
-      reply_to: replyToRaw || null,
+      sender_email: brevo.senderEmail,
+      sender_name: brevo.senderName,
+      reply_to: replyToEmail,
       recipients: validRecipients,
       recipient_count: validRecipients.length,
       status: "sending",
@@ -155,13 +148,15 @@ export async function sendTransmission(
 
   // 2) Envois en parallèle via Brevo (1 API call / destinataire, OK
   // jusqu'à ~200, après on devrait passer par les Campaigns Brevo).
-  const replyTo = replyToRaw
-    ? { email: replyToRaw, name: defaultSender.name }
+  const replyTo = replyToEmail
+    ? { email: replyToEmail, name: brevo.senderName }
     : undefined;
 
   const results = await Promise.all(
     validRecipients.map(async (r) => {
       const out = await sendBrevoTransactional({
+        apiKey: brevo.apiKey,
+        sender: { email: brevo.senderEmail, name: brevo.senderName },
         to: { email: r.email, name: r.full_name },
         subject,
         htmlContent,

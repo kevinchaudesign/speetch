@@ -4,51 +4,34 @@
  * Endpoint : POST https://api.brevo.com/v3/smtp/email
  * Docs     : https://developers.brevo.com/reference/sendtransacemail
  *
- * On ne passe pas par le SDK officiel pour rester léger et server-only.
- * Les env vars BREVO_API_KEY / BREVO_SENDER_EMAIL / BREVO_SENDER_NAME sont
- * lues côté serveur uniquement (jamais exposées au bundle client).
+ * Pas de SDK officiel pour rester léger et server-only. La clé API et le
+ * sender par défaut sont stockés en BDD via crm_brevo_settings (cf.
+ * lib/brevo-config.ts) et passés explicitement en argument — ce module
+ * ne lit jamais de variables d'environnement.
  */
 
 const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
+const BREVO_ACCOUNT_ENDPOINT = "https://api.brevo.com/v3/account";
 
 export type BrevoSendResult =
   | { ok: true; messageId: string }
   | { ok: false; error: string };
 
 export type BrevoSendArgs = {
+  apiKey: string;
+  sender: { email: string; name?: string | null };
   to: { email: string; name?: string | null };
   subject: string;
   htmlContent?: string;
   textContent?: string;
-  /** Surcharge du sender par défaut (env). */
-  sender?: { email: string; name?: string | null };
   replyTo?: { email: string; name?: string | null };
   /** Tags Brevo (analytics, filtres). */
   tags?: string[];
 };
 
-/** Vrai si BREVO_API_KEY + sender par défaut sont configurés. */
-export function isBrevoConfigured(): boolean {
-  return Boolean(
-    process.env.BREVO_API_KEY && process.env.BREVO_SENDER_EMAIL,
-  );
-}
-
-export function getBrevoDefaultSender(): {
-  email: string;
-  name: string | null;
-} | null {
-  const email = process.env.BREVO_SENDER_EMAIL?.trim();
-  if (!email) return null;
-  return {
-    email,
-    name: process.env.BREVO_SENDER_NAME?.trim() || null,
-  };
-}
-
 /**
- * Envoie un email transactionnel via Brevo. Renvoie le messageId
- * sur succès, ou un message d'erreur lisible.
+ * Envoie un email transactionnel via Brevo. Renvoie le messageId sur
+ * succès, ou un message d'erreur lisible.
  *
  * Timeout : 20 s (au-delà, on considère l'API en panne plutôt que
  * d'attendre indéfiniment).
@@ -56,17 +39,11 @@ export function getBrevoDefaultSender(): {
 export async function sendBrevoTransactional(
   args: BrevoSendArgs,
 ): Promise<BrevoSendResult> {
-  const apiKey = process.env.BREVO_API_KEY;
-  if (!apiKey) {
-    return { ok: false, error: "BREVO_API_KEY manquant dans .env.local." };
+  if (!args.apiKey) {
+    return { ok: false, error: "Clé API Brevo manquante." };
   }
-  const defaultSender = getBrevoDefaultSender();
-  const sender = args.sender ?? defaultSender;
-  if (!sender) {
-    return {
-      ok: false,
-      error: "Sender Brevo non configuré (BREVO_SENDER_EMAIL).",
-    };
+  if (!args.sender?.email) {
+    return { ok: false, error: "Sender Brevo manquant." };
   }
   if (!args.htmlContent && !args.textContent) {
     return {
@@ -76,7 +53,10 @@ export async function sendBrevoTransactional(
   }
 
   const payload: Record<string, unknown> = {
-    sender: { email: sender.email, name: sender.name ?? undefined },
+    sender: {
+      email: args.sender.email,
+      name: args.sender.name ?? undefined,
+    },
     to: [{ email: args.to.email, name: args.to.name ?? undefined }],
     subject: args.subject,
   };
@@ -98,7 +78,7 @@ export async function sendBrevoTransactional(
       method: "POST",
       headers: {
         accept: "application/json",
-        "api-key": apiKey,
+        "api-key": args.apiKey,
         "content-type": "application/json",
       },
       body: JSON.stringify(payload),
@@ -125,6 +105,52 @@ export async function sendBrevoTransactional(
       e instanceof Error
         ? e.name === "AbortError"
           ? "Brevo : délai dépassé (20s)."
+          : e.message
+        : "Erreur inconnue Brevo.";
+    return { ok: false, error: msg };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+/**
+ * Ping de validation : appelle GET /v3/account avec la clé fournie.
+ * Plus léger qu'un envoi réel et confirme la validité de la clé.
+ */
+export type BrevoTestResult =
+  | { ok: true; email: string; companyName: string | null }
+  | { ok: false; error: string };
+
+export async function pingBrevoAccount(
+  apiKey: string,
+): Promise<BrevoTestResult> {
+  if (!apiKey) return { ok: false, error: "Clé API manquante." };
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 15_000);
+  try {
+    const res = await fetch(BREVO_ACCOUNT_ENDPOINT, {
+      method: "GET",
+      headers: { accept: "application/json", "api-key": apiKey },
+      signal: controller.signal,
+    });
+    const json = (await res.json().catch(() => ({}))) as {
+      email?: string;
+      companyName?: string;
+      message?: string;
+    };
+    if (!res.ok) {
+      return { ok: false, error: json.message || `HTTP ${res.status}` };
+    }
+    return {
+      ok: true,
+      email: String(json.email ?? ""),
+      companyName: json.companyName ?? null,
+    };
+  } catch (e) {
+    const msg =
+      e instanceof Error
+        ? e.name === "AbortError"
+          ? "Brevo : délai dépassé."
           : e.message
         : "Erreur inconnue Brevo.";
     return { ok: false, error: msg };
