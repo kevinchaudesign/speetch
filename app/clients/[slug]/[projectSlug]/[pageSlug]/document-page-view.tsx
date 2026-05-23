@@ -22,6 +22,8 @@ type Section = NonNullable<PageContent["sections"]>[number];
 export function DocumentPageView({
   clientSlug,
   clientName,
+  // projectName n'est pas affiché dans cette vue mais conservé dans
+  // la signature pour rester drop-in avec les autres *PageView.
   projectName,
   projectSlug,
   projectType,
@@ -54,6 +56,7 @@ export function DocumentPageView({
   const intro = content.intro ?? null;
   const sections = content.sections ?? [];
   const projectTypeLabel = getProjectTypeLabel(projectType);
+  void projectName; // prop reçu pour rester drop-in mais non affiché ici
 
   return (
     <div className="doc-page relative min-h-svh w-full">

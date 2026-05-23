@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { Button, Eyebrow, StatusBadge } from "@/lib/ds";
+import { Button, StatusBadge } from "@/lib/ds";
 import {
   PADAWAN_STATUS_LABEL,
   PADAWAN_STATUS_TONE,

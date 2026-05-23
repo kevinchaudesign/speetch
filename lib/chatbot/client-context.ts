@@ -574,7 +574,6 @@ function formatSnapshot(input: {
     lines.push("");
   } else {
     lines.push(`### Médiathèque (${media.total} fichier(s))`);
-    const folderById = new Map(media.folders.map((f) => [f.id, f]));
     const byFolder = new Map<string | null, MediaEntry[]>();
     for (const m of media.entries) {
       const arr = byFolder.get(m.folder_id) ?? [];

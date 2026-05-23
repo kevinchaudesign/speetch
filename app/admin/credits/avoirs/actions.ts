@@ -5,7 +5,6 @@ import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { loadEmitterSettings, getPrefixes } from "@/lib/credits/emitter";
 import { nextCreditNumber } from "@/lib/credits/numbering";
-import type { InvoiceRow } from "@/lib/credits/types";
 
 export type CreditNoteState = {
   status: "idle" | "success" | "error";
@@ -151,7 +150,9 @@ export async function createCreditNote(
 export async function deleteCreditNote(formData: FormData): Promise<void> {
   // Pas de suppression — un avoir doit rester (audit). Action vide pour
   // l'instant, on pourrait l'utiliser pour autre chose (corriger le motif…).
-  return;
+  // formData ignoré volontairement, mais la signature Server Action est
+  // requise par Next pour l'utiliser comme `action` d'un form.
+  void formData;
 }
 
 /** Server action utilisée par le bouton "Ouvrir le PDF" pour rediriger. */
