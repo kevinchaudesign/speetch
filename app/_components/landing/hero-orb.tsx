@@ -30,6 +30,31 @@ const SIZE = 600;
 const CX = SIZE / 2;
 const CY = SIZE / 2;
 
+/**
+ * Compétences IA — un label par nœud, orbitant avec le réseau.
+ *  - Index 0-7 : orbite intérieure (8 nœuds)
+ *  - Index 8-15 : orbite extérieure (8 nœuds)
+ * Tout en MAJ + format court (≤ 14 chars) pour éviter les chevauchements.
+ */
+const LABELS = [
+  "AUTOMATISATIONS",
+  "AGENTS IA",
+  "PROMPTS",
+  "LLMS CUSTOM",
+  "FINE-TUNING",
+  "RAG",
+  "EMBEDDINGS",
+  "WORKFLOWS",
+  "GEO",
+  "VOIX SYNTH.",
+  "IMAGE GÉN.",
+  "VIDÉO GÉN.",
+  "ÉDITION IA",
+  "SEARCH AUG.",
+  "DATA PIPES",
+  "BRAND VOICE",
+] as const;
+
 /** Place N nœuds régulièrement sur un cercle, avec un offset angulaire. */
 function placeRing(count: number, radius: number, offsetDeg = 0, orbit: 0 | 1 = 0): Node[] {
   const nodes: Node[] = [];
@@ -326,6 +351,44 @@ export function HeroOrb({
               />
             </g>
           ))}
+
+          {/* Labels skills IA — orbitent AVEC les nœuds (sont dans
+              `.speetch-orb-net` qui tourne CW 120s). Chaque <text> a sa
+              propre contre-rotation CCW 120s pivotée sur SON centre bbox
+              (`transform-box: fill-box` + `transform-origin: center`) →
+              annule la rotation parent → reste lisible à l'horizontale.
+              Offset radial vers l'extérieur depuis chaque nœud. */}
+          {nodes.map((n, i) => {
+            const dx = n.x - CX;
+            const dy = n.y - CY;
+            const len = Math.hypot(dx, dy) || 1;
+            const ux = dx / len;
+            const uy = dy / len;
+            const offset = n.orbit === 0 ? 30 : 37;
+            const lx = n.x + ux * offset;
+            const ly = n.y + uy * offset;
+            return (
+              <text
+                key={`label-${i}`}
+                x={lx.toFixed(2)}
+                y={ly.toFixed(2)}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize={n.orbit === 0 ? 9.5 : 10.5}
+                fill="rgba(186, 230, 253, 0.78)"
+                fontFamily="ui-monospace, SF Mono, Menlo, monospace"
+                letterSpacing="0.22em"
+                className="speetch-orb-label-counter"
+                style={{
+                  transformBox: "fill-box",
+                  transformOrigin: "center",
+                  filter: "drop-shadow(0 0 5px rgba(125, 211, 252, 0.55))",
+                }}
+              >
+                {LABELS[i]}
+              </text>
+            );
+          })}
         </g>
 
         {/* ──────────────── 4. Kyber crystal central ──────────────── */}
@@ -393,6 +456,16 @@ export function HeroOrb({
         .speetch-orb-rot-cw-medium  { animation: speetch-orb-rot-cw  46s linear infinite; }
         .speetch-orb-rot-ccw-slow   { animation: speetch-orb-rot-ccw 72s linear infinite; }
         .speetch-orb-net            { animation: speetch-orb-rot-cw  120s linear infinite; }
+
+        /* Counter-rotation des labels — annule exactement la rotation du
+           parent .speetch-orb-net (même durée 120s, sens inverse).
+           Pivot fixé sur le bbox de chaque texte via inline
+           transformBox: fill-box + transformOrigin: center → chaque
+           label tourne sur SON centre propre (pas autour de l origine
+           du SVG) → reste à l horizontale. */
+        .speetch-orb-label-counter {
+          animation: speetch-orb-rot-ccw 120s linear infinite;
+        }
 
         @keyframes speetch-orb-pulse {
           0%, 100% { transform: scale(1);   opacity: 0.6; }
