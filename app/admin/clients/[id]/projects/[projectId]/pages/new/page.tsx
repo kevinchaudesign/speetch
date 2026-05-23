@@ -11,11 +11,13 @@ import { NewPageForm } from "./new-page-form";
 import { NewRawHtmlPageForm } from "./new-raw-html-page-form";
 import { BusinessPlanPicker } from "./business-plan-picker";
 import { MarketResearchPicker } from "./market-research-picker";
+import { PitchDeckPicker } from "./pitch-deck-picker";
 import { NewBusinessPlanImportForm } from "./new-business-plan-import-form";
 import { TemplatePicker } from "./template-picker";
 
 const BUSINESS_PLAN_TEMPLATE_ID = "business_plan";
 const MARKET_RESEARCH_TEMPLATE_ID = "market_research";
+const PITCH_DECK_TEMPLATE_ID = "pitch_deck";
 
 export const metadata: Metadata = {
   title: "Nouveau parchemin",
@@ -156,6 +158,45 @@ export default async function NewPagePage({
     if (mode !== "create") {
       return (
         <MarketResearchPicker
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+        />
+      );
+    }
+    // mode === "create" → continue vers le form standard avec template pré-rempli
+  }
+
+  // Étape 2d — flow spécial "Pitch deck" : même pattern (10 slides
+  // pré-remplis + import .docx / HTML artifact).
+  if (template === PITCH_DECK_TEMPLATE_ID) {
+    if (mode === "import-docx") {
+      return (
+        <NewBusinessPlanImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="docx"
+          templateId="pitch_deck"
+          templateLabel="Pitch deck"
+        />
+      );
+    }
+    if (mode === "import-html") {
+      return (
+        <NewBusinessPlanImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="html"
+          templateId="pitch_deck"
+          templateLabel="Pitch deck"
+        />
+      );
+    }
+    if (mode !== "create") {
+      return (
+        <PitchDeckPicker
           clientId={profile.id}
           projectId={projectId}
           projectName={project.name}

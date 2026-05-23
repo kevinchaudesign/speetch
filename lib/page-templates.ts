@@ -202,6 +202,81 @@ export const PAGE_TEMPLATES: readonly PageTemplate[] = [
     },
   },
   {
+    id: "pitch_deck",
+    label: "Pitch deck",
+    tagline: "Structure 10 slides + import .docx / artifact Claude",
+    description:
+      "Parchemin pitch deck avec 10 slides standard pré-remplis (format YC / Sequoia : cover, problem, solution, market, business model, traction, competition, team, ask). À l'ouverture, choix entre démarrer vierge, partir de la structure pré-remplie, importer un .docx Word ou importer un fichier HTML d'artifacts Claude.",
+    source: "code",
+    projectType: null,
+    defaultContent: {
+      intro:
+        "Pitch deck investisseur — 10 slides pour raconter l'histoire et lever des fonds.",
+      sections: [
+        {
+          id: "__SECTION_1__",
+          type: "text",
+          title: "01 · Cover & vision",
+          body: "Nom de l'entreprise + baseline en une phrase. La vision long terme en une formule mémorable : où on va, pourquoi ça compte. La promesse forte qui fait lever la tête.",
+        },
+        {
+          id: "__SECTION_2__",
+          type: "text",
+          title: "02 · Problème",
+          body: "Quel problème on résout, pour qui, pourquoi il est urgent. Verbatims, chiffres choc, anecdotes. Le lecteur doit sentir la douleur dans les 30 secondes.",
+        },
+        {
+          id: "__SECTION_3__",
+          type: "text",
+          title: "03 · Solution",
+          body: "Notre réponse en une phrase mémorisable. Le before / after que vit le client. Différenciation par rapport au status quo (et pas par rapport aux concurrents — c'est plus loin).",
+        },
+        {
+          id: "__SECTION_4__",
+          type: "text",
+          title: "04 · Produit & démo",
+          body: "Captures d'écran, vidéo demo, parcours utilisateur. Le moins de mots possible — le produit parle de lui-même. Les 3 features clés qui font la magie.",
+        },
+        {
+          id: "__SECTION_5__",
+          type: "text",
+          title: "05 · Marché",
+          body: "TAM / SAM / SOM avec sources crédibles. Pourquoi maintenant : tendances qui rendent ce marché attaquable aujourd'hui (tech, régulation, comportements). Trajectoire de croissance.",
+        },
+        {
+          id: "__SECTION_6__",
+          type: "text",
+          title: "06 · Business model",
+          body: "Comment on gagne de l'argent : pricing, segments payants, unit economics (CAC, LTV, marges). Modèle scalable expliqué simplement. Hypothèses chiffrées de la trajectoire.",
+        },
+        {
+          id: "__SECTION_7__",
+          type: "text",
+          title: "07 · Traction & milestones",
+          body: "Métriques croissance (MRR, users, partenariats, NPS). Trend ascendant visualisé. Milestones atteints depuis la création. Logos clients ou pilots si pertinent.",
+        },
+        {
+          id: "__SECTION_8__",
+          type: "text",
+          title: "08 · Concurrence & positionnement",
+          body: "Quadrant de positionnement (X et Y honnêtement choisis pour montrer ton coin libre). Forces / faiblesses des leaders. Ton moat : pourquoi tu vas gagner.",
+        },
+        {
+          id: "__SECTION_9__",
+          type: "text",
+          title: "09 · Équipe",
+          body: "Fondateurs : pourquoi vous, qui a fait quoi avant. Key hires + advisors. Photos + 1-2 lignes par personne. La founder-market fit est une partie du pitch.",
+        },
+        {
+          id: "__SECTION_10__",
+          type: "text",
+          title: "10 · Ask & usage des fonds",
+          body: "Montant levé, valorisation cible, type de tour (seed / series A). Usage des fonds (% produit / commercial / hire). Milestones que cet argent permettra d'atteindre (18-24 mois).",
+        },
+      ],
+    },
+  },
+  {
     id: "market_research",
     label: "Étude de marché",
     tagline: "Structure complète + import .docx / artifact Claude",
