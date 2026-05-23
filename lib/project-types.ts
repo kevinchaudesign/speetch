@@ -33,6 +33,11 @@ export const PROJECT_TYPES = [
     tagline: "Design et développement, du concept au déploiement",
   },
   {
+    value: "app_mobile",
+    label: "App mobile",
+    tagline: "iOS, Android, cross-plateforme — du wireframe au store",
+  },
+  {
     value: "video",
     label: "Vidéo · Motion design",
     tagline: "Animation, montage, broadcast",
