@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { Button, Eyebrow, Hairline } from "@/lib/ds";
+import { Button, Hairline } from "@/lib/ds";
 import { isStarWarsDay } from "@/lib/sw/star-wars-day";
+import { DashboardCockpit } from "./_components/dashboard";
+import { loadCockpitData } from "./_components/dashboard/data";
 
 export const metadata: Metadata = {
   title: "Admin",
@@ -10,49 +12,6 @@ export const metadata: Metadata = {
 };
 
 export const dynamic = "force-dynamic";
-
-/* Icône Holocron — petit cube isométrique pour la section Holocrons clients */
-function HolocronIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.1"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <path d="M12 3 L4 7 L4 17 L12 21 L20 17 L20 7 Z" />
-      <path d="M12 3 L12 12 M12 12 L4 7 M12 12 L20 7 M12 12 L12 21" />
-    </svg>
-  );
-}
-
-/* Icône Console — hexagone avec dots, vibe panneau de commande Jedi */
-function ConsoleIcon({ className }: { className?: string }) {
-  return (
-    <svg
-      className={className}
-      width="22"
-      height="22"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.1"
-      strokeLinejoin="round"
-      aria-hidden
-    >
-      <polygon points="12,3 21,8 21,16 12,21 3,16 3,8" />
-      <circle cx="9" cy="11" r="0.9" fill="currentColor" stroke="none" />
-      <circle cx="15" cy="11" r="0.9" fill="currentColor" stroke="none" />
-      <circle cx="12" cy="15" r="0.9" fill="currentColor" stroke="none" />
-    </svg>
-  );
-}
 
 export default async function AdminPage() {
   const supabase = await createClient();
@@ -79,6 +38,9 @@ export default async function AdminPage() {
     .maybeSingle();
   const masterName =
     ownerProfile?.full_name?.trim() || user.email?.split("@")[0] || "Jedi";
+
+  // Données cockpit — agrégats KPI + funnel + activity feed.
+  const cockpit = await loadCockpitData();
 
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
@@ -116,8 +78,7 @@ export default async function AdminPage() {
         </form>
       </header>
 
-      {/* Centre */}
-      <section className="mx-auto flex max-w-4xl flex-col items-start gap-12 pt-24 md:pt-20">
+      <section className="mx-auto flex max-w-7xl flex-col gap-10 pt-24 md:pt-12">
         {/* Easter egg — bannière May the 4th uniquement le 4 mai */}
         {isStarWarsDay() && (
           <div
@@ -141,99 +102,92 @@ export default async function AdminPage() {
           </div>
         )}
 
-        <Eyebrow tracking="lg" className="text-cyan-200/80">
-          Conseil Jedi
-        </Eyebrow>
+        {/* Cockpit header — HUD avec status, identité, horloge système */}
+        <CockpitHeader
+          masterName={masterName}
+          email={user.email ?? ""}
+          isOwner={isOwner}
+        />
 
+        {/* Le cockpit lui-même — graphiques, KPI, activity feed */}
+        <DashboardCockpit data={cockpit} />
+      </section>
+
+      {/* Footer */}
+      <footer className="mt-12 flex items-end justify-between px-0 py-6 text-[11px] uppercase tracking-[0.28em] text-white/40">
+        <span>Temple Jedi · An 2026</span>
+        <span className="text-cyan-200/55">Speetch — Conseil Jedi</span>
+      </footer>
+    </div>
+  );
+}
+
+/**
+ * Bandeau cockpit en haut du dashboard. Style HUD :
+ *  - Identité Jedi en gros (titre type "MAÎTRE X · CONSEIL")
+ *  - Statut transmission (dot pulsant)
+ *  - Email + warning si non-owner
+ *  - Coordonnées système (pseudo-télémétrie galactique)
+ */
+function CockpitHeader({
+  masterName,
+  email,
+  isOwner,
+}: {
+  masterName: string;
+  email: string;
+  isOwner: boolean;
+}) {
+  return (
+    <div className="relative flex flex-col gap-6 border border-cyan-200/15 bg-cyan-200/[0.018] px-6 py-7 md:flex-row md:items-center md:justify-between md:px-8 md:py-8">
+      {/* Brackets HUD */}
+      <span
+        aria-hidden
+        className="absolute left-0 top-0 h-2 w-2 border-l border-t border-cyan-200/55"
+      />
+      <span
+        aria-hidden
+        className="absolute right-0 top-0 h-2 w-2 border-r border-t border-cyan-200/55"
+      />
+      <span
+        aria-hidden
+        className="absolute bottom-0 left-0 h-2 w-2 border-b border-l border-cyan-200/55"
+      />
+      <span
+        aria-hidden
+        className="absolute bottom-0 right-0 h-2 w-2 border-b border-r border-cyan-200/55"
+      />
+
+      <div className="flex flex-col gap-3">
+        <span className="text-[10px] uppercase tracking-[0.4em] text-cyan-200/65">
+          Conseil Jedi · Poste de pilotage
+        </span>
         <h1
           className="font-sans font-extralight leading-[0.85] tracking-[-0.05em] text-[#F5F5F7]"
-          style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
+          style={{ fontSize: "clamp(1.85rem, 4.5vw, 3.25rem)" }}
         >
           Bienvenue,{" "}
           <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
             Maître {masterName}
           </span>
         </h1>
+      </div>
 
-        <div className="flex flex-col gap-3 text-[11px] uppercase tracking-[0.32em] text-white/55">
-          <div className="flex items-center gap-3">
-            <span className="sw-cyan-dot block h-1.5 w-1.5 rounded-full bg-cyan-300" />
-            <span className="text-cyan-100/85">Transmission stabilisée</span>
-          </div>
-          <div className="text-white/40">{user.email}</div>
-          {!isOwner && (
-            <div className="text-amber-300/85">
-              Padawan — accès au Conseil restreint
-            </div>
-          )}
+      <div className="flex flex-col gap-2 md:items-end">
+        <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.32em] text-cyan-100/85">
+          <span className="relative inline-flex h-1.5 w-1.5">
+            <span className="absolute inset-0 animate-ping-soft rounded-full bg-cyan-300" />
+            <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-cyan-300" />
+          </span>
+          <span>Transmission stabilisée</span>
         </div>
-
-        {/* Hairline hologramme entre les sections */}
-        <div
-          aria-hidden
-          className="sw-hologram-line mt-8 w-full"
-        />
-
-        {/* ── Holocrons clients ───────────────────────────────────────── */}
-        <div className="mt-4 w-full">
-          <div className="flex items-center gap-3 text-cyan-200/85">
-            <HolocronIcon className="sw-hologram-text" />
-            <Eyebrow intensity="strong" className="text-cyan-100/80">
-              Holocrons clients
-            </Eyebrow>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center gap-x-12 gap-y-6">
-            <Button href="/admin/clients/new" variant="large">
-              Forger un nouvel holocron
-            </Button>
-            <Button href="/admin/clients" variant="primary">
-              Archives complètes
-            </Button>
-          </div>
-
-          <ul className="mt-12 flex flex-col gap-3 text-base text-white/45 md:text-lg">
-            <li>· Slug auto-généré à chaque ouverture</li>
-            <li>· Sceau scrypt + pepper côté serveur</li>
-            <li>· Lien holocron unique à transmettre</li>
-          </ul>
-        </div>
-
-        <div aria-hidden className="sw-hologram-line w-full" />
-
-        {/* ── Console du Maître ───────────────────────────────────────── */}
-        <div className="w-full">
-          <div className="flex items-center gap-3 text-cyan-200/85">
-            <ConsoleIcon className="sw-hologram-text" />
-            <Eyebrow intensity="strong" className="text-cyan-100/80">
-              Console du Maître
-            </Eyebrow>
-          </div>
-
-          <div className="mt-8 flex flex-wrap items-center gap-x-12 gap-y-6">
-            <Button href="/admin/settings" variant="large">
-              Ouvrir la console
-            </Button>
-            <Button href="/admin/settings/profile" variant="primary">
-              Identité Jedi
-            </Button>
-            <Button href="/admin/templates" variant="primary">
-              Blueprints
-            </Button>
-          </div>
-
-          <ul className="mt-12 flex flex-col gap-3 text-base text-white/45 md:text-lg">
-            <li>· Identité owner (nom de Maître, avatar)</li>
-            <li>· Blueprints HTML forgés via la Force (Claude API)</li>
-          </ul>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="absolute inset-x-0 bottom-0 flex items-end justify-between px-6 py-6 text-[11px] uppercase tracking-[0.28em] text-white/40 md:px-12">
-        <span>Temple Jedi · An 2026</span>
-        <span className="text-cyan-200/55">Speetch — Conseil Jedi</span>
-      </footer>
+        <span className="font-mono text-[11px] text-white/40">{email}</span>
+        {!isOwner && (
+          <span className="text-[10px] uppercase tracking-[0.32em] text-amber-300/85">
+            Padawan · accès restreint
+          </span>
+        )}
+      </div>
     </div>
   );
 }
