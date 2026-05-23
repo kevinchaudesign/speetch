@@ -5,7 +5,6 @@ import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { AudioToggle } from "./audio-toggle";
-import { AurebeshMark } from "@/app/_components/aurebesh-mark";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const COLLAPSE_DURATION_MS = 500;
@@ -313,16 +312,6 @@ export function AdminSidebar({
         />
 
         <AudioToggle collapsed={collapsed} />
-
-        {/* Signature Aurebesh — petite frise décorative, hide collapsed */}
-        <div
-          className={cn(
-            "overflow-hidden transition-all duration-500 ease-out",
-            collapsed ? "max-h-0 opacity-0" : "max-h-8 opacity-100 pt-1",
-          )}
-        >
-          <AurebeshMark size={10} />
-        </div>
 
         {/* "Quitter le Temple" a été déplacé dans le menu profil de la
             topbar (avatar en haut à droite). */}
