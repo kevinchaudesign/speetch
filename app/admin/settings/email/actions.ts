@@ -155,73 +155,23 @@ export async function deleteEmailAccount(): Promise<EmailSettingsState> {
 }
 
 /**
- * Test rapide de la config : ouvre une connexion IMAP + une vérif SMTP,
- * ferme, retourne ok/error. Utile pour valider la saisie sans devoir
- * envoyer un vrai email.
+ * Test de la connexion IMAP+SMTP — désactivé temporairement.
+ *
+ * Les deps `imapflow`, `nodemailer`, `mailparser` ont été retirées pour
+ * stabiliser le build Hostinger (deps natives lourdes qui faisaient
+ * planter le déploiement). À réintroduire en Phase 2 quand on aura
+ * confirmé compatibilité avec l'environnement de prod.
  */
 export async function testEmailConnection(): Promise<EmailSettingsState> {
   const auth = await requireOwnerProfile();
   if (!auth.ok) return { status: "error", error: auth.error };
 
-  const { loadOwnerEmailAccount } = await import("@/lib/email/account");
-  const account = await loadOwnerEmailAccount();
-  if (!account) {
-    return {
-      status: "error",
-      error: "Aucun compte email configuré.",
-    };
-  }
-
-  // Test IMAP
-  let imapOk = false;
-  let imapErr: string | undefined;
-  try {
-    const { ImapFlow } = await import("imapflow");
-    const client = new ImapFlow({
-      host: account.imap_host,
-      port: account.imap_port,
-      secure: account.imap_secure,
-      auth: { user: account.email, pass: account.password },
-      logger: false,
-    });
-    await client.connect();
-    await client.logout();
-    imapOk = true;
-  } catch (err) {
-    imapErr = err instanceof Error ? err.message : "Erreur IMAP";
-  }
-
-  // Test SMTP (verify uniquement, pas d'envoi)
-  let smtpOk = false;
-  let smtpErr: string | undefined;
-  try {
-    const nodemailer = await import("nodemailer");
-    const transporter = nodemailer.createTransport({
-      host: account.smtp_host,
-      port: account.smtp_port,
-      secure: account.smtp_secure,
-      auth: { user: account.email, pass: account.password },
-    });
-    await transporter.verify();
-    smtpOk = true;
-  } catch (err) {
-    smtpErr = err instanceof Error ? err.message : "Erreur SMTP";
-  }
-
-  if (imapOk && smtpOk) {
-    return {
-      status: "success",
-      testResult: {
-        ok: true,
-        message: "Connexion IMAP + SMTP réussie.",
-      },
-    };
-  }
   return {
     status: "error",
     testResult: {
       ok: false,
-      message: `${imapOk ? "✓ IMAP" : `✘ IMAP : ${imapErr}`} · ${smtpOk ? "✓ SMTP" : `✘ SMTP : ${smtpErr}`}`,
+      message:
+        "Test de connexion en attente — Phase 2 (fetch/send) à venir.",
     },
   };
 }
