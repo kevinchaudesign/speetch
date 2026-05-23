@@ -101,6 +101,32 @@ function PadawansIcon({ className }: { className?: string }) {
   );
 }
 
+function CreditsIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* Crédits galactiques — pièce hexagonale avec sigle central +
+          deux barres de scellement. Évoque une monnaie SW (jetons hex
+          de Watto / Cantina) plutôt qu'un € banal. */}
+      <polygon points="12,3 20,7 20,17 12,21 4,17 4,7" />
+      <polygon points="12,7 17,10 17,14 12,17 7,14 7,10" />
+      <circle cx="12" cy="12" r="1.4" fill="currentColor" stroke="none" />
+      <path d="M9 5.5 L9 4.5" />
+      <path d="M15 5.5 L15 4.5" />
+    </svg>
+  );
+}
+
 function DroidsIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -205,6 +231,13 @@ function buildNavItems(ownerProfileId: string | null): NavItem[] {
     href: "/admin/droids",
     matches: (p) => p.startsWith("/admin/droids"),
     Icon: DroidsIcon,
+  });
+
+  base.push({
+    label: "Crédits",
+    href: "/admin/credits",
+    matches: (p) => p.startsWith("/admin/credits"),
+    Icon: CreditsIcon,
   });
 
   base.push({

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { Button, Eyebrow, Hairline } from "@/lib/ds";
 import { loadBrevoSettingsMeta } from "@/lib/brevo-config";
+import { loadEmitterSettings, isEmitterReady } from "@/lib/credits/emitter";
 
 export const metadata: Metadata = {
   title: "Forge",
@@ -33,6 +34,7 @@ export default async function SettingsHome() {
     { data: ownerProfile },
     { data: emailAccount },
     brevoMeta,
+    emitter,
   ] = await Promise.all([
     admin
       .from("page_templates")
@@ -49,7 +51,9 @@ export default async function SettingsHome() {
       .limit(1)
       .maybeSingle<{ email: string }>(),
     loadBrevoSettingsMeta(),
+    loadEmitterSettings(),
   ]);
+  const emitterReady = isEmitterReady(emitter);
 
   const hasCustomChatbotPrompt =
     typeof ownerProfile?.chatbot_system_prompt === "string" &&
@@ -89,6 +93,15 @@ export default async function SettingsHome() {
           : "Non configuré",
       summary:
         "Pont vers api.brevo.com pour expédier les Transmissions aux Padawans. Clé API chiffrée AES-256-GCM, sender par défaut configurable.",
+    },
+    {
+      href: "/admin/settings/emitter",
+      label: "Émetteur Crédits",
+      hint: emitterReady
+        ? (emitter?.legal_name ?? "Configuré")
+        : "Non configuré",
+      summary:
+        "Identité légale de l'agence : raison sociale, SIREN, n° TVA, adresse, IBAN, mentions obligatoires, préfixes de numérotation. Prêt pour la réforme facturation électronique.",
     },
     {
       href: "/admin/settings/design-system",
