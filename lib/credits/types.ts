@@ -210,6 +210,19 @@ export type InvoiceRow = {
   updated_at: string;
 };
 
+export type CreditNoteRow = {
+  id: string;
+  number: string;
+  invoice_id: string;
+  reason: string;
+  issued_at: string;
+  subtotal_ht: number;
+  tax_total: number;
+  total_ttc: number;
+  notes: string | null;
+  created_at: string;
+};
+
 export type EmitterSettingsRow = {
   id: string;
   legal_name: string | null;

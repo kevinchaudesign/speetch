@@ -135,6 +135,9 @@ export default async function QuoteDetailPage({
 
         <QuoteActionsBar
           quoteId={quote.id}
+          quoteNumber={quote.number}
+          clientName={quote.client_name}
+          clientEmail={quote.client_email ?? ""}
           status={status}
         />
 

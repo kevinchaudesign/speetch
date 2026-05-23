@@ -9,7 +9,11 @@ import {
 } from "@/lib/credits/pricing";
 import { loadEmitterSettings, getPrefixes } from "@/lib/credits/emitter";
 import { nextCreditNumber } from "@/lib/credits/numbering";
-import type { CreditLine } from "@/lib/credits/types";
+import { loadBrevoSettings } from "@/lib/brevo-config";
+import { sendBrevoTransactional } from "@/lib/brevo";
+import { buildPublicCreditUrl } from "@/lib/credits/public-token";
+import { buildQuoteEmail } from "@/lib/credits/email-templates";
+import type { CreditLine, QuoteRow } from "@/lib/credits/types";
 
 export type QuoteActionState = {
   status: "idle" | "success" | "error";
@@ -237,6 +241,100 @@ export async function setQuoteStatus(formData: FormData): Promise<void> {
 
   revalidatePath("/admin/credits/devis");
   revalidatePath(`/admin/credits/devis/${id}`);
+}
+
+export type SendQuoteState = {
+  status: "idle" | "success" | "error";
+  error?: string;
+};
+
+/**
+ * Envoi du devis par email via Brevo. Construit un lien public signé
+ * HMAC (90j) vers la vue print, et email le destinataire snapshot du
+ * devis. Bascule le devis en `sent` si encore en brouillon.
+ */
+export async function sendQuoteByEmail(
+  _prev: SendQuoteState,
+  formData: FormData,
+): Promise<SendQuoteState> {
+  const auth = await requireOwnerAndAdmin();
+  if ("error" in auth) return { status: "error", error: auth.error };
+
+  const id = s(formData, "id");
+  const overrideEmail = s(formData, "email").toLowerCase();
+  if (!UUID_REGEX.test(id))
+    return { status: "error", error: "Identifiant devis invalide." };
+
+  const brevo = await loadBrevoSettings();
+  if (!brevo) {
+    return {
+      status: "error",
+      error:
+        "Émetteur Brevo non configuré. Va dans Forge → Émetteur Brevo.",
+    };
+  }
+
+  const { data: quote } = await auth.admin
+    .from("credit_quotes" as never)
+    .select("*")
+    .eq("id", id)
+    .maybeSingle<QuoteRow>();
+  if (!quote) return { status: "error", error: "Devis introuvable." };
+
+  const recipient = overrideEmail || quote.client_email || "";
+  if (!recipient || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipient)) {
+    return {
+      status: "error",
+      error:
+        "Adresse e-mail du destinataire manquante (ni dans le devis, ni dans l'override).",
+    };
+  }
+
+  const emitter = await loadEmitterSettings();
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+    "http://localhost:3000";
+  const publicUrl = buildPublicCreditUrl(origin, "quote", id);
+  const email = buildQuoteEmail(quote, publicUrl, emitter?.legal_name ?? null);
+
+  const out = await sendBrevoTransactional({
+    apiKey: brevo.apiKey,
+    sender: { email: brevo.senderEmail, name: brevo.senderName },
+    to: { email: recipient, name: quote.client_name },
+    subject: email.subject,
+    htmlContent: email.html,
+    textContent: email.text,
+    replyTo: brevo.replyTo
+      ? { email: brevo.replyTo, name: brevo.senderName }
+      : undefined,
+    tags: ["speetch-credits", `quote:${id}`],
+  });
+
+  if (!out.ok) {
+    return { status: "error", error: `Brevo : ${out.error}` };
+  }
+
+  // Bascule en 'sent' si encore brouillon, sinon on garde le status courant.
+  if (quote.status === "draft") {
+    await auth.admin
+      .from("credit_quotes" as never)
+      .update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+      } as never)
+      .eq("id", id);
+  } else {
+    // Met juste à jour sent_at pour la trace du dernier envoi.
+    await auth.admin
+      .from("credit_quotes" as never)
+      .update({ sent_at: new Date().toISOString() } as never)
+      .eq("id", id);
+  }
+
+  revalidatePath("/admin/credits");
+  revalidatePath("/admin/credits/devis");
+  revalidatePath(`/admin/credits/devis/${id}`);
+  return { status: "success" };
 }
 
 export async function deleteQuote(formData: FormData): Promise<void> {

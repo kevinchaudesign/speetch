@@ -140,7 +140,16 @@ export default async function InvoiceDetailPage({
           </Button>
         </div>
 
-        <InvoiceActionsBar invoiceId={invoice.id} status={status} />
+        <InvoiceActionsBar
+          invoiceId={invoice.id}
+          invoiceNumber={invoice.number}
+          clientName={invoice.client_name}
+          clientEmail={invoice.client_email ?? ""}
+          subtotalHt={Number(invoice.subtotal_ht)}
+          taxTotal={Number(invoice.tax_total)}
+          totalTtc={Number(invoice.total_ttc)}
+          status={status}
+        />
 
         <InvoiceForm
           mode="edit"

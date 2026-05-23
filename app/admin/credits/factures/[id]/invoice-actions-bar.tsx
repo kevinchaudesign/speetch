@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/lib/ds";
 import { deleteInvoice, setInvoiceStatus } from "../actions";
 import type { InvoiceStatus } from "@/lib/credits/types";
+import { SendCreditDialog } from "../../_components/send-credit-dialog";
+import { IssueCreditNoteDialog } from "./issue-credit-note-dialog";
 
 /**
  * Barre d'actions de cycle de vie d'une facture.
@@ -14,14 +16,28 @@ import type { InvoiceStatus } from "@/lib/credits/types";
  */
 export function InvoiceActionsBar({
   invoiceId,
+  invoiceNumber,
+  clientName,
+  clientEmail,
+  subtotalHt,
+  taxTotal,
+  totalTtc,
   status,
 }: {
   invoiceId: string;
+  invoiceNumber: string;
+  clientName: string;
+  clientEmail: string;
+  subtotalHt: number;
+  taxTotal: number;
+  totalTtc: number;
   status: InvoiceStatus;
 }) {
   const [pending, start] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [confirmCancel, setConfirmCancel] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
+  const [issueAvoirOpen, setIssueAvoirOpen] = useState(false);
 
   function setStatus(next: InvoiceStatus) {
     start(async () => {
@@ -36,9 +52,19 @@ export function InvoiceActionsBar({
   const canEmit = status === "draft";
   const canMarkPaid = status === "sent" || status === "partial" || status === "overdue";
   const canCancel = status !== "canceled" && status !== "draft" && status !== "paid";
+  const canSendEmail = status !== "canceled";
+  const canIssueAvoir = status !== "draft";
 
   return (
     <div className="flex w-full flex-wrap items-center gap-4 border-y border-cyan-200/15 py-4">
+      {canSendEmail && (
+        <ActionBtn
+          label="Envoyer par email"
+          onClick={() => setSendOpen(true)}
+          disabled={pending}
+          tone="success"
+        />
+      )}
       {canEmit && (
         <ActionBtn
           label="Marquer émise"
@@ -55,6 +81,16 @@ export function InvoiceActionsBar({
         />
       )}
       <span className="ml-auto" />
+      {canIssueAvoir && (
+        <button
+          type="button"
+          onClick={() => setIssueAvoirOpen(true)}
+          disabled={pending}
+          className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/70 transition-colors hover:text-cyan-100 disabled:opacity-40"
+        >
+          Émettre un avoir
+        </button>
+      )}
       {canCancel && (
         <button
           type="button"
@@ -107,6 +143,26 @@ export function InvoiceActionsBar({
           setConfirmCancel(false);
           setStatus("canceled");
         }}
+      />
+
+      <SendCreditDialog
+        kind="invoice"
+        pieceId={invoiceId}
+        pieceNumber={invoiceNumber}
+        clientName={clientName}
+        defaultEmail={clientEmail}
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
+      />
+
+      <IssueCreditNoteDialog
+        invoiceId={invoiceId}
+        invoiceNumber={invoiceNumber}
+        invoiceSubtotalHt={subtotalHt}
+        invoiceTaxTotal={taxTotal}
+        invoiceTotalTtc={totalTtc}
+        open={issueAvoirOpen}
+        onClose={() => setIssueAvoirOpen(false)}
       />
     </div>
   );

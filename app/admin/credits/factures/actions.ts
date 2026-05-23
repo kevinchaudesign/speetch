@@ -6,7 +6,11 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { computeTotals, parseLine } from "@/lib/credits/pricing";
 import { loadEmitterSettings, getPrefixes } from "@/lib/credits/emitter";
 import { nextCreditNumber } from "@/lib/credits/numbering";
-import type { CreditLine } from "@/lib/credits/types";
+import { loadBrevoSettings } from "@/lib/brevo-config";
+import { sendBrevoTransactional } from "@/lib/brevo";
+import { buildPublicCreditUrl } from "@/lib/credits/public-token";
+import { buildInvoiceEmail } from "@/lib/credits/email-templates";
+import type { CreditLine, InvoiceRow } from "@/lib/credits/types";
 
 export type InvoiceActionState = {
   status: "idle" | "success" | "error";
@@ -288,6 +292,103 @@ export async function setInvoiceStatus(formData: FormData): Promise<void> {
 
   revalidatePath("/admin/credits/factures");
   revalidatePath(`/admin/credits/factures/${id}`);
+}
+
+export type SendInvoiceState = {
+  status: "idle" | "success" | "error";
+  error?: string;
+};
+
+/**
+ * Envoi de la facture par email via Brevo. Lien public signé HMAC
+ * (90j) vers la vue print + récap inline (montant, échéance, IBAN).
+ * Bascule la facture en `sent` si encore en brouillon.
+ */
+export async function sendInvoiceByEmail(
+  _prev: SendInvoiceState,
+  formData: FormData,
+): Promise<SendInvoiceState> {
+  const auth = await requireOwnerAndAdmin();
+  if ("error" in auth) return { status: "error", error: auth.error };
+
+  const id = s(formData, "id");
+  const overrideEmail = s(formData, "email").toLowerCase();
+  if (!UUID_REGEX.test(id))
+    return { status: "error", error: "Identifiant facture invalide." };
+
+  const brevo = await loadBrevoSettings();
+  if (!brevo) {
+    return {
+      status: "error",
+      error:
+        "Émetteur Brevo non configuré. Va dans Forge → Émetteur Brevo.",
+    };
+  }
+
+  const { data: invoice } = await auth.admin
+    .from("credit_invoices" as never)
+    .select("*")
+    .eq("id", id)
+    .maybeSingle<InvoiceRow>();
+  if (!invoice) return { status: "error", error: "Facture introuvable." };
+
+  const recipient = overrideEmail || invoice.client_email || "";
+  if (!recipient || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(recipient)) {
+    return {
+      status: "error",
+      error:
+        "Adresse e-mail du destinataire manquante (ni dans la facture, ni dans l'override).",
+    };
+  }
+
+  const emitter = await loadEmitterSettings();
+  const origin =
+    process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ??
+    "http://localhost:3000";
+  const publicUrl = buildPublicCreditUrl(origin, "invoice", id);
+  const email = buildInvoiceEmail(
+    invoice,
+    publicUrl,
+    emitter?.legal_name ?? null,
+    emitter?.iban ?? null,
+  );
+
+  const out = await sendBrevoTransactional({
+    apiKey: brevo.apiKey,
+    sender: { email: brevo.senderEmail, name: brevo.senderName },
+    to: { email: recipient, name: invoice.client_name },
+    subject: email.subject,
+    htmlContent: email.html,
+    textContent: email.text,
+    replyTo: brevo.replyTo
+      ? { email: brevo.replyTo, name: brevo.senderName }
+      : undefined,
+    tags: ["speetch-credits", `invoice:${id}`],
+  });
+
+  if (!out.ok) {
+    return { status: "error", error: `Brevo : ${out.error}` };
+  }
+
+  if (invoice.status === "draft") {
+    await auth.admin
+      .from("credit_invoices" as never)
+      .update({
+        status: "sent",
+        sent_at: new Date().toISOString(),
+      } as never)
+      .eq("id", id);
+  } else {
+    await auth.admin
+      .from("credit_invoices" as never)
+      .update({ sent_at: new Date().toISOString() } as never)
+      .eq("id", id);
+  }
+
+  revalidatePath("/admin/credits");
+  revalidatePath("/admin/credits/factures");
+  revalidatePath(`/admin/credits/factures/${id}`);
+  return { status: "success" };
 }
 
 export async function deleteInvoice(formData: FormData): Promise<void> {

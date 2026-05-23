@@ -31,6 +31,11 @@ const TABS: Tab[] = [
     label: "Factures",
     matches: (p) => p.startsWith("/admin/credits/factures"),
   },
+  {
+    href: "/admin/credits/avoirs",
+    label: "Avoirs",
+    matches: (p) => p.startsWith("/admin/credits/avoirs"),
+  },
 ];
 
 export function CreditsSubnav() {

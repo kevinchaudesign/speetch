@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { ConfirmDialog } from "@/lib/ds";
 import { deleteQuote, setQuoteStatus } from "../actions";
 import type { QuoteStatus } from "@/lib/credits/types";
+import { SendCreditDialog } from "../../_components/send-credit-dialog";
 
 /**
  * Barre d'actions de cycle de vie d'un devis :
@@ -13,13 +14,20 @@ import type { QuoteStatus } from "@/lib/credits/types";
  */
 export function QuoteActionsBar({
   quoteId,
+  quoteNumber,
+  clientName,
+  clientEmail,
   status,
 }: {
   quoteId: string;
+  quoteNumber: string;
+  clientName: string;
+  clientEmail: string;
   status: QuoteStatus;
 }) {
   const [pending, start] = useTransition();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [sendOpen, setSendOpen] = useState(false);
 
   function setStatus(next: QuoteStatus) {
     start(async () => {
@@ -35,9 +43,18 @@ export function QuoteActionsBar({
   const canAccept = status === "sent";
   const canRefuse = status === "sent";
   const canConvert = status === "accepted";
+  const canSendEmail = status !== "refused" && status !== "expired";
 
   return (
     <div className="flex w-full flex-wrap items-center gap-4 border-y border-cyan-200/15 py-4">
+      {canSendEmail && (
+        <ActionBtn
+          label="Envoyer par email"
+          onClick={() => setSendOpen(true)}
+          disabled={pending}
+          tone="success"
+        />
+      )}
       {canEmit && (
         <ActionBtn
           label="Marquer envoyé"
@@ -98,6 +115,16 @@ export function QuoteActionsBar({
             await deleteQuote(fd);
           })
         }
+      />
+
+      <SendCreditDialog
+        kind="quote"
+        pieceId={quoteId}
+        pieceNumber={quoteNumber}
+        clientName={clientName}
+        defaultEmail={clientEmail}
+        open={sendOpen}
+        onClose={() => setSendOpen(false)}
       />
     </div>
   );
