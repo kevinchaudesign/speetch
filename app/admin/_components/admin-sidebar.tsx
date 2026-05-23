@@ -344,30 +344,8 @@ export function AdminSidebar({
           <AurebeshMark size={10} />
         </div>
 
-        <form action="/auth/signout" method="post">
-          <button
-            type="submit"
-            title={collapsed ? "Quitter le Temple" : undefined}
-            className="group inline-flex items-center gap-3 whitespace-nowrap text-[10px] uppercase tracking-[0.32em] text-white/55 transition-colors duration-300 hover:text-cyan-100"
-          >
-            <span
-              className={cn(
-                "inline-block h-px shrink-0 bg-current transition-all duration-500 ease-out group-hover:bg-cyan-200/85",
-                collapsed
-                  ? "w-4 group-hover:w-6"
-                  : "w-3 group-hover:w-8",
-              )}
-            />
-            <span
-              className={cn(
-                "transition-opacity duration-300",
-                collapsed && "pointer-events-none opacity-0",
-              )}
-            >
-              Quitter le Temple
-            </span>
-          </button>
-        </form>
+        {/* "Quitter le Temple" a été déplacé dans le menu profil de la
+            topbar (avatar en haut à droite). */}
 
         {/* Toggle replier / déplier — placé en bas pour rester accessible
             sans bouger l'œil du logo. */}

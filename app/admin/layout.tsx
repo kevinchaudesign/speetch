@@ -26,21 +26,24 @@ export default async function AdminLayout({
   const initialCollapsed =
     cookieStore.get(SIDEBAR_COOKIE)?.value === "1";
 
-  // Owner profile : nom (greeting chatbot) + id (médiathèque studio).
+  // Owner profile : nom (greeting chatbot) + id (médiathèque studio) +
+  // avatar (topbar admin).
   const admin = createAdminClient();
   const { data: ownerProfile } = await admin
     .from("profiles")
-    .select("id, full_name")
+    .select("id, full_name, avatar_url")
     .eq("is_owner", true)
     .maybeSingle();
   const displayName = ownerProfile?.full_name?.trim() || null;
   const ownerProfileId = ownerProfile?.id ?? null;
+  const avatarUrl = ownerProfile?.avatar_url ?? null;
 
   return (
     <AdminShell
       email={user.email ?? "Session active"}
       displayName={displayName}
       ownerProfileId={ownerProfileId}
+      avatarUrl={avatarUrl}
       initialCollapsed={initialCollapsed}
     >
       {children}

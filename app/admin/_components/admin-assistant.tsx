@@ -587,6 +587,19 @@ export function AdminAssistant({
     };
   }, [pending]);
 
+  // Ouverture du chatbot via event externe (déclenché depuis AdminTopbar
+  // — bouton messagerie en haut à droite). Découple le state local de
+  // l'assistant de tout composant qui veut juste l'ouvrir.
+  useEffect(() => {
+    function handleOpen() {
+      setOpen(true);
+      playLightsaberIgnite();
+    }
+    window.addEventListener("speetch:assistant:open", handleOpen);
+    return () =>
+      window.removeEventListener("speetch:assistant:open", handleOpen);
+  }, []);
+
   // Auto-scroll en bas pendant le streaming, seulement si l'utilisateur n'a
   // pas remonté la conversation à la main.
   useEffect(() => {

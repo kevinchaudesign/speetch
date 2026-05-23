@@ -4,6 +4,7 @@ import { useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { AdminSidebar } from "./admin-sidebar";
 import { AdminAssistant } from "./admin-assistant";
+import { AdminTopbar } from "./admin-topbar";
 import { KonamiCode } from "./konami-code";
 import { AdminCursor } from "./admin-cursor";
 import { RouteTransition } from "./route-transition";
@@ -15,12 +16,14 @@ export function AdminShell({
   email,
   displayName,
   ownerProfileId,
+  avatarUrl,
   initialCollapsed,
   children,
 }: {
   email: string;
   displayName: string | null;
   ownerProfileId: string | null;
+  avatarUrl: string | null;
   initialCollapsed: boolean;
   children: ReactNode;
 }) {
@@ -51,6 +54,7 @@ export function AdminShell({
       >
         {children}
       </div>
+      <AdminTopbar displayName={displayName} avatarUrl={avatarUrl} />
       <AdminAssistant email={email} displayName={displayName} />
       <KonamiCode />
       <AdminCursor />
