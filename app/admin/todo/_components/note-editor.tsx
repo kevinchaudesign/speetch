@@ -1,16 +1,28 @@
 "use client";
 
 /**
- * NoteEditor — colonne 3 : éditeur textarea avec auto-save debouncé.
+ * NoteEditor — éditeur rich-text WYSIWYG style Notes iOS.
  *
- * - Auto-save 600ms après la dernière frappe (debounce)
- * - Première ligne du textarea = titre (rendu plus gros, géré côté UI)
- * - Indicateur de statut "Enregistré · à l'instant" / "Yoda médite…"
- * - Raccourcis : Cmd+B (bold pseudo en *), Cmd+I (italic pseudo en _),
- *   Cmd+L (checklist - [ ])
+ * Stack : Tiptap (ProseMirror) avec StarterKit + TaskList + Underline.
+ *
+ * - Titre auto = première ligne (CSS first-line + first paragraph)
+ * - Cases cochables interactives (TaskList / TaskItem)
+ * - Raccourcis natifs ⌘B (gras) / ⌘I (italique) / ⌘U (souligné),
+ *   ⌘⇧8 (puces) / ⌘⇧7 (numérotée), + ⌘L ajouté pour insérer une
+ *   case à cocher
+ * - Auto-save débouncé 600ms
+ * - Toolbar contextuelle minimaliste en bas (fond Conseil Jedi)
+ * - Compatible legacy : si la note était stockée en plain text avant
+ *   la migration v2, Tiptap la charge et la convertit en HTML au save
  */
 
 import { useEffect, useRef, useState } from "react";
+import { EditorContent, useEditor } from "@tiptap/react";
+import StarterKit from "@tiptap/starter-kit";
+import Placeholder from "@tiptap/extension-placeholder";
+import TaskList from "@tiptap/extension-task-list";
+import TaskItem from "@tiptap/extension-task-item";
+import Underline from "@tiptap/extension-underline";
 import { cn } from "@/lib/utils";
 import type { TodoNoteItem } from "../_lib/types";
 
@@ -33,26 +45,91 @@ export function NoteEditor({
   onDelete: (id: string) => void;
   onBackMobile: () => void;
 }) {
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const lastSavedRef = useRef<string>("");
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const noteIdRef = useRef<string | null>(null);
   const [status, setStatus] = useState<"idle" | "typing" | "saving" | "saved">(
     "idle",
   );
   const [savedAt, setSavedAt] = useState<Date | null>(null);
 
-  // Reset l'état quand la note change
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        bulletList: { keepMarks: true },
+        orderedList: { keepMarks: true },
+      }),
+      Underline,
+      TaskList,
+      TaskItem.configure({ nested: true }),
+      Placeholder.configure({
+        placeholder: ({ node }) => {
+          // Titre attendu sur le tout premier nœud
+          if (node.type.name === "heading") return "Titre…";
+          return "Commence à écrire.";
+        },
+        showOnlyWhenEditable: true,
+        showOnlyCurrent: false,
+      }),
+    ],
+    content: "",
+    immediatelyRender: false,
+    editorProps: {
+      attributes: {
+        class: cn(
+          "prose prose-invert max-w-none focus:outline-none",
+          "font-serif text-[16px] leading-relaxed md:text-[17px]",
+          "[&_h1]:font-sans [&_h1]:text-3xl [&_h1]:font-extralight [&_h1]:tracking-[-0.03em] [&_h1]:text-[#F5F5F7]",
+          "[&_h2]:font-sans [&_h2]:text-2xl [&_h2]:font-extralight [&_h2]:tracking-[-0.02em] [&_h2]:text-[#F5F5F7]",
+          "[&_p]:text-[#F5F5F7]/92",
+          "[&_strong]:text-cyan-100 [&_strong]:font-medium",
+          "[&_em]:text-white/85",
+          "[&_a]:text-cyan-200 [&_a]:underline [&_a]:decoration-cyan-200/40",
+          "[&_ul]:my-3 [&_ol]:my-3 [&_li]:my-1",
+          "[&_li]:text-[#F5F5F7]/90",
+          "[&_ul[data-type=taskList]]:list-none [&_ul[data-type=taskList]]:pl-0",
+          "[&_li[data-type=taskItem]]:flex [&_li[data-type=taskItem]]:items-start [&_li[data-type=taskItem]]:gap-3",
+          "[&_li[data-type=taskItem]>label]:cursor-pointer [&_li[data-type=taskItem]>label]:select-none",
+          "[&_li[data-type=taskItem]>label]:mt-[5px] [&_li[data-type=taskItem]>label]:shrink-0",
+          "[&_li[data-type=taskItem]>label>input]:h-4 [&_li[data-type=taskItem]>label>input]:w-4 [&_li[data-type=taskItem]>label>input]:cursor-pointer [&_li[data-type=taskItem]>label>input]:accent-cyan-300",
+          "[&_li[data-type=taskItem]>div]:flex-1",
+          "[&_li[data-type=taskItem][data-checked=true]>div]:line-through [&_li[data-type=taskItem][data-checked=true]>div]:text-white/40",
+          "[&_p.is-editor-empty:first-child]:before:pointer-events-none [&_p.is-editor-empty:first-child]:before:float-left [&_p.is-editor-empty:first-child]:before:h-0 [&_p.is-editor-empty:first-child]:before:text-white/30 [&_p.is-editor-empty:first-child]:before:content-[attr(data-placeholder)]",
+          "[&_h1.is-empty]:before:pointer-events-none [&_h1.is-empty]:before:float-left [&_h1.is-empty]:before:h-0 [&_h1.is-empty]:before:text-white/30 [&_h1.is-empty]:before:content-[attr(data-placeholder)]",
+        ),
+      },
+    },
+    onUpdate: ({ editor: ed }) => {
+      const id = noteIdRef.current;
+      if (!id) return;
+      const html = ed.getHTML();
+      onContentChange(id, html);
+      scheduleSave(id, html);
+    },
+  });
+
+  // Sync de la note ouverte → reset editor content (sans re-trigger onUpdate)
   useEffect(() => {
-    if (!note) {
-      lastSavedRef.current = "";
-      setStatus("idle");
-      setSavedAt(null);
-      return;
-    }
-    lastSavedRef.current = note.content;
+    if (!editor || !note) return;
+    noteIdRef.current = note.id;
+    // Tiptap charge HTML ou plain text (rétrocompat avec les notes pré-v2)
+    const initialContent = note.content || "";
+    // setContent emit-false : on n'enregistre pas l'init comme une frappe user
+    editor.commands.setContent(initialContent, { emitUpdate: false });
+    lastSavedRef.current = initialContent;
     setStatus("saved");
     setSavedAt(new Date(note.updated_at));
-  }, [note?.id, note?.updated_at, note]);
+  }, [editor, note?.id, note?.updated_at, note]);
+
+  // Reset complet quand on n'a plus de note
+  useEffect(() => {
+    if (note) return;
+    noteIdRef.current = null;
+    lastSavedRef.current = "";
+    setStatus("idle");
+    setSavedAt(null);
+  }, [note]);
 
   // Cleanup debounce au unmount
   useEffect(() => {
@@ -74,62 +151,20 @@ export function NoteEditor({
     }, DEBOUNCE_MS);
   }
 
-  function handleChange(e: React.ChangeEvent<HTMLTextAreaElement>) {
-    if (!note) return;
-    const value = e.target.value;
-    onContentChange(note.id, value);
-    scheduleSave(note.id, value);
-  }
-
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (!note) return;
-    const meta = e.metaKey || e.ctrlKey;
-    if (meta && e.key.toLowerCase() === "l") {
-      e.preventDefault();
-      insertAtCursor("- [ ] ", e.currentTarget);
-    } else if (meta && e.key.toLowerCase() === "b") {
-      e.preventDefault();
-      wrapSelection("**", "**", e.currentTarget);
-    } else if (meta && e.key.toLowerCase() === "i") {
-      e.preventDefault();
-      wrapSelection("_", "_", e.currentTarget);
+  // Raccourci ⌘L = insérer/toggle case à cocher
+  useEffect(() => {
+    if (!editor) return;
+    function onKey(e: KeyboardEvent) {
+      if (!editor || !editor.isFocused) return;
+      const meta = e.metaKey || e.ctrlKey;
+      if (meta && e.key.toLowerCase() === "l") {
+        e.preventDefault();
+        editor.chain().focus().toggleTaskList().run();
+      }
     }
-  }
-
-  function insertAtCursor(text: string, ta: HTMLTextAreaElement) {
-    if (!note) return;
-    const start = ta.selectionStart ?? 0;
-    const end = ta.selectionEnd ?? 0;
-    const before = ta.value.slice(0, start);
-    const after = ta.value.slice(end);
-    // Si on est en début de ligne, juste insère ; sinon précède d'un \n
-    const needsNewline = before.length > 0 && !before.endsWith("\n");
-    const insert = (needsNewline ? "\n" : "") + text;
-    const next = before + insert + after;
-    ta.value = next;
-    onContentChange(note.id, next);
-    const caret = start + insert.length;
-    ta.setSelectionRange(caret, caret);
-    scheduleSave(note.id, next);
-  }
-
-  function wrapSelection(
-    left: string,
-    right: string,
-    ta: HTMLTextAreaElement,
-  ) {
-    if (!note) return;
-    const start = ta.selectionStart ?? 0;
-    const end = ta.selectionEnd ?? 0;
-    const selected = ta.value.slice(start, end);
-    const before = ta.value.slice(0, start);
-    const after = ta.value.slice(end);
-    const next = before + left + selected + right + after;
-    ta.value = next;
-    onContentChange(note.id, next);
-    ta.setSelectionRange(start + left.length, end + left.length);
-    scheduleSave(note.id, next);
-  }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [editor]);
 
   /* ── Empty state ──────────────────────────────────────────────── */
   if (!note) {
@@ -151,10 +186,7 @@ export function NoteEditor({
 
   return (
     <section
-      className={cn(
-        "relative flex flex-1 flex-col bg-black/10",
-        className,
-      )}
+      className={cn("relative flex flex-1 flex-col bg-black/10", className)}
       aria-label="Éditeur de note"
     >
       {/* Topbar éditeur */}
@@ -209,54 +241,130 @@ export function NoteEditor({
         </div>
       </header>
 
-      {/* Textarea — édition libre, premier ligne traitée comme titre côté
-          rendu de la liste (NotesPanel) */}
-      <div className="flex flex-1 overflow-y-auto px-6 py-8 md:px-12 md:py-12">
-        <textarea
-          key={note.id}
-          ref={textareaRef}
-          defaultValue={note.content}
-          onChange={handleChange}
-          onKeyDown={handleKeyDown}
-          placeholder="Titre…&#10;&#10;Commence à écrire."
-          spellCheck={true}
-          autoComplete="off"
-          className="w-full flex-1 resize-none bg-transparent font-serif text-[16px] leading-relaxed text-[#F5F5F7]/92 caret-cyan-200 outline-none placeholder:text-white/30 md:text-[17px]"
-          style={{
-            // La première ligne est volontairement traitée comme titre en
-            // styling via la prop CSS first-line — Tailwind ne l'expose
-            // pas, on utilise un style inline pour préserver le texte
-            // brut côté éditeur.
-            // eslint-disable-next-line
-          }}
-        />
-      </div>
+      {/* Toolbar formatage */}
+      {editor && (
+        <div className="flex flex-wrap items-center gap-1 border-b border-cyan-200/[0.06] px-6 py-2 md:px-10">
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+            active={editor.isActive("heading", { level: 1 })}
+            label="Titre"
+            hint="⌘⇧1"
+          >
+            T1
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+            active={editor.isActive("heading", { level: 2 })}
+            label="Sous-titre"
+            hint="⌘⇧2"
+          >
+            T2
+          </ToolbarBtn>
+          <Separator />
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleBold().run()}
+            active={editor.isActive("bold")}
+            label="Gras"
+            hint="⌘B"
+          >
+            <BoldIcon />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleItalic().run()}
+            active={editor.isActive("italic")}
+            label="Italique"
+            hint="⌘I"
+          >
+            <ItalicIcon />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleUnderline().run()}
+            active={editor.isActive("underline")}
+            label="Souligné"
+            hint="⌘U"
+          >
+            <UnderlineIcon />
+          </ToolbarBtn>
+          <Separator />
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleTaskList().run()}
+            active={editor.isActive("taskList")}
+            label="Cases à cocher"
+            hint="⌘L"
+          >
+            <CheckboxIcon />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleBulletList().run()}
+            active={editor.isActive("bulletList")}
+            label="Liste à puces"
+            hint="⌘⇧8"
+          >
+            <BulletIcon />
+          </ToolbarBtn>
+          <ToolbarBtn
+            onClick={() => editor.chain().focus().toggleOrderedList().run()}
+            active={editor.isActive("orderedList")}
+            label="Liste numérotée"
+            hint="⌘⇧7"
+          >
+            <OrderedIcon />
+          </ToolbarBtn>
+        </div>
+      )}
 
-      {/* Indices clavier en bas */}
-      <footer className="hidden items-center justify-end gap-5 border-t border-cyan-200/[0.06] px-10 py-2 md:flex">
-        <ShortcutHint keys={["⌘", "L"]} label="Cocher" />
-        <ShortcutHint keys={["⌘", "B"]} label="Gras" />
-        <ShortcutHint keys={["⌘", "I"]} label="Italique" />
-      </footer>
+      {/* Zone d'édition */}
+      <div className="flex flex-1 overflow-y-auto px-6 py-8 md:px-12 md:py-10">
+        <EditorContent editor={editor} className="w-full flex-1" />
+      </div>
     </section>
   );
 }
 
-function ShortcutHint({ keys, label }: { keys: string[]; label: string }) {
+/* ── Toolbar ───────────────────────────────────────────────────────── */
+
+function ToolbarBtn({
+  children,
+  onClick,
+  active,
+  label,
+  hint,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  active?: boolean;
+  label: string;
+  hint?: string;
+}) {
   return (
-    <span className="inline-flex items-center gap-2 font-mono text-[9px] uppercase tracking-[0.32em] text-white/30">
-      {keys.map((k, i) => (
-        <span
-          key={i}
-          className="inline-flex h-4 min-w-[16px] items-center justify-center rounded border border-cyan-200/15 px-1 text-cyan-200/60"
-        >
-          {k}
-        </span>
-      ))}
-      <span>{label}</span>
-    </span>
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      title={hint ? `${label} (${hint})` : label}
+      className={cn(
+        "inline-flex h-8 min-w-[32px] items-center justify-center rounded-md px-2 text-[12px] font-mono uppercase tracking-[0.1em] transition-colors",
+        active
+          ? "bg-cyan-200/[0.12] text-cyan-100"
+          : "text-cyan-200/65 hover:bg-cyan-200/[0.06] hover:text-cyan-100",
+      )}
+    >
+      {children}
+    </button>
   );
 }
+
+function Separator() {
+  return (
+    <span
+      aria-hidden
+      className="mx-1 inline-block h-4 w-px bg-cyan-200/15"
+    />
+  );
+}
+
+/* ── Helpers ───────────────────────────────────────────────────────── */
 
 function formatStatus(
   status: "idle" | "typing" | "saving" | "saved",
@@ -278,21 +386,73 @@ function formatStatus(
   return "—";
 }
 
-/* ─── Icônes ────────────────────────────────────────────────────────── */
+/* ── Icônes ────────────────────────────────────────────────────────── */
+
+function BoldIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M7 5h6a3.5 3.5 0 0 1 0 7H7Z" />
+      <path d="M7 12h7a3.5 3.5 0 0 1 0 7H7Z" />
+    </svg>
+  );
+}
+
+function ItalicIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <line x1="11" y1="5" x2="17" y2="5" />
+      <line x1="7" y1="19" x2="13" y2="19" />
+      <line x1="14" y1="5" x2="10" y2="19" />
+    </svg>
+  );
+}
+
+function UnderlineIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <path d="M7 4v7a5 5 0 0 0 10 0V4" />
+      <line x1="5" y1="20" x2="19" y2="20" />
+    </svg>
+  );
+}
+
+function CheckboxIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="18" height="18" rx="2" />
+      <path d="M8 12l3 3 5-6" />
+    </svg>
+  );
+}
+
+function BulletIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <circle cx="5" cy="6" r="1" fill="currentColor" />
+      <circle cx="5" cy="12" r="1" fill="currentColor" />
+      <circle cx="5" cy="18" r="1" fill="currentColor" />
+      <line x1="10" y1="6" x2="20" y2="6" />
+      <line x1="10" y1="12" x2="20" y2="12" />
+      <line x1="10" y1="18" x2="20" y2="18" />
+    </svg>
+  );
+}
+
+function OrderedIcon() {
+  return (
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <text x="3" y="9" fontSize="6" fill="currentColor" stroke="none">1.</text>
+      <text x="3" y="16" fontSize="6" fill="currentColor" stroke="none">2.</text>
+      <line x1="10" y1="7" x2="20" y2="7" />
+      <line x1="10" y1="13" x2="20" y2="13" />
+      <line x1="10" y1="19" x2="20" y2="19" />
+    </svg>
+  );
+}
 
 function PinIcon({ filled = false }: { filled?: boolean }) {
   return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill={filled ? "currentColor" : "none"}
-      stroke="currentColor"
-      strokeWidth="1.4"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
+    <svg width="14" height="14" viewBox="0 0 24 24" fill={filled ? "currentColor" : "none"} stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M16 4l4 4-5 1-3 6-2-2-5 5 1-6L4 8h6l4-4 2 0Z" />
     </svg>
   );
@@ -300,17 +460,7 @@ function PinIcon({ filled = false }: { filled?: boolean }) {
 
 function TrashIcon() {
   return (
-    <svg
-      width="14"
-      height="14"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      aria-hidden
-    >
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
       <path d="M4 7h16" />
       <path d="M8 7V5a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
       <path d="M6 7l1 13a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2l1-13" />

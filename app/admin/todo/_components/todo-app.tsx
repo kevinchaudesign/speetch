@@ -17,6 +17,7 @@
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { cn } from "@/lib/utils";
 import {
   createTodoList,
@@ -30,7 +31,13 @@ import {
 import { splitNoteContent, type TodoListItem, type TodoNoteItem } from "../_lib/types";
 import { ListPanel } from "./list-panel";
 import { NotesPanel } from "./notes-panel";
-import { NoteEditor } from "./note-editor";
+
+// Tiptap n'est pas SSR-safe (ProseMirror touche au DOM à l'import). On le
+// charge en client-only pour éviter les erreurs de prerender Next.js 15.
+const NoteEditor = dynamic(
+  () => import("./note-editor").then((m) => m.NoteEditor),
+  { ssr: false },
+);
 
 export type SelectedScope =
   | { kind: "all" }
