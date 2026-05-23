@@ -18,6 +18,7 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { SpeetchLogo } from "@/app/_components/speetch-logo";
 
 const ASSISTANT_OPEN_EVENT = "speetch:assistant:open";
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -29,7 +30,6 @@ export function AdminTopbar({
   displayName: string | null;
   avatarUrl: string | null;
 }) {
-  const initials = computeInitials(displayName);
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
@@ -106,14 +106,8 @@ export function AdminTopbar({
               decoding="async"
             />
           ) : (
-            <span
-              className={cn(
-                "text-[11px] font-light uppercase tracking-[0.18em] text-cyan-100/85 transition-colors duration-300",
-                "group-hover:text-cyan-100",
-              )}
-            >
-              {initials}
-            </span>
+            // Fallback : logo Speetch quand aucun avatar n'est défini.
+            <SpeetchLogo size="md" className="h-full w-full object-cover" />
           )}
           <span
             aria-hidden
@@ -247,9 +241,3 @@ function ExitIcon() {
   );
 }
 
-function computeInitials(name: string | null): string {
-  if (!name) return "JD";
-  const parts = name.trim().split(/\s+/).slice(0, 2);
-  if (parts.length === 0) return "JD";
-  return parts.map((p) => p.charAt(0).toUpperCase()).join("");
-}
