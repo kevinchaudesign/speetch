@@ -7,7 +7,6 @@ import { cn } from "@/lib/utils";
 import { Eyebrow } from "@/lib/ds";
 import { AudioToggle } from "./audio-toggle";
 import { AurebeshMark } from "@/app/_components/aurebesh-mark";
-import { SpeetchLogo } from "@/app/_components/speetch-logo";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const COLLAPSE_DURATION_MS = 500;
@@ -210,24 +209,8 @@ export function AdminSidebar({
         "md:flex",
       )}
     >
-      {/* Brand + eyebrow Conseil Jedi (toggle de la sidebar est en bas) */}
+      {/* Eyebrow Conseil Jedi — header épuré, logo et wordmark retirés */}
       <div className="relative flex flex-col gap-2">
-        <Link
-          href="/"
-          aria-label="Speetch — Accueil"
-          className="group flex min-w-0 items-center gap-3 overflow-hidden whitespace-nowrap font-sans font-extralight leading-none tracking-[-0.04em] text-[#F5F5F7] transition-opacity duration-300 hover:opacity-80"
-        >
-          <SpeetchLogo size="md" loading="eager" />
-          <span
-            className={cn(
-              "transition-opacity duration-300",
-              collapsed && "pointer-events-none opacity-0",
-            )}
-            style={{ fontSize: "1.5rem" }}
-          >
-            Speetch
-          </span>
-        </Link>
         <Eyebrow
           tracking="lg"
           className={cn(
