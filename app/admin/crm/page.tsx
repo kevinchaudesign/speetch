@@ -12,6 +12,7 @@ import {
   isPadawanSource,
   type PadawanStatus,
 } from "@/lib/crm";
+import { CrmSubnav } from "./_components/crm-subnav";
 
 export const metadata: Metadata = {
   title: "Padawans",
@@ -111,6 +112,8 @@ export default async function CrmListPage() {
             <span className="mx-3 text-cyan-200/20">→</span>
             <span className="text-cyan-200/85">Padawans</span>
           </p>
+
+          <CrmSubnav />
 
           <div className="flex flex-wrap items-end justify-between gap-6">
             <h1
