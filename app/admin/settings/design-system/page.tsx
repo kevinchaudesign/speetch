@@ -80,14 +80,6 @@ const BRAND_SWATCHES: Swatch[] = [
   },
 ];
 
-const DOC_SWATCHES: Swatch[] = [
-  { name: "Paper", hex: "#F8F1E0", role: "Fond document éditorial" },
-  { name: "Cream", hex: "#F2E6C2", role: "Surface alt." },
-  { name: "Bordeaux deep", hex: "#6E0410", role: "Titres / accents" },
-  { name: "Bordeaux glow", hex: "#C61428", role: "Highlight" },
-  { name: "Or", hex: "#C8A870", role: "Numéros de chapitre" },
-  { name: "Ink", hex: "#1A0306", role: "Corps de texte" },
-];
 
 const TYPES: TypeSpec[] = [
   {
@@ -282,19 +274,6 @@ export default async function DesignSystemPage() {
           <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-white/[0.08] sm:grid-cols-2 lg:grid-cols-3">
             {BRAND_SWATCHES.map((s) => (
               <SwatchCard key={s.name} swatch={s} />
-            ))}
-          </ul>
-        </Block>
-
-        {/* PALETTE Document */}
-        <Block
-          eyebrow="01c · Palette alternative"
-          title="Mode document éditorial"
-          intro="Pour les pages issues d'un template HTML en mode “document” : papier crème, bordeaux profond, or pour les numéros."
-        >
-          <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-xl bg-white/[0.08] sm:grid-cols-2 lg:grid-cols-3">
-            {DOC_SWATCHES.map((s) => (
-              <SwatchCard key={s.name} swatch={s} dark />
             ))}
           </ul>
         </Block>
