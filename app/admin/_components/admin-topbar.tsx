@@ -195,8 +195,8 @@ export function AdminTopbar({
 function MessageIcon() {
   return (
     <svg
-      width="22"
-      height="22"
+      width="26"
+      height="26"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
@@ -214,8 +214,8 @@ function MessageIcon() {
 function TodoIcon() {
   return (
     <svg
-      width="22"
-      height="22"
+      width="26"
+      height="26"
       viewBox="0 0 24 24"
       fill="none"
       stroke="currentColor"
