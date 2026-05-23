@@ -5,16 +5,16 @@
  *
  * Architecture :
  *  - Preloader 0→100 (cubic-out, ~2.4s) qui se fade en blur
- *  - H1 éditorial reveal staggered mot par mot :
- *    « Direction / artistique / à l'ère de l'IA. »
- *    (porte les mots-clés SXO du site dans la balise H1)
- *  - Eyebrow positionnement + tagline rotating (3 phrases cyclées)
+ *  - Orbe holographique central (cf. <HeroOrb>) avec labels skills IA
+ *    orbitants, scintillement réseau, kyber crystal contrarotatif
+ *  - H1 éditorial 1 ligne « Direction artistique × IA » magnétique
+ *    au curseur, IA en italique jaune brand + chromatic aberration
+ *  - Tagline rotative (3 phrases cyclées) + sous-titre serif
+ *  - Mots flottants asymétriques en counter-parallaxe
+ *  - Marquee vertical droit (credentials)
  *  - Curseur ghost cyan (spring follow)
- *  - Horloge Paris temps réel
- *  - Toggle ambient drone (Web Audio synthé hyperespace)
  *
- * Décor : starfield + scanlines + sabre vertical (utilitaires globales).
- * Sans référence Star Wars explicite dans la copy — lit comme « futuriste / IA ».
+ * Décor : starfield + scanlines (utilitaires globaux).
  */
 
 import { AnimatePresence, motion } from "framer-motion";
@@ -70,7 +70,6 @@ const FLOATING_LABELS = [
 export function LandingHero() {
   const [loaded, setLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [time, setTime] = useState("--:--:--");
   const [mouse, setMouse] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [viewport, setViewport] = useState<{ w: number; h: number }>({
     w: 1,
@@ -102,21 +101,6 @@ export function LandingHero() {
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, []);
-
-  /* Horloge Paris */
-  useEffect(() => {
-    const fmt = () =>
-      new Intl.DateTimeFormat("fr-FR", {
-        timeZone: "Europe/Paris",
-        hour: "2-digit",
-        minute: "2-digit",
-        second: "2-digit",
-        hour12: false,
-      }).format(new Date());
-    setTime(fmt());
-    const id = window.setInterval(() => setTime(fmt()), 1000);
-    return () => window.clearInterval(id);
   }, []);
 
   /* Curseur — double système :
@@ -263,15 +247,6 @@ export function LandingHero() {
         )}
       </AnimatePresence>
 
-      {/* Sabre vertical décor */}
-      <motion.div
-        aria-hidden
-        initial={{ opacity: 0, scaleY: 0 }}
-        animate={{ opacity: loaded ? 1 : 0, scaleY: loaded ? 1 : 0 }}
-        transition={{ duration: 1.4, delay: 0.4, ease: EASE_OUT_EXPO }}
-        className="sw-lightsaber-bar pointer-events-none absolute bottom-20 left-6 top-24 hidden w-[2px] origin-bottom rounded-full md:block"
-      />
-
       {/* Header */}
       <motion.header
         initial={{ opacity: 0, y: -8 }}
@@ -286,15 +261,6 @@ export function LandingHero() {
         >
           <SpeetchLogo size="md" loading="eager" />
         </a>
-
-        <span
-          className="font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 tabular-nums"
-          aria-label={`Heure de Paris : ${time}`}
-        >
-          <span>{time}</span>
-          <span className="text-cyan-200/25"> · </span>
-          <span>PAR</span>
-        </span>
       </motion.header>
 
       {/* ────── Couche 0 : orbe holographique central (réseau neural) ────── */}
@@ -337,8 +303,9 @@ export function LandingHero() {
 
       {/* ────── Composition centrale : H1 éditorial kinétique ──────
           Anchorée en BAS du hero (sous le graphique orb qui occupe la
-          partie haute). Padding-bottom laisse de la place au scroll cue. */}
-      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-6 pb-[14vh] md:pb-[10vh]">
+          partie haute). Ordre : H1 → tagline → sous-titre. Padding
+          bottom large pour libérer le scroll cue. */}
+      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-6 pb-[14vh] md:pb-[8vh]">
         {/* H1 — UNE seule ligne, segments inline. Magnétique au curseur,
             variable weight per letter sur le sans, glow + RGB split sur
             le segment italique « IA ». Lettres animées via CSS variables
@@ -362,7 +329,7 @@ export function LandingHero() {
         </h1>
 
         {/* Tagline rotating — sous le titre, 11px caps cyan */}
-        <div className="relative mt-10 flex h-7 items-center md:mt-14">
+        <div className="relative mt-6 flex h-7 items-center md:mt-8">
           <AnimatePresence mode="wait">
             <motion.span
               key={taglineIndex}
@@ -381,7 +348,7 @@ export function LandingHero() {
           initial={{ opacity: 0 }}
           animate={{ opacity: loaded ? 1 : 0 }}
           transition={{ duration: 1, delay: 1.9 }}
-          className="mt-10 max-w-lg text-balance text-center font-serif text-base italic text-white/55 md:mt-12 md:text-lg"
+          className="mt-6 max-w-lg text-balance text-center font-serif text-base italic text-white/55 md:mt-8 md:text-lg"
         >
           Marques fortes, produits désirables, plateformes pensées avec
           l&apos;IA comme partenaire créatif.
