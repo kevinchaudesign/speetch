@@ -131,13 +131,23 @@ export default async function InvoiceDetailPage({
               )}
             </p>
           </div>
-          <Button
-            href={`/admin/credits/print/invoice/${invoice.id}`}
-            target="_blank"
-            variant="primary"
-          >
-            Aperçu imprimable ↗
-          </Button>
+          <div className="flex flex-wrap items-center gap-5">
+            <Button
+              href={`/admin/credits/print/invoice/${invoice.id}`}
+              target="_blank"
+              variant="primary"
+            >
+              Aperçu imprimable ↗
+            </Button>
+            <a
+              href={`/admin/credits/factures/${invoice.id}/factur-x`}
+              className="inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-200/70 transition-colors hover:text-cyan-100"
+              title="XML CII conforme EN 16931, prêt pour Chorus Pro / PDP"
+            >
+              Télécharger Factur-X XML
+              <span className="inline-block h-px w-4 bg-current transition-all duration-500 ease-out hover:w-10" />
+            </a>
+          </div>
         </div>
 
         <InvoiceActionsBar

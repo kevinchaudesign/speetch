@@ -99,6 +99,7 @@ function SendInvoiceDialog({
       defaultEmail={defaultEmail}
       open={open}
       onClose={onClose}
+      withFacturX
     />
   );
 }
@@ -113,6 +114,7 @@ function DialogShell({
   defaultEmail,
   open,
   onClose,
+  withFacturX = false,
 }: {
   label: string;
   formAction: (formData: FormData) => void;
@@ -123,8 +125,11 @@ function DialogShell({
   defaultEmail: string;
   open: boolean;
   onClose: () => void;
+  /** Affiche l'option "Joindre Factur-X XML" (factures uniquement). */
+  withFacturX?: boolean;
 }) {
   const [email, setEmail] = useState(defaultEmail);
+  const [attachXml, setAttachXml] = useState(true);
 
   useEffect(() => {
     if (open) setEmail(defaultEmail);
@@ -170,6 +175,27 @@ function DialogShell({
             className="w-full border-b border-cyan-200/25 bg-transparent pb-2 font-mono text-sm text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none"
           />
         </Field>
+
+        {withFacturX && (
+          <label className="flex cursor-pointer items-start gap-3 border border-cyan-200/15 bg-cyan-200/[0.02] px-4 py-3">
+            <input
+              type="checkbox"
+              name="attach_facturx"
+              checked={attachXml}
+              onChange={(e) => setAttachXml(e.target.checked)}
+              className="mt-0.5 h-4 w-4 cursor-pointer accent-cyan-300"
+            />
+            <div className="flex flex-col gap-1">
+              <span className="text-sm text-[#F5F5F7]">
+                Joindre le Factur-X (XML)
+              </span>
+              <span className="font-serif text-[12px] italic text-white/55">
+                XML CII profil BASIC, conforme EN 16931. Reçu en pièce
+                jointe par le client + son éventuel PDP.
+              </span>
+            </div>
+          </label>
+        )}
 
         <Eyebrow tracking="md" className="text-cyan-200/55">
           Lien public signé · valable 90 jours · le destinataire pourra

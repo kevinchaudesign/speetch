@@ -17,6 +17,13 @@ export type BrevoSendResult =
   | { ok: true; messageId: string }
   | { ok: false; error: string };
 
+export type BrevoAttachment = {
+  /** Nom du fichier visible côté client (ex: "FC-2026-0001-factur-x.xml"). */
+  name: string;
+  /** Contenu encodé en base64 (pas le binaire brut). */
+  content: string;
+};
+
 export type BrevoSendArgs = {
   apiKey: string;
   sender: { email: string; name?: string | null };
@@ -27,6 +34,8 @@ export type BrevoSendArgs = {
   replyTo?: { email: string; name?: string | null };
   /** Tags Brevo (analytics, filtres). */
   tags?: string[];
+  /** Pièces jointes (max ~10 MB total côté Brevo). */
+  attachments?: BrevoAttachment[];
 };
 
 /**
@@ -69,6 +78,12 @@ export async function sendBrevoTransactional(
     };
   }
   if (args.tags && args.tags.length > 0) payload.tags = args.tags;
+  if (args.attachments && args.attachments.length > 0) {
+    payload.attachment = args.attachments.map((a) => ({
+      name: a.name,
+      content: a.content,
+    }));
+  }
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 20_000);

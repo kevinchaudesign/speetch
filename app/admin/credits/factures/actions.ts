@@ -7,9 +7,10 @@ import { computeTotals, parseLine } from "@/lib/credits/pricing";
 import { loadEmitterSettings, getPrefixes } from "@/lib/credits/emitter";
 import { nextCreditNumber } from "@/lib/credits/numbering";
 import { loadBrevoSettings } from "@/lib/brevo-config";
-import { sendBrevoTransactional } from "@/lib/brevo";
+import { sendBrevoTransactional, type BrevoAttachment } from "@/lib/brevo";
 import { buildPublicCreditUrl } from "@/lib/credits/public-token";
 import { buildInvoiceEmail } from "@/lib/credits/email-templates";
+import { buildFacturXXml, facturXFilename } from "@/lib/credits/factur-x";
 import type { CreditLine, InvoiceRow } from "@/lib/credits/types";
 
 export type InvoiceActionState = {
@@ -353,6 +354,27 @@ export async function sendInvoiceByEmail(
     emitter?.iban ?? null,
   );
 
+  // Pièce jointe Factur-X XML (optionnelle, contrôlée par checkbox du
+  // modal). On échoue silencieusement si la génération plante — le
+  // mail part quand même sans XML, et l'utilisateur peut télécharger
+  // le XML séparément depuis la fiche facture.
+  const attachments: BrevoAttachment[] = [];
+  const wantFacturX = String(formData.get("attach_facturx") ?? "") === "on";
+  if (wantFacturX && emitter) {
+    try {
+      const xml = buildFacturXXml(invoice, emitter);
+      attachments.push({
+        name: facturXFilename(invoice.number),
+        content: Buffer.from(xml, "utf8").toString("base64"),
+      });
+    } catch (e) {
+      console.warn(
+        "[sendInvoiceByEmail] Factur-X generation skipped:",
+        e instanceof Error ? e.message : e,
+      );
+    }
+  }
+
   const out = await sendBrevoTransactional({
     apiKey: brevo.apiKey,
     sender: { email: brevo.senderEmail, name: brevo.senderName },
@@ -364,6 +386,7 @@ export async function sendInvoiceByEmail(
       ? { email: brevo.replyTo, name: brevo.senderName }
       : undefined,
     tags: ["speetch-credits", `invoice:${id}`],
+    attachments: attachments.length > 0 ? attachments : undefined,
   });
 
   if (!out.ok) {
