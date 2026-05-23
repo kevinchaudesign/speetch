@@ -28,7 +28,6 @@ const EASE_IN_OUT_QUART: [number, number, number, number] = [0.65, 0, 0.35, 1];
 const TAGLINES = [
   "Marques · Produits · Plateformes",
   "Image · Voix · Code · Itération",
-  "Studio parisien · Depuis 2026",
 ];
 
 // Segments du H1 — rendus en ligne (inline), pas empilés. « IA » en
@@ -305,7 +304,7 @@ export function LandingHero() {
           Anchorée en BAS du hero (sous le graphique orb qui occupe la
           partie haute). Ordre : H1 → tagline → sous-titre. Padding
           bottom large pour libérer le scroll cue. */}
-      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-6 pb-[14vh] md:pb-[8vh]">
+      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-6 pb-[22vh] md:pb-[24vh]">
         {/* H1 — UNE seule ligne, segments inline. Magnétique au curseur,
             variable weight per letter sur le sans, glow + RGB split sur
             le segment italique « IA ». Lettres animées via CSS variables
