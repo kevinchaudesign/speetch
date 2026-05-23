@@ -60,11 +60,17 @@ export function NewBusinessPlanImportForm({
   projectId,
   projectName,
   source,
+  templateId = "business_plan",
+  templateLabel = "Business plan",
 }: {
   clientId: string;
   projectId: string;
   projectName: string;
   source: ImportSource;
+  /** ID du blueprint utilisé pour le breadcrumb et les hrefs retour. */
+  templateId?: string;
+  /** Label affiché dans le breadcrumb (ex : "Business plan", "Étude de marché"). */
+  templateLabel?: string;
 }) {
   const [state, formAction] = useActionState(
     createBusinessPlanFromImport,
@@ -94,14 +100,14 @@ export function NewBusinessPlanImportForm({
         className="flex items-center justify-between md:hidden"
       >
         <Link
-          href={`/admin/clients/${clientId}/projects/${projectId}/pages/new?template=business_plan`}
+          href={`/admin/clients/${clientId}/projects/${projectId}/pages/new?template=${templateId}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
           Changer de source
         </Link>
         <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/55">
-          Business plan
+          {templateLabel}
         </span>
       </motion.header>
 
@@ -113,13 +119,13 @@ export function NewBusinessPlanImportForm({
           className="flex w-full flex-wrap items-center justify-between gap-3"
         >
           <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55">
-            <span className="text-cyan-200/45">Business plan</span>
+            <span className="text-cyan-200/45">{templateLabel}</span>
             <span className="mx-3 text-cyan-200/20">→</span>
             <span className="text-cyan-200/90">Import {cfg.badge}</span>
           </p>
 
           <Link
-            href={`/admin/clients/${clientId}/projects/${projectId}/pages/new?template=business_plan`}
+            href={`/admin/clients/${clientId}/projects/${projectId}/pages/new?template=${templateId}`}
             className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
           >
             <span className="inline-block h-px w-3 bg-current transition-all duration-500 ease-out group-hover:w-6 group-hover:bg-cyan-200" />
@@ -169,7 +175,7 @@ export function NewBusinessPlanImportForm({
               required
               autoFocus
               autoComplete="off"
-              placeholder="Business plan Speetch — V1"
+              placeholder={`${templateLabel} — V1`}
               className="border-b border-cyan-200/25 bg-transparent pb-3 font-sans text-xl font-light text-[#F5F5F7] caret-cyan-200 placeholder:text-white/25 focus:border-cyan-200/80 focus:outline-none md:text-2xl"
             />
           </Field>

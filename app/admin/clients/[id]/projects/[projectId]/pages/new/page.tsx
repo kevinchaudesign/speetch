@@ -10,10 +10,12 @@ import { listTemplatesForProject, loadTemplate } from "@/lib/page-templates-db";
 import { NewPageForm } from "./new-page-form";
 import { NewRawHtmlPageForm } from "./new-raw-html-page-form";
 import { BusinessPlanPicker } from "./business-plan-picker";
+import { MarketResearchPicker } from "./market-research-picker";
 import { NewBusinessPlanImportForm } from "./new-business-plan-import-form";
 import { TemplatePicker } from "./template-picker";
 
 const BUSINESS_PLAN_TEMPLATE_ID = "business_plan";
+const MARKET_RESEARCH_TEMPLATE_ID = "market_research";
 
 export const metadata: Metadata = {
   title: "Nouveau parchemin",
@@ -115,6 +117,45 @@ export default async function NewPagePage({
     if (mode !== "create") {
       return (
         <BusinessPlanPicker
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+        />
+      );
+    }
+    // mode === "create" → continue vers le form standard avec template pré-rempli
+  }
+
+  // Étape 2c — flow spécial "Étude de marché" : même structure que
+  // business_plan, partage le form d'import (générique via templateId).
+  if (template === MARKET_RESEARCH_TEMPLATE_ID) {
+    if (mode === "import-docx") {
+      return (
+        <NewBusinessPlanImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="docx"
+          templateId="market_research"
+          templateLabel="Étude de marché"
+        />
+      );
+    }
+    if (mode === "import-html") {
+      return (
+        <NewBusinessPlanImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="html"
+          templateId="market_research"
+          templateLabel="Étude de marché"
+        />
+      );
+    }
+    if (mode !== "create") {
+      return (
+        <MarketResearchPicker
           clientId={profile.id}
           projectId={projectId}
           projectName={project.name}

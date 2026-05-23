@@ -202,6 +202,81 @@ export const PAGE_TEMPLATES: readonly PageTemplate[] = [
     },
   },
   {
+    id: "market_research",
+    label: "Étude de marché",
+    tagline: "Structure complète + import .docx / artifact Claude",
+    description:
+      "Parchemin étude de marché avec 10 sections standard pré-remplies (contexte sectoriel, taille du marché, segments, concurrence, comportements clients, opportunités, recommandations stratégiques). À l'ouverture, choix entre démarrer vierge, partir de la structure pré-remplie, importer un .docx Word ou importer un fichier HTML d'artifacts Claude.",
+    source: "code",
+    projectType: null,
+    defaultContent: {
+      intro:
+        "Étude de marché structurée — contexte sectoriel, segments cibles, concurrence et recommandations stratégiques.",
+      sections: [
+        {
+          id: "__SECTION_1__",
+          type: "text",
+          title: "01 · Contexte & objectifs",
+          body: "Cadre de l'étude : enjeu business, décisions à éclairer, périmètre géographique et temporel. Méthodologie et sources utilisées (desk research, entretiens, sondages, data externes).",
+        },
+        {
+          id: "__SECTION_2__",
+          type: "text",
+          title: "02 · Panorama sectoriel",
+          body: "Description du secteur : structure, acteurs clés, chaîne de valeur, dynamiques économiques, modèles dominants. Tendances structurantes (tech, régulation, attentes consommateurs).",
+        },
+        {
+          id: "__SECTION_3__",
+          type: "text",
+          title: "03 · Taille & dynamique du marché",
+          body: "TAM / SAM / SOM avec sources. Croissance historique 3-5 ans, projections 3 ans. Segmentation par produit, géographie, canal. Cycle de vie du marché (émergent / croissance / mature / déclin).",
+        },
+        {
+          id: "__SECTION_4__",
+          type: "text",
+          title: "04 · Segments cibles & personas",
+          body: "Découpage des clients en segments actionnables. Pour chacun : taille, comportements, jobs to be done, parcours d'achat, willingness to pay. 2-3 personas qualitatifs représentatifs.",
+        },
+        {
+          id: "__SECTION_5__",
+          type: "text",
+          title: "05 · Comportements & insights clients",
+          body: "Pain points, motivations, freins, déclencheurs d'achat. Verbatims d'entretiens ou résultats sondages. Insights clés actionnables — ce que les clients veulent vraiment.",
+        },
+        {
+          id: "__SECTION_6__",
+          type: "text",
+          title: "06 · Cartographie concurrentielle",
+          body: "Mapping des acteurs en présence : direct, indirect, substituts. Pour les leaders : positionnement, offre, pricing, traction, forces et faiblesses. Espaces de positionnement libres identifiés.",
+        },
+        {
+          id: "__SECTION_7__",
+          type: "text",
+          title: "07 · Tendances & signaux faibles",
+          body: "Macro-tendances qui vont structurer le marché à 3-5 ans (tech, réglementation, sociologie). Signaux faibles repérés (nouveaux entrants, modèles émergents). Impacts attendus.",
+        },
+        {
+          id: "__SECTION_8__",
+          type: "text",
+          title: "08 · Opportunités & menaces",
+          body: "Synthèse SWOT focalisée sur le marché. Opportunités à saisir (segments sous-servis, technos émergentes). Menaces structurelles (saturation, commoditisation, désintermédiation).",
+        },
+        {
+          id: "__SECTION_9__",
+          type: "text",
+          title: "09 · Recommandations stratégiques",
+          body: "Conclusions actionnables : positionnement à privilégier, offre à construire, canaux à activer, partenariats à explorer. 3-5 recommandations priorisées avec impact attendu.",
+        },
+        {
+          id: "__SECTION_10__",
+          type: "text",
+          title: "10 · Annexes & sources",
+          body: "Bibliographie, sources de données chiffrées, méthodologie détaillée, échantillons d'entretiens, données complémentaires. Tout ce qui appuie la crédibilité de l'étude sans alourdir le corps.",
+        },
+      ],
+    },
+  },
+  {
     id: "business_plan",
     label: "Business plan",
     tagline: "Structure complète + import .docx / artifact Claude",
