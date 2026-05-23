@@ -20,7 +20,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { cn } from "@/lib/utils";
 import { SpeetchLogo } from "@/app/_components/speetch-logo";
 
-const ASSISTANT_OPEN_EVENT = "speetch:assistant:open";
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function AdminTopbar({
@@ -33,11 +32,6 @@ export function AdminTopbar({
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const buttonRef = useRef<HTMLButtonElement | null>(null);
-
-  function openAssistant() {
-    if (typeof window === "undefined") return;
-    window.dispatchEvent(new CustomEvent(ASSISTANT_OPEN_EVENT));
-  }
 
   // Click outside + Escape pour fermer le menu profil.
   useEffect(() => {
@@ -89,16 +83,16 @@ export function AdminTopbar({
         <TodoIcon />
       </Link>
 
-      {/* Icône messagerie — ouvre Maître Yoda */}
-      <button
-        type="button"
-        onClick={openAssistant}
-        aria-label="Ouvrir la messagerie Maître Yoda"
-        title="Ouvrir Maître Yoda"
+      {/* Icône Boîte de réception — emails (route à venir).
+          Maître Yoda reste accessible via la floating orb en bas-droite. */}
+      <Link
+        href="/admin/inbox"
+        aria-label="Boîte de réception"
+        title="Boîte de réception"
         className="inline-flex h-10 w-10 items-center justify-center text-cyan-200/70 transition-colors duration-300 hover:text-cyan-100"
       >
-        <MessageIcon />
-      </button>
+        <InboxIcon />
+      </Link>
 
       {/* Avatar du Maître — déclenche le menu profil */}
       <div className="relative">
@@ -201,7 +195,7 @@ export function AdminTopbar({
   );
 }
 
-function MessageIcon() {
+function InboxIcon() {
   return (
     <svg
       width="26"
@@ -214,8 +208,9 @@ function MessageIcon() {
       strokeLinejoin="round"
       aria-hidden
     >
-      <path d="M21 12c0 4.5-4 8-9 8-1.3 0-2.6-.2-3.7-.7L3 21l1.7-4.6C3.6 15.2 3 13.6 3 12c0-4.5 4-8 9-8s9 3.5 9 8Z" />
-      <circle cx="12" cy="12" r="0.8" fill="currentColor" stroke="none" />
+      {/* Boîte de réception : enveloppe avec rabat triangulaire */}
+      <rect x="3" y="5" width="18" height="14" rx="2" />
+      <path d="M3 7l9 7 9-7" />
     </svg>
   );
 }
