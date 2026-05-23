@@ -209,18 +209,50 @@ export function AdminSidebar({
         "md:flex",
       )}
     >
-      {/* Eyebrow Conseil Jedi — header épuré, logo et wordmark retirés */}
-      <div className="relative flex flex-col gap-2">
-        <Eyebrow
-          tracking="lg"
+      {/* Wordmark "Conseil Jedi" — logo signature de la zone admin.
+          Double typographie Inter ExtraLight + Fraunces italic cyan glow
+          avec glitch holocron, héritage du DS Speetch. Quand collapsed,
+          se résume à un sw-cyan-dot pulsant. */}
+      <Link
+        href="/admin"
+        aria-label="Conseil Jedi — Accueil admin"
+        className="relative block transition-opacity duration-300 hover:opacity-90"
+      >
+        {/* Version développée */}
+        <div
           className={cn(
-            "text-[10px] text-cyan-200/65 transition-opacity duration-300",
-            collapsed && "pointer-events-none opacity-0",
+            "flex flex-col leading-[0.95] transition-opacity duration-300",
+            collapsed && "pointer-events-none absolute inset-0 opacity-0",
           )}
         >
-          Conseil Jedi
-        </Eyebrow>
-      </div>
+          <span
+            className="font-sans font-extralight tracking-[-0.03em] text-[#F5F5F7]"
+            style={{ fontSize: "1.75rem" }}
+          >
+            Conseil
+          </span>
+          <span
+            className="sw-hologram-text sw-hologram-glitch self-start pl-4 font-serif italic font-normal"
+            style={{ fontSize: "1.5rem" }}
+          >
+            Jedi
+          </span>
+        </div>
+
+        {/* Version collapsed : dot holocron pulsant */}
+        <div
+          className={cn(
+            "flex h-12 items-center justify-center transition-opacity duration-300",
+            !collapsed && "pointer-events-none absolute inset-0 opacity-0",
+          )}
+          aria-hidden={!collapsed}
+        >
+          <span
+            className="sw-cyan-dot inline-block h-2 w-2 rounded-full bg-cyan-300"
+            title="Conseil Jedi"
+          />
+        </div>
+      </Link>
 
       {/* Navigation — chaque item a son icône SVG ; l'actif est marqué par un
           sabre cyan vertical à gauche (sw-lightsaber-bar) et un glow texte. */}
