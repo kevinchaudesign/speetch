@@ -27,15 +27,25 @@ export default async function SettingsHome() {
   }
 
   const admin = createAdminClient();
-  const [{ count: templateCount }, { data: ownerProfile }] = await Promise.all([
+  const [
+    { count: templateCount },
+    { data: ownerProfile },
+    { data: emailAccount },
+  ] = await Promise.all([
     admin
       .from("page_templates")
       .select("id", { count: "exact", head: true }),
     admin
       .from("profiles")
-      .select("full_name, avatar_url, chatbot_system_prompt")
+      .select("id, full_name, avatar_url, chatbot_system_prompt")
       .eq("is_owner", true)
       .maybeSingle(),
+    admin
+      .from("email_accounts" as never)
+      .select("email")
+      .order("created_at", { ascending: true })
+      .limit(1)
+      .maybeSingle<{ email: string }>(),
   ]);
 
   const hasCustomChatbotPrompt =
@@ -59,6 +69,13 @@ export default async function SettingsHome() {
         : "Default Conseil Jedi",
       summary:
         "Réécris les system instructions du chatbot — pivote la personnalité, le ton, le vocabulaire. La voix de la Force, tu la modèles.",
+    },
+    {
+      href: "/admin/settings/email",
+      label: "Boîte email",
+      hint: emailAccount?.email ?? "Non configuré",
+      summary:
+        "Connecte ta boîte contact@speetch.com (Infomaniak) pour recevoir et envoyer des emails depuis le Conseil. IMAP + SMTP, mot de passe chiffré AES-256.",
     },
     {
       href: "/admin/settings/design-system",
