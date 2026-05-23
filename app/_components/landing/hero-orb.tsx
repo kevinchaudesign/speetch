@@ -169,7 +169,7 @@ export function HeroOrb({
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         overflow="visible"
-        className="speetch-orb h-auto w-[95vw] md:w-[min(60vw,440px)]"
+        className="speetch-orb h-auto w-[100vw] md:w-[min(70vw,580px)]"
         style={{
           transform: `rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
           transition:

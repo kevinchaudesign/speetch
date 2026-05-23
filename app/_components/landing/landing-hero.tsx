@@ -304,7 +304,7 @@ export function LandingHero() {
           Anchorée en BAS du hero (sous le graphique orb qui occupe la
           partie haute). Ordre : H1 → tagline → sous-titre. Padding
           bottom large pour libérer le scroll cue. */}
-      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-6 pb-[22vh] md:pb-[24vh]">
+      <div className="absolute inset-x-0 bottom-0 z-20 flex flex-col items-center px-6 pb-[3vh] md:pb-[4vh]">
         {/* H1 — UNE seule ligne, segments inline. Magnétique au curseur,
             variable weight per letter sur le sans, glow + RGB split sur
             le segment italique « IA ». Lettres animées via CSS variables
@@ -343,23 +343,6 @@ export function LandingHero() {
           </AnimatePresence>
         </div>
 
-
-        {/* Scroll cue */}
-        <motion.a
-          href="#approche"
-          initial={{ opacity: 0 }}
-          animate={{ opacity: loaded ? 1 : 0 }}
-          transition={{ duration: 0.8, delay: 2.3 }}
-          className="group absolute bottom-12 left-1/2 -translate-x-1/2 inline-flex flex-col items-center gap-3 text-[10px] uppercase tracking-[0.4em] text-cyan-200/55 transition-colors duration-300 hover:text-cyan-100"
-          aria-label="Découvrir l'approche Speetch"
-        >
-          <span>Découvrir</span>
-          <motion.span
-            className="inline-block h-8 w-px bg-current"
-            animate={{ scaleY: [0.4, 1, 0.4], opacity: [0.4, 1, 0.4] }}
-            transition={{ duration: 2, repeat: Infinity, ease: EASE_OUT_EXPO }}
-          />
-        </motion.a>
       </div>
 
       {/* Keyframes pour le marquee vertical + chromatic pulse audio-react.
