@@ -230,6 +230,13 @@
     50% { opacity: 1; }
   }
 
+  /* Trois dots qui pulsent en cascade pendant qu'un droïde "réfléchit"
+     (cf. <DroidChat> → <PendingBubble>). Séquence courte, infinie. */
+  @keyframes dotPulse {
+    0%, 80%, 100% { transform: scale(0.6); opacity: 0.35; }
+    40% { transform: scale(1); opacity: 1; }
+  }
+
   .sw-lightsaber-bar {
     background: linear-gradient(
       180deg,

@@ -101,6 +101,34 @@ function PadawansIcon({ className }: { className?: string }) {
   );
 }
 
+function DroidsIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* Silhouette astromech : dôme + cylindre + antenne courte.
+          Lit clairement à 18px comme un droïde générique. */}
+      <path d="M7 9 A 5 5 0 0 1 17 9" />
+      <path d="M7 9 L17 9" />
+      <circle cx="12" cy="7.2" r="1.1" fill="currentColor" stroke="none" />
+      <path d="M15 5.5 L15 3.5" />
+      <path d="M8 9 L8 19 L16 19 L16 9" />
+      <path d="M8 14 L16 14" />
+      <path d="M8 19 L7 22 L9 22" />
+      <path d="M16 19 L17 22 L15 22" />
+    </svg>
+  );
+}
+
 function ForgeIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -170,6 +198,13 @@ function buildNavItems(ownerProfileId: string | null): NavItem[] {
     href: "/admin/crm",
     matches: (p) => p.startsWith("/admin/crm"),
     Icon: PadawansIcon,
+  });
+
+  base.push({
+    label: "Droïdes",
+    href: "/admin/droids",
+    matches: (p) => p.startsWith("/admin/droids"),
+    Icon: DroidsIcon,
   });
 
   base.push({
