@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { Eyebrow } from "@/lib/ds";
 import { AudioToggle } from "./audio-toggle";
 import { AurebeshMark } from "@/app/_components/aurebesh-mark";
 
@@ -174,12 +173,10 @@ function ChevronIcon({ collapsed }: { collapsed: boolean }) {
 }
 
 export function AdminSidebar({
-  email,
   ownerProfileId,
   collapsed,
   onToggle,
 }: {
-  email: string;
   ownerProfileId: string | null;
   collapsed: boolean;
   onToggle: () => void;
@@ -306,31 +303,14 @@ export function AdminSidebar({
         })}
       </nav>
 
-      {/* Identifiant + déconnexion — séparateur en hologram-line cyan */}
+      {/* Bas de sidebar : audio + signature Aurebesh + toggle replier.
+          L'identifiant et la déconnexion sont désormais dans le menu
+          profil de la topbar (avatar en haut à droite). */}
       <div className="relative flex flex-col gap-5 pt-6">
         <div
           aria-hidden
-          className={cn(
-            "sw-hologram-line absolute -top-px",
-            collapsed ? "left-0 right-0" : "left-0 right-0",
-          )}
+          className="sw-hologram-line absolute -top-px left-0 right-0"
         />
-        <div
-          className={cn(
-            "flex flex-col gap-1.5 overflow-hidden transition-all duration-500 ease-out",
-            collapsed ? "max-h-0 opacity-0" : "max-h-32 opacity-100",
-          )}
-        >
-          <Eyebrow
-            tracking="lg"
-            className="text-[10px] text-cyan-200/45"
-          >
-            Identifiant
-          </Eyebrow>
-          <span className="break-all text-[13px] font-light text-white/70">
-            {email}
-          </span>
-        </div>
 
         <AudioToggle collapsed={collapsed} />
 

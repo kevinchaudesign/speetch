@@ -41,7 +41,6 @@ export function AdminShell({
   return (
     <div className="min-h-svh w-full">
       <AdminSidebar
-        email={email}
         ownerProfileId={ownerProfileId}
         collapsed={collapsed}
         onToggle={handleToggle}
