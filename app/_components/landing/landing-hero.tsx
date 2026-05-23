@@ -20,41 +20,57 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { HeroOrb } from "./hero-orb";
-import { SatelliteOrb } from "./satellite-orb";
+import { SatelliteOrb, SatelliteVisual } from "./satellite-orb";
 import { SkillPanel } from "./skill-panel";
-import { DOMAINS, findSkill, getDomain } from "@/lib/domains";
+import { DOMAINS, findSkill, getDomain, type Domain } from "@/lib/domains";
+
+/* Timeline transition zoom satellite → central (en ms) :
+ *  - 0           : déclenchement du zoom (overlay translate+scale)
+ *  - SWAP_AT     : on commit le swap activeDomainId ; l'overlay
+ *                  continue à scroller vers le centre pendant que le
+ *                  central refait fade-in avec les nouveaux skills.
+ *  - END_AT      : l'overlay disparaît (a déjà fini de fade-out).
+ *  Le décalage SWAP_AT → END_AT crée un crossfade propre entre la
+ *  satellite zoomée et le central qui réapparaît. */
+const ZOOM_SWAP_AT = 520;
+const ZOOM_END_AT = 880;
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const EASE_IN_OUT_QUART: [number, number, number, number] = [0.65, 0, 0.35, 1];
 
-const TAGLINES = [
-  "Marques · Produits · Plateformes",
-  "Image · Voix · Code · Itération",
-];
-
-/** Positions cosmiques fixes des 4 orbes satellites. Tailles
- *  variables = sensation de distance (plus petit = plus loin).
+/** Positions cosmiques fixes des 4 orbes satellites.
+ *  Taille et flou variables = depth of field (plus petit + plus flou
+ *  = plus loin). Les satellites mirroient l'aspect du central (cf.
+ *  <SatelliteVisual>), seule la profondeur change.
  *  Évite H1 top-left, scroll bottom-center, contact bottom-right. */
 const SATELLITE_LAYOUT: ReadonlyArray<{
   size: number;
+  blur: number;
   position: React.CSSProperties;
 }> = [
-  // top-right (assez petite = loin)
-  { size: 110, position: { top: "11vh", right: "5vw" } },
-  // mid-left (moyenne)
-  { size: 140, position: { top: "44vh", left: "3vw" } },
-  // mid-right (moyenne)
-  { size: 130, position: { top: "48vh", right: "3vw" } },
-  // bottom-left (petite)
-  { size: 100, position: { bottom: "16vh", left: "6vw" } },
+  // top-right — moyenne distance, flou modéré
+  { size: 210, blur: 1.4, position: { top: "8vh", right: "4vw" } },
+  // mid-left — la plus proche, presque nette
+  { size: 250, blur: 0.4, position: { top: "40vh", left: "3vw" } },
+  // mid-right — distance moyenne
+  { size: 220, blur: 0.9, position: { top: "44vh", right: "3vw" } },
+  // bottom-left — la plus lointaine, très floue
+  { size: 175, blur: 2.4, position: { bottom: "12vh", left: "5vw" } },
 ];
 
 // Segments du H1 — rendus en ligne (inline), pas empilés. « IA » en
 // italique jaune + glow brand pour signer la couleur.
-const HEADLINE_WORDS = [
-  { text: "Direction artistique ×", italic: false },
-  { text: " IA", italic: true },
-] as const;
+type HeadlineSegment = { text: string; italic: boolean };
+
+/** Construit le H1 à partir du label du domaine actif :
+ *  « {label} × IA » avec « × IA » en italique jaune brand.
+ *  Mis à jour à chaque swap de domaine via la constellation. */
+function buildHeadlineWords(activeLabel: string): HeadlineSegment[] {
+  return [
+    { text: `${activeLabel} ×`, italic: false },
+    { text: " IA", italic: true },
+  ];
+}
 
 /** Tokens du marquee vertical droit — défile en continu. */
 const MARQUEE_TOKENS = [
@@ -74,17 +90,6 @@ const MARQUEE_TOKENS = [
   "·",
 ];
 
-/** Mots flottants en arrière-plan (counter-parallaxe). Positions
- *  ratios viewport [0..1] pour rester responsive. */
-const FLOATING_LABELS = [
-  { text: "MARQUE", x: 0.08, y: 0.18, delay: 1.4, size: 11 },
-  { text: "PRODUIT", x: 0.86, y: 0.22, delay: 1.55, size: 10 },
-  { text: "VOIX", x: 0.12, y: 0.78, delay: 1.7, size: 10 },
-  { text: "CODE", x: 0.84, y: 0.74, delay: 1.85, size: 11 },
-  { text: "IMAGE", x: 0.06, y: 0.48, delay: 2.0, size: 10 },
-  { text: "ITÉRATION", x: 0.88, y: 0.48, delay: 2.15, size: 9 },
-] as const;
-
 export function LandingHero() {
   const [loaded, setLoaded] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -93,12 +98,49 @@ export function LandingHero() {
     w: 1,
     h: 1,
   });
-  const [taglineIndex, setTaglineIndex] = useState(0);
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
   const activeSkill = activeSkillId ? findSkill(activeSkillId) : null;
   const [activeDomainId, setActiveDomainId] = useState<string>("ia");
   const activeDomain = getDomain(activeDomainId) ?? DOMAINS[0];
   const satelliteDomains = DOMAINS.filter((d) => d.id !== activeDomainId);
+  const headlineWords = buildHeadlineWords(activeDomain.label);
+
+  /* Zoom satellite → central : pendant la transition, on rend un
+   * overlay <ZoomingOrb> ancré au rect de la satellite cliquée, puis
+   * animé vers le centre. Le central fade out (centralHidden=true),
+   * puis au SWAP_AT on commit activeDomainId + relâche centralHidden
+   * pour que le central refasse fade-in avec les nouveaux skills. */
+  const [zoom, setZoom] = useState<{
+    domain: Domain;
+    startRect: DOMRect;
+    startBlur: number;
+  } | null>(null);
+  const [centralHidden, setCentralHidden] = useState(false);
+  const zoomTimersRef = useRef<number[]>([]);
+
+  useEffect(() => {
+    return () => {
+      for (const id of zoomTimersRef.current) window.clearTimeout(id);
+      zoomTimersRef.current = [];
+    };
+  }, []);
+
+  function handleSatelliteClick(id: string, rect: DOMRect, blur: number) {
+    if (zoom) return; // ignore les clics doubles pendant transition
+    const domain = getDomain(id);
+    if (!domain) return;
+    setZoom({ domain, startRect: rect, startBlur: blur });
+    setCentralHidden(true);
+    zoomTimersRef.current.push(
+      window.setTimeout(() => {
+        setActiveDomainId(id);
+        setCentralHidden(false);
+      }, ZOOM_SWAP_AT),
+    );
+    zoomTimersRef.current.push(
+      window.setTimeout(() => setZoom(null), ZOOM_END_AT),
+    );
+  }
 
   /* Initialise et tient à jour les dimensions viewport (SSR-safe). */
   useEffect(() => {
@@ -193,16 +235,6 @@ export function LandingHero() {
     return () => cancelAnimationFrame(rafId);
   }, [loaded]);
 
-  /* Cycle tagline toutes les 3.6s — start après loaded */
-  useEffect(() => {
-    if (!loaded) return;
-    const id = window.setInterval(
-      () => setTaglineIndex((i) => (i + 1) % TAGLINES.length),
-      3600,
-    );
-    return () => window.clearInterval(id);
-  }, [loaded]);
-
   return (
     <section
       aria-label="Hero — Speetch, studio de communication à l'ère de l'IA"
@@ -281,6 +313,7 @@ export function LandingHero() {
         onSkillClick={setActiveSkillId}
         active={!!activeSkillId}
         skills={activeDomain.skills}
+        transitioning={centralHidden}
       />
 
       {/* ────── Couche 0.5 : 4 orbes satellites (autres domaines) ──────
@@ -303,15 +336,29 @@ export function LandingHero() {
               key={d.id}
               domain={d}
               size={SATELLITE_LAYOUT[i].size}
+              blur={SATELLITE_LAYOUT[i].blur}
               position={SATELLITE_LAYOUT[i].position}
-              onClick={setActiveDomainId}
+              onClick={handleSatelliteClick}
+              hidden={zoom?.domain.id === d.id}
+              dimmed={zoom !== null && zoom.domain.id !== d.id}
             />
           ))}
         </div>
       </div>
 
-      {/* ────── Couche 1 : mots flottants asymétriques (counter-parallaxe) ────── */}
-      <FloatingLabels loaded={loaded} mouse={mouse} viewport={viewport} />
+      {/* ────── Overlay de zoom — satellite vers centre ──────
+          Rendu fixed-position au-dessus de tout (z-30) ; ancré au
+          rect d'origine de la satellite cliquée, anime translate+scale
+          vers le centre du viewport en 880ms, fade-out final pendant
+          que le central refait fade-in (crossfade propre). */}
+      {zoom && (
+        <ZoomingOrb
+          domain={zoom.domain}
+          startRect={zoom.startRect}
+          startBlur={zoom.startBlur}
+          viewport={viewport}
+        />
+      )}
 
       {/* ────── Couche 2 : marquee vertical droite — credentials ────── */}
       <motion.div
@@ -346,31 +393,35 @@ export function LandingHero() {
       </motion.div>
 
       {/* ────── Composition H1 éditorial kinétique ──────
-          Anchorée en HAUT À GAUCHE du hero. Ordre : H1 → tagline.
-          Au zoom skill : s'éloigne vers le haut-gauche + fade out. */}
+          Anchorée en HAUT À GAUCHE du hero. Au zoom skill : s'éloigne
+          vers le haut-gauche + fade out. */}
       <div
         className="absolute left-0 top-0 z-20 flex flex-col items-start px-6 pt-[5vh] md:px-10 md:pt-[6vh]"
         style={{
-          // Quand un skill est ouvert (orbe zoomée), le bloc H1+tagline
-          // s'éloigne vers le haut-gauche + fade. Revient au dézoom.
-          opacity: activeSkillId ? 0 : 1,
+          // Quand un skill est ouvert (orbe zoomée) ou pendant un swap
+          // de domaine, le H1 fade out (et translate sur skill). Revient
+          // avec le nouveau label « {domaine} × IA » au dézoom/swap.
+          opacity: activeSkillId || centralHidden ? 0 : 1,
           transform: activeSkillId
             ? "translate(-40px, -40px)"
             : "translate(0, 0)",
-          transition:
-            "opacity 420ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1)",
+          transition: centralHidden
+            ? "opacity 380ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1)"
+            : "opacity 520ms cubic-bezier(0.22, 1, 0.36, 1) 180ms, transform 520ms cubic-bezier(0.22, 1, 0.36, 1)",
           pointerEvents: activeSkillId ? "none" : "auto",
         }}
       >
         {/* H1 — magnétique au curseur, variable weight per letter, glow
-            + RGB split jaune/cyan sur « IA ». Coin haut-gauche donc
-            text-left + clamp réduit (corner placement compact). */}
+            + RGB split jaune/cyan sur « × IA ». Coin haut-gauche donc
+            text-left + clamp réduit (corner placement compact).
+            Le label varie avec le domaine actif ; chaque swap remount
+            la KineticLine via key={text} → restagger reveal animation. */}
         <h1
           className="select-none whitespace-nowrap text-left font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7]"
           style={{ fontSize: "clamp(1.1rem, 3.4vw, 2.5rem)" }}
         >
           <span className="block overflow-hidden py-[0.05em]">
-            {HEADLINE_WORDS.map((w, segIdx) => (
+            {headlineWords.map((w, segIdx) => (
               <KineticLine
                 key={w.text}
                 text={w.text}
@@ -378,27 +429,11 @@ export function LandingHero() {
                 lineIndex={segIdx}
                 loaded={loaded}
                 letterRefs={letterRefs}
+                allWords={headlineWords}
               />
             ))}
           </span>
         </h1>
-
-        {/* Tagline rotating — sous le titre, alignée à gauche */}
-        <div className="relative mt-2 flex h-6 items-center md:mt-3">
-          <AnimatePresence mode="wait">
-            <motion.span
-              key={taglineIndex}
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: loaded ? 1 : 0, y: loaded ? 0 : 6 }}
-              exit={{ opacity: 0, y: -6 }}
-              transition={{ duration: 0.7, ease: EASE_OUT_EXPO }}
-              className="text-left text-[10px] uppercase tracking-[0.32em] text-cyan-200/85"
-            >
-              {TAGLINES[taglineIndex]}
-            </motion.span>
-          </AnimatePresence>
-        </div>
-
       </div>
 
       {/* ────── Scroll indicator — bottom-center ──────
@@ -479,19 +514,23 @@ function KineticLine({
   lineIndex,
   loaded,
   letterRefs,
+  allWords,
 }: {
   text: string;
   italic: boolean;
   lineIndex: number;
   loaded: boolean;
   letterRefs: React.MutableRefObject<Array<HTMLSpanElement | null>>;
+  /** Tous les segments du H1 — sert à calculer baseIndex (offset
+   *  cumulé des refs par ligne). Passé par le parent puisque le
+   *  contenu est désormais dérivé du domaine actif. */
+  allWords: HeadlineSegment[];
 }) {
   // Calcule un offset global stable pour les refs (cumule les lignes
   // précédentes — chaque KineticLine connaît son numéro de ligne).
-  const baseIndex = HEADLINE_WORDS.slice(0, lineIndex).reduce(
-    (s, w) => s + w.text.length,
-    0,
-  );
+  const baseIndex = allWords
+    .slice(0, lineIndex)
+    .reduce((s, w) => s + w.text.length, 0);
 
   return (
     <span
@@ -546,54 +585,82 @@ function KineticLine({
   );
 }
 
-/** Mots flottants en arrière-plan (counter-parallaxe au curseur).
- *  Positionnés en ratios viewport, drift continu via framer + nudge
- *  inverse de la souris pour donner une profondeur. */
-function FloatingLabels({
-  loaded,
-  mouse,
+/** Overlay zoom satellite → centre. Rendu fixed-position au rect
+ *  d'origine de la satellite, puis (au prochain frame) bascule sur un
+ *  transform translate+scale qui l'amène pile au centre visuel de
+ *  l'orbe centrale. Fade-out au dernier tiers pour croiser le
+ *  fade-in du central qui réapparaît avec le nouveau domaine. */
+function ZoomingOrb({
+  domain,
+  startRect,
+  startBlur,
   viewport,
 }: {
-  loaded: boolean;
-  mouse: { x: number; y: number };
+  domain: Domain;
+  startRect: DOMRect;
+  /** Flou initial — repris de la satellite cliquée pour continuité,
+   *  puis animé à 0 pendant le zoom (mise au point sur le centre). */
+  startBlur: number;
   viewport: { w: number; h: number };
 }) {
-  // Counter-parallaxe : amplitude max 18px, inverse de la position curseur
-  const offsetX = -((mouse.x / viewport.w) * 18 - 9);
-  const offsetY = -((mouse.y / viewport.h) * 18 - 9);
+  const [zoomed, setZoomed] = useState(false);
+  const [blur, setBlur] = useState(startBlur);
+
+  useEffect(() => {
+    // Force un re-layout entre le mount (à startRect, blur initial) et
+    // l'application du transform cible — sinon la transition CSS ne
+    // joue pas. Le même frame déclenche la mise au point (blur → 0).
+    const id = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        setZoomed(true);
+        setBlur(0);
+      }),
+    );
+    return () => cancelAnimationFrame(id);
+  }, []);
+
+  // Centre visuel approximatif de l'orbe centrale : son wrapper a
+  // pt-[10vh] et l'orbe occupe ~min(78vw, 640px) carré, donc le centre
+  // tombe à viewport.h * 0.10 + half.
+  const orbVisualWidth = Math.min(viewport.w * 0.78, 640);
+  const targetCenterX = viewport.w / 2;
+  const targetCenterY = viewport.h * 0.10 + orbVisualWidth / 2;
+
+  // Scale tel que la satellite zoomée occupe à peu près la taille
+  // visible de l'orbe centrale (apparence finale ≈ remplace le central).
+  const targetScale = orbVisualWidth / Math.max(startRect.width, 1);
+
+  // La boîte du satellite est désormais carrée (label centré sur l'orbe,
+  // plus en-dessous) — son centre est simplement le centre du rect.
+  const startCenterX = startRect.left + startRect.width / 2;
+  const startCenterY = startRect.top + startRect.height / 2;
+
+  const dx = targetCenterX - startCenterX;
+  const dy = targetCenterY - startCenterY;
 
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-10 hidden md:block"
+      className="pointer-events-none fixed z-30"
       style={{
-        transform: `translate3d(${offsetX.toFixed(1)}px, ${offsetY.toFixed(1)}px, 0)`,
-        transition: "transform 600ms cubic-bezier(0.22, 1, 0.36, 1)",
-        willChange: "transform",
+        top: startRect.top,
+        left: startRect.left,
+        width: startRect.width,
+        transform: zoomed
+          ? `translate3d(${dx}px, ${dy}px, 0) scale(${targetScale})`
+          : "translate3d(0, 0, 0) scale(1)",
+        opacity: zoomed ? 0 : 1,
+        transformOrigin: "center center",
+        // Transform fluide 760ms. Fade-out final 280ms à partir de
+        // 460ms → croise le fade-in du central qui démarre à 520ms +
+        // 180ms = ~700ms. Crossfade visible mais sans trou.
+        transition:
+          "transform 760ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms cubic-bezier(0.22, 1, 0.36, 1) 460ms",
+        willChange: "transform, opacity",
       }}
     >
-      {FLOATING_LABELS.map((l) => (
-        <motion.span
-          key={l.text}
-          initial={{ opacity: 0, y: 8 }}
-          animate={{ opacity: loaded ? 0.32 : 0, y: loaded ? 0 : 8 }}
-          transition={{
-            duration: 1.4,
-            delay: l.delay,
-            ease: EASE_OUT_EXPO,
-          }}
-          className="absolute font-mono uppercase tracking-[0.4em] text-cyan-200/40"
-          style={{
-            left: `${l.x * 100}%`,
-            top: `${l.y * 100}%`,
-            fontSize: `${l.size}px`,
-            transform: "translate(-50%, -50%)",
-            textShadow: "0 0 12px rgba(125, 211, 252, 0.25)",
-          }}
-        >
-          {l.text}
-        </motion.span>
-      ))}
+      <SatelliteVisual domain={domain} size={startRect.width} blur={blur} />
     </div>
   );
 }
+

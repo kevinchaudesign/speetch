@@ -3,15 +3,18 @@
  * du hero représente un domaine, avec ses 16 compétences orbitant
  * sur 2 orbites (8 inner + 8 outer).
  *
- * Cinq domaines :
- *  1. IA augmentée       — agents, automatisations, LLMs custom…
- *  2. Direction artistique — identités, typographie, motion…
- *  3. Produit digital     — UX, design system, prototypage…
- *  4. Plateformes web     — Next, Supabase, perf, SEO tech…
- *  5. Communication       — copywriting, social, RP, événements…
+ * Cinq domaines (« agence nouvelle génération IA ») :
+ *  1. IA augmentée  — central, couche transverse qui irrigue les 4
+ *  2. Marque        — identité, voix, storytelling
+ *  3. Produit       — UX, design system, plateformes (Next/Supabase)
+ *  4. Contenu       — création visuelle + éditoriale (motion, copy, social)
+ *  5. Croissance    — distribution, RP, SEO/GEO, lancement, analytics
  *
  * Chaque domaine a son accent couleur — utilisé pour le glow de
  * l'orbe satellite et pour l'accent du panneau description.
+ * NB : les ids de skills sont conservés tels quels (ils servent
+ * d'ancres potentielles), seul leur regroupement par domaine et
+ * leur accent ont été harmonisés.
  */
 
 import type { Skill, SkillAccent } from "./skills";
@@ -25,9 +28,8 @@ export type Domain = {
   skills: Skill[];      // exactement 16, ordre = position orbitale
 };
 
-/* ─── Domaine 1 : IA augmentée ─────────────────────────────────────── */
+/* ─── Domaine 1 : IA augmentée (central) ─── */
 const SKILLS_IA: Skill[] = [
-  // Orbite intérieure
   {
     id: "ia.automatisations",
     label: "AUTOMATISATIONS",
@@ -92,7 +94,6 @@ const SKILLS_IA: Skill[] = [
       "Orchestration de chaînes d'opérations IA complexes : extraction → analyse → génération → validation. Speetch structure les étapes, gère les fallbacks, mesure les coûts.",
     accent: "amber",
   },
-  // Orbite extérieure
   {
     id: "ia.geo",
     label: "GEO",
@@ -159,8 +160,8 @@ const SKILLS_IA: Skill[] = [
   },
 ];
 
-/* ─── Domaine 2 : Direction artistique ─────────────────────────────── */
-const SKILLS_DA: Skill[] = [
+/* ─── Domaine 2 : Marque (identité + voix) ─── */
+const SKILLS_MARQUE: Skill[] = [
   {
     id: "da.logo",
     label: "LOGO",
@@ -210,14 +211,6 @@ const SKILLS_DA: Skill[] = [
     accent: "rose",
   },
   {
-    id: "da.motion",
-    label: "MOTION",
-    title: "Motion design",
-    description:
-      "Animation de marque : logo en mouvement, transitions UI, vidéos manifestes. Speetch livre en After Effects, Lottie, Rive, ou code (Framer Motion) selon l'usage final.",
-    accent: "rose",
-  },
-  {
     id: "da.moodboard",
     label: "MOODBOARD",
     title: "Moodboards & exploration",
@@ -226,43 +219,11 @@ const SKILLS_DA: Skill[] = [
     accent: "rose",
   },
   {
-    id: "da.social",
-    label: "DA SOCIAL",
-    title: "DA réseaux sociaux",
+    id: "da.guidelines",
+    label: "GUIDELINES",
+    title: "Guidelines & gouvernance",
     description:
-      "Templates Instagram, TikTok, LinkedIn cohérents avec votre marque. Speetch pense l'engagement (taux de scroll, hook visuel) en plus de l'esthétique.",
-    accent: "rose",
-  },
-  {
-    id: "da.web",
-    label: "DA WEB",
-    title: "DA digital & web",
-    description:
-      "Direction artistique web : composition, animation, interaction. Speetch pense le site comme un objet culturel, pas comme une vitrine vide.",
-    accent: "rose",
-  },
-  {
-    id: "da.print",
-    label: "DA PRINT",
-    title: "Édition & print",
-    description:
-      "Livres, plaquettes, cartes de visite, posters, presse. Speetch maîtrise la chaîne graphique (CMYK, Pantone, ennoblissement) et bosse main dans la main avec l'imprimeur.",
-    accent: "rose",
-  },
-  {
-    id: "da.packaging",
-    label: "PACKAGING",
-    title: "Packaging produit",
-    description:
-      "Conception packaging produit : structure, surface, étiquette, fini. Speetch livre les fichiers d'exécution + maquette mock-up haute fidélité.",
-    accent: "rose",
-  },
-  {
-    id: "da.photo",
-    label: "PHOTOGRAPHIE",
-    title: "Direction photographique",
-    description:
-      "Brief photographe, styling, lumière, postproduction. Speetch fait la DA des shootings produit, portraits, lifestyle, ou coordonne une banque visuelle propriétaire.",
+      "Brand book vivant, gouvernance, gardiennage. Speetch peut aussi assurer un rôle de DA externe en abonnement pour garantir la cohérence dans le temps.",
     accent: "rose",
   },
   {
@@ -282,16 +243,56 @@ const SKILLS_DA: Skill[] = [
     accent: "rose",
   },
   {
-    id: "da.guidelines",
-    label: "GUIDELINES",
-    title: "Guidelines & gouvernance",
+    id: "da.photo",
+    label: "PHOTOGRAPHIE",
+    title: "Direction photographique",
     description:
-      "Brand book vivant, gouvernance, gardiennage. Speetch peut aussi assurer un rôle de DA externe en abonnement pour garantir la cohérence dans le temps.",
+      "Brief photographe, styling, lumière, postproduction. Speetch fait la DA des shootings produit, portraits, lifestyle, ou coordonne une banque visuelle propriétaire.",
+    accent: "rose",
+  },
+  {
+    id: "da.packaging",
+    label: "PACKAGING",
+    title: "Packaging produit",
+    description:
+      "Conception packaging produit : structure, surface, étiquette, fini. Speetch livre les fichiers d'exécution + maquette mock-up haute fidélité.",
+    accent: "rose",
+  },
+  {
+    id: "comm.brand-voice",
+    label: "BRAND VOICE",
+    title: "Voix de marque",
+    description:
+      "Codification éditoriale : ton, vocabulaire, anti-vocabulaire, formules signatures. Speetch livre un brand voice guide vivant + une banque de tournures.",
+    accent: "rose",
+  },
+  {
+    id: "comm.storytelling",
+    label: "STORYTELLING",
+    title: "Storytelling de marque",
+    description:
+      "Narration globale : pourquoi vous existez, qui vous êtes, où vous allez. Speetch construit l'arc narratif qui transforme une boîte en mythe (ou au moins en histoire mémorable).",
+    accent: "rose",
+  },
+  {
+    id: "comm.manifeste",
+    label: "MANIFESTES",
+    title: "Manifestes & POV",
+    description:
+      "Manifeste de marque, prises de position éditoriales, POV publics. Speetch écrit ce qui vous distingue vraiment, pas ce qui rassure le board.",
+    accent: "rose",
+  },
+  {
+    id: "comm.kit-marque",
+    label: "KIT MARQUE",
+    title: "Kit de marque & sales",
+    description:
+      "Kit prêt-à-l'emploi : présentation, one-pager, pitch deck, signature email. Speetch livre des templates Figma + Notion que vos équipes peuvent dupliquer.",
     accent: "rose",
   },
 ];
 
-/* ─── Domaine 3 : Produit digital ──────────────────────────────────── */
+/* ─── Domaine 3 : Produit (UX + plateformes) ─── */
 const SKILLS_PRODUIT: Skill[] = [
   {
     id: "produit.ux-research",
@@ -358,43 +359,11 @@ const SKILLS_PRODUIT: Skill[] = [
     accent: "cyan",
   },
   {
-    id: "produit.animations",
-    label: "ANIMATIONS",
-    title: "Animations UI",
+    id: "produit.handoff",
+    label: "HANDOFF DEV",
+    title: "Handoff design ↔ dev",
     description:
-      "Micro-interactions, transitions, easings. Speetch utilise framer-motion, Rive, Lottie selon l'usage, et privilégie l'animation qui sert le sens (pas la décoration).",
-    accent: "cyan",
-  },
-  {
-    id: "produit.user-flows",
-    label: "USER FLOWS",
-    title: "User flows & parcours",
-    description:
-      "Cartographie des parcours utilisateur, points de friction, opportunités de conversion. Speetch dessine en Figjam ou Whimsical, puis priorise par impact.",
-    accent: "cyan",
-  },
-  {
-    id: "produit.icons-ui",
-    label: "ICONS UI",
-    title: "Icônes UI",
-    description:
-      "Système d'icônes UI cohérent (stroke 1.5px, grille 24×24, optical sizing). Speetch dessine ou customise depuis Lucide / Heroicons / Phosphor selon votre stack.",
-    accent: "cyan",
-  },
-  {
-    id: "produit.ab-tests",
-    label: "A/B TESTS",
-    title: "A/B testing & expérimentation",
-    description:
-      "Conception et analyse d'A/B tests (PostHog, Statsig, in-house). Speetch propose les hypothèses, le design des variants, et l'interprétation statistique des résultats.",
-    accent: "cyan",
-  },
-  {
-    id: "produit.design-ops",
-    label: "DESIGN OPS",
-    title: "Design ops",
-    description:
-      "Process design, naming, workflow Figma, handoff dev. Speetch monte l'infrastructure invisible qui fait gagner 30% de vélocité à votre équipe design.",
+      "Documentation handoff, design specs, code snippets. Speetch parle aux devs (Kevin est dev senior) et livre des fichiers que personne ne maudit.",
     accent: "cyan",
   },
   {
@@ -406,32 +375,12 @@ const SKILLS_PRODUIT: Skill[] = [
     accent: "cyan",
   },
   {
-    id: "produit.copy-ui",
-    label: "COPY UI",
-    title: "Copywriting UI",
-    description:
-      "Microcopy, états vides, messages d'erreur, onboarding. Speetch travaille les mots de l'interface comme un livre — chaque phrase compte.",
-    accent: "cyan",
-  },
-  {
-    id: "produit.handoff",
-    label: "HANDOFF DEV",
-    title: "Handoff design ↔ dev",
-    description:
-      "Documentation handoff, design specs, code snippets. Speetch parle aux devs (Kevin est dev senior) et livre des fichiers que personne ne maudit.",
-    accent: "cyan",
-  },
-];
-
-/* ─── Domaine 4 : Plateformes web ──────────────────────────────────── */
-const SKILLS_WEB: Skill[] = [
-  {
     id: "web.next",
     label: "NEXT.JS",
     title: "Next.js (App Router)",
     description:
       "App Router, Server Components, Server Actions, streaming, ISR. Speetch monte des sites/apps Next.js depuis le scaffolding jusqu'au déploiement.",
-    accent: "emerald",
+    accent: "cyan",
   },
   {
     id: "web.react",
@@ -439,7 +388,7 @@ const SKILLS_WEB: Skill[] = [
     title: "React 19 + hooks",
     description:
       "React moderne : hooks, Suspense, concurrent features, server components. Speetch écrit du React lisible — pas de magic, pas de cargo cult.",
-    accent: "emerald",
+    accent: "cyan",
   },
   {
     id: "web.typescript",
@@ -447,7 +396,7 @@ const SKILLS_WEB: Skill[] = [
     title: "TypeScript strict",
     description:
       "TypeScript strict, types discriminés, génériques utiles. Speetch tape tout y compris le shape Supabase, et refuse les `any` qui pourrissent un projet.",
-    accent: "emerald",
+    accent: "cyan",
   },
   {
     id: "web.supabase",
@@ -455,7 +404,7 @@ const SKILLS_WEB: Skill[] = [
     title: "Supabase (Postgres + Auth)",
     description:
       "Postgres, RLS, auth, storage, realtime, edge functions. Speetch monte le schéma, les migrations, les policies, et l'admin client/owner.",
-    accent: "emerald",
+    accent: "cyan",
   },
   {
     id: "web.tailwind",
@@ -463,55 +412,7 @@ const SKILLS_WEB: Skill[] = [
     title: "Tailwind CSS",
     description:
       "Tailwind utility-first + design tokens. Speetch refuse les abstractions inutiles (UI libs lourdes) et garde le CSS prévisible et performant.",
-    accent: "emerald",
-  },
-  {
-    id: "web.headless",
-    label: "HEADLESS CMS",
-    title: "Headless CMS",
-    description:
-      "Sanity, Contentful, Storyblok, ou CMS maison sur Supabase. Speetch arbitre selon le volume éditorial et l'autonomie souhaitée des éditeurs.",
-    accent: "emerald",
-  },
-  {
-    id: "web.anim-web",
-    label: "ANIM WEB",
-    title: "Animations web",
-    description:
-      "Framer Motion, GSAP, Lenis (smooth scroll), CSS animations natives. Speetch arbitre selon la performance cible et la complexité de l'effet.",
-    accent: "emerald",
-  },
-  {
-    id: "web.perf",
-    label: "WEB PERF",
-    title: "Performance web",
-    description:
-      "Core Web Vitals au top : LCP < 2.5s, INP < 200ms, CLS < 0.1. Speetch optimise images, fonts, scripts, edge caching, lazy loading.",
-    accent: "emerald",
-  },
-  {
-    id: "web.seo-tech",
-    label: "SEO TECH",
-    title: "SEO technique",
-    description:
-      "Schema.org, sitemap, robots, canonicals, meta dynamiques, OpenGraph. Speetch monte le socle SEO technique avant que vous ayez besoin d'un consultant SEO.",
-    accent: "emerald",
-  },
-  {
-    id: "web.hosting",
-    label: "HOSTING",
-    title: "Hosting & déploiement",
-    description:
-      "Vercel, Hostinger, Railway, VPS. Speetch monte le pipeline CI/CD git push → prod, avec preview branches et rollback instantané.",
-    accent: "emerald",
-  },
-  {
-    id: "web.edge",
-    label: "EDGE FUNC.",
-    title: "Edge functions & API",
-    description:
-      "Routes API Next, edge functions Vercel/Cloudflare, Supabase functions. Speetch écrit des endpoints typés, testés, monitorés.",
-    accent: "emerald",
+    accent: "cyan",
   },
   {
     id: "web.auth",
@@ -519,66 +420,50 @@ const SKILLS_WEB: Skill[] = [
     title: "Authentification & autorisation",
     description:
       "Magic link, OAuth, sessions, JWT, RLS Postgres. Speetch monte des flows d'auth propres et sécurisés — pas de Bcrypt cassé.",
-    accent: "emerald",
-  },
-  {
-    id: "web.a11y-code",
-    label: "A11Y CODE",
-    title: "Accessibilité (code)",
-    description:
-      "ARIA roles, focus traps, keyboard nav, screen reader testing. Speetch code l'accessibilité comme une feature, pas comme un patch de fin.",
-    accent: "emerald",
-  },
-  {
-    id: "web.email",
-    label: "EMAIL TECH",
-    title: "Emails transactionnels",
-    description:
-      "Brevo, Resend, Postmark, SES. Speetch monte le pipeline d'envoi + templates HTML qui passent dans Outlook (sans pleurer).",
-    accent: "emerald",
-  },
-  {
-    id: "web.analytics",
-    label: "ANALYTICS",
-    title: "Analytics & métriques",
-    description:
-      "PostHog, Plausible, Umami, Vercel Analytics. Speetch monte un setup qui respecte la vie privée + dashboards custom pour les métriques qui comptent.",
-    accent: "emerald",
-  },
-  {
-    id: "web.devops",
-    label: "DEVOPS",
-    title: "DevOps & monitoring",
-    description:
-      "Sentry, Logflare, uptime monitoring, alertes. Speetch monte l'infrastructure de surveillance pour que vous sachiez avant le client qu'il y a un bug.",
-    accent: "emerald",
+    accent: "cyan",
   },
 ];
 
-/* ─── Domaine 5 : Communication ────────────────────────────────────── */
-const SKILLS_COMM: Skill[] = [
+/* ─── Domaine 4 : Contenu (création visuelle + éditoriale) ─── */
+const SKILLS_CONTENU: Skill[] = [
+  {
+    id: "da.motion",
+    label: "MOTION",
+    title: "Motion design",
+    description:
+      "Animation de marque : logo en mouvement, transitions UI, vidéos manifestes. Speetch livre en After Effects, Lottie, Rive, ou code (Framer Motion) selon l'usage final.",
+    accent: "gold",
+  },
+  {
+    id: "da.social",
+    label: "DA SOCIAL",
+    title: "DA réseaux sociaux",
+    description:
+      "Templates Instagram, TikTok, LinkedIn cohérents avec votre marque. Speetch pense l'engagement (taux de scroll, hook visuel) en plus de l'esthétique.",
+    accent: "gold",
+  },
+  {
+    id: "da.web",
+    label: "DA WEB",
+    title: "DA digital & web",
+    description:
+      "Direction artistique web : composition, animation, interaction. Speetch pense le site comme un objet culturel, pas comme une vitrine vide.",
+    accent: "gold",
+  },
+  {
+    id: "da.print",
+    label: "DA PRINT",
+    title: "Édition & print",
+    description:
+      "Livres, plaquettes, cartes de visite, posters, presse. Speetch maîtrise la chaîne graphique (CMYK, Pantone, ennoblissement) et bosse main dans la main avec l'imprimeur.",
+    accent: "gold",
+  },
   {
     id: "comm.copy",
     label: "COPYWRITING",
     title: "Copywriting éditorial",
     description:
       "Textes pages, articles, claims, slogans. Speetch écrit des textes qui sonnent juste — pas des templates copy-collés depuis ChatGPT non assumé.",
-    accent: "gold",
-  },
-  {
-    id: "comm.brand-voice",
-    label: "BRAND VOICE",
-    title: "Voix de marque",
-    description:
-      "Codification éditoriale : ton, vocabulaire, anti-vocabulaire, formules signatures. Speetch livre un brand voice guide vivant + une banque de tournures.",
-    accent: "gold",
-  },
-  {
-    id: "comm.storytelling",
-    label: "STORYTELLING",
-    title: "Storytelling de marque",
-    description:
-      "Narration globale : pourquoi vous existez, qui vous êtes, où vous allez. Speetch construit l'arc narratif qui transforme une boîte en mythe (ou au moins en histoire mémorable).",
     accent: "gold",
   },
   {
@@ -622,20 +507,64 @@ const SKILLS_COMM: Skill[] = [
     accent: "gold",
   },
   {
-    id: "comm.webinars",
-    label: "WEBINAIRES",
-    title: "Webinaires & conférences",
+    id: "produit.animations",
+    label: "ANIMATIONS",
+    title: "Animations UI",
     description:
-      "Format, story, slides, animation, captation. Speetch designe l'intervention comme un produit éditorial, pas comme un PowerPoint commercial.",
+      "Micro-interactions, transitions, easings. Speetch utilise framer-motion, Rive, Lottie selon l'usage, et privilégie l'animation qui sert le sens (pas la décoration).",
     accent: "gold",
   },
+  {
+    id: "produit.copy-ui",
+    label: "COPY UI",
+    title: "Copywriting UI",
+    description:
+      "Microcopy, états vides, messages d'erreur, onboarding. Speetch travaille les mots de l'interface comme un livre — chaque phrase compte.",
+    accent: "gold",
+  },
+  {
+    id: "produit.icons-ui",
+    label: "ICONS UI",
+    title: "Icônes UI",
+    description:
+      "Système d'icônes UI cohérent (stroke 1.5px, grille 24×24, optical sizing). Speetch dessine ou customise depuis Lucide / Heroicons / Phosphor selon votre stack.",
+    accent: "gold",
+  },
+  {
+    id: "produit.user-flows",
+    label: "USER FLOWS",
+    title: "User flows & parcours",
+    description:
+      "Cartographie des parcours utilisateur, points de friction, opportunités de conversion. Speetch dessine en Figjam ou Whimsical, puis priorise par impact.",
+    accent: "gold",
+  },
+  {
+    id: "web.anim-web",
+    label: "ANIM WEB",
+    title: "Animations web",
+    description:
+      "Framer Motion, GSAP, Lenis (smooth scroll), CSS animations natives. Speetch arbitre selon la performance cible et la complexité de l'effet.",
+    accent: "gold",
+  },
+  {
+    id: "web.headless",
+    label: "HEADLESS CMS",
+    title: "Headless CMS",
+    description:
+      "Sanity, Contentful, Storyblok, ou CMS maison sur Supabase. Speetch arbitre selon le volume éditorial et l'autonomie souhaitée des éditeurs.",
+    accent: "gold",
+  },
+];
+
+/* ─── Domaine 5 : Croissance (distribution + perf + RP) ─── */
+const SKILLS_CROISSANCE: Skill[] = [
   {
     id: "comm.rp",
     label: "RP & PRESSE",
     title: "RP & relations presse",
     description:
       "Communiqués, dossiers de presse, prise de contact journalistes, suivi des retombées. Speetch travaille avec un réseau RP français quand le sujet le mérite.",
-    accent: "gold",
+    accent: "emerald",
   },
   {
     id: "comm.events",
@@ -643,7 +572,7 @@ const SKILLS_COMM: Skill[] = [
     title: "Événements & scénographie",
     description:
       "DA d'événements : signalétique, identité, scénographie, expérience visiteur. Speetch livre brief partenaires + suit l'exécution sur place.",
-    accent: "gold",
+    accent: "emerald",
   },
   {
     id: "comm.launch",
@@ -651,7 +580,7 @@ const SKILLS_COMM: Skill[] = [
     title: "Launching produit",
     description:
       "Stratégie de lancement produit : teasing, jour J, post-launch. Speetch orchestre les canaux (presse, social, newsletter, partenaires) pour un effet de seuil.",
-    accent: "gold",
+    accent: "emerald",
   },
   {
     id: "comm.campaign",
@@ -659,23 +588,7 @@ const SKILLS_COMM: Skill[] = [
     title: "Campagnes intégrées",
     description:
       "Campagnes multicanal autour d'une idée graphique forte. Speetch produit créa + média planning + suivi des performances jusqu'au bilan.",
-    accent: "gold",
-  },
-  {
-    id: "comm.manifeste",
-    label: "MANIFESTES",
-    title: "Manifestes & POV",
-    description:
-      "Manifeste de marque, prises de position éditoriales, POV publics. Speetch écrit ce qui vous distingue vraiment, pas ce qui rassure le board.",
-    accent: "gold",
-  },
-  {
-    id: "comm.kit-marque",
-    label: "KIT MARQUE",
-    title: "Kit de marque & sales",
-    description:
-      "Kit prêt-à-l'emploi : présentation, one-pager, pitch deck, signature email. Speetch livre des templates Figma + Notion que vos équipes peuvent dupliquer.",
-    accent: "gold",
+    accent: "emerald",
   },
   {
     id: "comm.crisis",
@@ -683,7 +596,95 @@ const SKILLS_COMM: Skill[] = [
     title: "Communication de crise",
     description:
       "Préparation et gestion de crise : tone of voice, sequencing, canaux. Speetch écrit la première réponse en 30 minutes quand c'est nécessaire.",
-    accent: "gold",
+    accent: "emerald",
+  },
+  {
+    id: "comm.webinars",
+    label: "WEBINAIRES",
+    title: "Webinaires & conférences",
+    description:
+      "Format, story, slides, animation, captation. Speetch designe l'intervention comme un produit éditorial, pas comme un PowerPoint commercial.",
+    accent: "emerald",
+  },
+  {
+    id: "web.perf",
+    label: "WEB PERF",
+    title: "Performance web",
+    description:
+      "Core Web Vitals au top : LCP < 2.5s, INP < 200ms, CLS < 0.1. Speetch optimise images, fonts, scripts, edge caching, lazy loading.",
+    accent: "emerald",
+  },
+  {
+    id: "web.seo-tech",
+    label: "SEO TECH",
+    title: "SEO technique",
+    description:
+      "Schema.org, sitemap, robots, canonicals, meta dynamiques, OpenGraph. Speetch monte le socle SEO technique avant que vous ayez besoin d'un consultant SEO.",
+    accent: "emerald",
+  },
+  {
+    id: "web.hosting",
+    label: "HOSTING",
+    title: "Hosting & déploiement",
+    description:
+      "Vercel, Hostinger, Railway, VPS. Speetch monte le pipeline CI/CD git push → prod, avec preview branches et rollback instantané.",
+    accent: "emerald",
+  },
+  {
+    id: "web.edge",
+    label: "EDGE FUNC.",
+    title: "Edge functions & API",
+    description:
+      "Routes API Next, edge functions Vercel/Cloudflare, Supabase functions. Speetch écrit des endpoints typés, testés, monitorés.",
+    accent: "emerald",
+  },
+  {
+    id: "web.a11y-code",
+    label: "A11Y CODE",
+    title: "Accessibilité (code)",
+    description:
+      "ARIA roles, focus traps, keyboard nav, screen reader testing. Speetch code l'accessibilité comme une feature, pas comme un patch de fin.",
+    accent: "emerald",
+  },
+  {
+    id: "web.email",
+    label: "EMAIL TECH",
+    title: "Emails transactionnels",
+    description:
+      "Brevo, Resend, Postmark, SES. Speetch monte le pipeline d'envoi + templates HTML qui passent dans Outlook (sans pleurer).",
+    accent: "emerald",
+  },
+  {
+    id: "web.analytics",
+    label: "ANALYTICS",
+    title: "Analytics & métriques",
+    description:
+      "PostHog, Plausible, Umami, Vercel Analytics. Speetch monte un setup qui respecte la vie privée + dashboards custom pour les métriques qui comptent.",
+    accent: "emerald",
+  },
+  {
+    id: "web.devops",
+    label: "DEVOPS",
+    title: "DevOps & monitoring",
+    description:
+      "Sentry, Logflare, uptime monitoring, alertes. Speetch monte l'infrastructure de surveillance pour que vous sachiez avant le client qu'il y a un bug.",
+    accent: "emerald",
+  },
+  {
+    id: "produit.ab-tests",
+    label: "A/B TESTS",
+    title: "A/B testing & expérimentation",
+    description:
+      "Conception et analyse d'A/B tests (PostHog, Statsig, in-house). Speetch propose les hypothèses, le design des variants, et l'interprétation statistique des résultats.",
+    accent: "emerald",
+  },
+  {
+    id: "produit.design-ops",
+    label: "DESIGN OPS",
+    title: "Design ops",
+    description:
+      "Process design, naming, workflow Figma, handoff dev. Speetch monte l'infrastructure invisible qui fait gagner 30% de vélocité à votre équipe design.",
+    accent: "emerald",
   },
 ];
 
@@ -694,41 +695,41 @@ export const DOMAINS: readonly Domain[] = [
     id: "ia",
     label: "Intelligence augmentée",
     shortLabel: "IA",
-    tagline: "Agents, automatisations, GEO, brand voice IA",
+    tagline: "Agents, automatisations, contenu génératif, GEO",
     accent: "amber",
     skills: SKILLS_IA,
   },
   {
-    id: "da",
-    label: "Direction artistique",
-    shortLabel: "DA",
-    tagline: "Identités, typo, motion, photo, key visuals",
+    id: "marque",
+    label: "Marque",
+    shortLabel: "Marque",
+    tagline: "Identité, typo, voix, storytelling",
     accent: "rose",
-    skills: SKILLS_DA,
+    skills: SKILLS_MARQUE,
   },
   {
     id: "produit",
-    label: "Produit digital",
+    label: "Produit",
     shortLabel: "Produit",
-    tagline: "UX, design system, prototypage, accessibilité",
+    tagline: "UX, design system, plateformes Next + Supabase",
     accent: "cyan",
     skills: SKILLS_PRODUIT,
   },
   {
-    id: "web",
-    label: "Plateformes web",
-    shortLabel: "Web",
-    tagline: "Next.js, Supabase, perf, SEO tech",
-    accent: "emerald",
-    skills: SKILLS_WEB,
+    id: "contenu",
+    label: "Contenu",
+    shortLabel: "Contenu",
+    tagline: "Création visuelle, éditoriale, motion, social",
+    accent: "gold",
+    skills: SKILLS_CONTENU,
   },
   {
-    id: "comm",
-    label: "Communication",
-    shortLabel: "Comm",
-    tagline: "Copywriting, social, RP, événements",
-    accent: "gold",
-    skills: SKILLS_COMM,
+    id: "croissance",
+    label: "Croissance",
+    shortLabel: "Croissance",
+    tagline: "Distribution, RP, SEO/GEO, lancement, analytics",
+    accent: "emerald",
+    skills: SKILLS_CROISSANCE,
   },
 ];
 

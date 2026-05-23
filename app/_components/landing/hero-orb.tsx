@@ -35,14 +35,21 @@ const CY = SIZE / 2;
    de vérité partagée avec le panneau de description). Ici on lit
    juste SKILLS[i].label pour l'affichage. */
 
+/** Arrondi à 3 décimales — évite les mismatchs d'hydratation : Math.cos
+ *  et Math.sin peuvent renvoyer des floats légèrement différents entre
+ *  Node (SSR) et le moteur du navigateur. En arrondissant à la source,
+ *  server et client produisent strictement la même chaîne pour les
+ *  attributs SVG. */
+const round3 = (n: number) => Math.round(n * 1000) / 1000;
+
 /** Place N nœuds régulièrement sur un cercle, avec un offset angulaire. */
 function placeRing(count: number, radius: number, offsetDeg = 0, orbit: 0 | 1 = 0): Node[] {
   const nodes: Node[] = [];
   for (let i = 0; i < count; i++) {
     const a = ((i / count) * 360 + offsetDeg) * (Math.PI / 180);
     nodes.push({
-      x: CX + Math.cos(a) * radius,
-      y: CY + Math.sin(a) * radius,
+      x: round3(CX + Math.cos(a) * radius),
+      y: round3(CY + Math.sin(a) * radius),
       r: 2.4,
       orbit,
     });
@@ -100,6 +107,7 @@ export function HeroOrb({
   onSkillClick,
   active = false,
   skills,
+  transitioning = false,
 }: {
   loaded: boolean;
   mouse: { x: number; y: number };
@@ -112,6 +120,10 @@ export function HeroOrb({
   /** Skills à afficher sur l'orbe (16 attendus). Vient du domaine
    *  actif passé par <LandingHero>. */
   skills: readonly Skill[];
+  /** Vrai pendant qu'une orbe satellite zoome vers le centre : on
+   *  fade out le central pour laisser place au zoom, puis on fade in
+   *  avec les nouveaux skills une fois le swap commit côté parent. */
+  transitioning?: boolean;
 }) {
   // 8 nœuds sur orbite intérieure (r=140) + 8 sur orbite extérieure (r=215)
   const nodes = useMemo<Node[]>(
@@ -151,9 +163,16 @@ export function HeroOrb({
       aria-hidden
       className="pointer-events-none absolute inset-0 z-[5] flex items-start justify-center overflow-hidden pt-[12vh] md:pt-[10vh]"
       style={{
-        opacity: loaded ? 1 : 0,
-        transition: "opacity 2400ms cubic-bezier(0.22, 1, 0.36, 1)",
-        transitionDelay: "700ms",
+        opacity: loaded && !transitioning ? 1 : 0,
+        // Initial load : fade lent (2400ms) avec delay esthétique.
+        // Pendant un swap de domaine : fade rapide (380ms hors, 520ms in).
+        // Delay 180ms à la ré-apparition pour laisser l'overlay zoom
+        // s'effacer avant que le central revienne.
+        transition: !loaded
+          ? "opacity 2400ms cubic-bezier(0.22, 1, 0.36, 1) 700ms"
+          : transitioning
+            ? "opacity 380ms cubic-bezier(0.22, 1, 0.36, 1) 0ms"
+            : "opacity 520ms cubic-bezier(0.22, 1, 0.36, 1) 180ms",
         perspective: "1200px",
       }}
     >
@@ -240,10 +259,10 @@ export function HeroOrb({
           {/* Ticks réguliers */}
           {Array.from({ length: 36 }).map((_, i) => {
             const a = (i / 36) * Math.PI * 2;
-            const x1 = CX + Math.cos(a) * 282;
-            const y1 = CY + Math.sin(a) * 282;
-            const x2 = CX + Math.cos(a) * 292;
-            const y2 = CY + Math.sin(a) * 292;
+            const x1 = round3(CX + Math.cos(a) * 282);
+            const y1 = round3(CY + Math.sin(a) * 282);
+            const x2 = round3(CX + Math.cos(a) * 292);
+            const y2 = round3(CY + Math.sin(a) * 292);
             return (
               <line
                 key={i}
@@ -277,8 +296,8 @@ export function HeroOrb({
             return (
               <circle
                 key={deg}
-                cx={CX + Math.cos(a) * 245}
-                cy={CY + Math.sin(a) * 245}
+                cx={round3(CX + Math.cos(a) * 245)}
+                cy={round3(CY + Math.sin(a) * 245)}
                 r="3"
                 fill="rgb(125, 211, 252)"
                 filter="url(#orb-glow)"
