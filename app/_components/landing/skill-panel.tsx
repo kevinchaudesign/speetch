@@ -188,11 +188,24 @@ export function SkillPanel({
               </div>
             )}
 
-            {/* Footer — CTA seul, centré */}
+            {/* Footer — CTA seul, centré. Ouvre le chatbot Speetch
+                (cf. <ContactAvatar>) avec le contexte du skill courant
+                pré-injecté → le bot amorce la collecte d'infos lead +
+                propose rappel ou créneau visio sans formulaire. */}
             <div className="mt-7 flex items-center justify-center">
-              <a
-                href="#contact"
-                onClick={onClose}
+              <button
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent("speetch:open-chat", {
+                      detail: {
+                        skillTitle: skill.title,
+                        skillLabel: skill.label,
+                      },
+                    }),
+                  );
+                  onClose();
+                }}
                 className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-100/90 transition-colors hover:text-cyan-100"
                 style={{
                   textShadow: "0 0 10px rgba(0, 0, 0, 0.8)",
@@ -200,7 +213,7 @@ export function SkillPanel({
               >
                 <span>Demander un brief</span>
                 <span className="inline-block h-px w-6 bg-cyan-200/85 transition-all duration-500 ease-out group-hover:w-12 group-hover:bg-cyan-100" />
-              </a>
+              </button>
             </div>
           </motion.div>
         </motion.div>

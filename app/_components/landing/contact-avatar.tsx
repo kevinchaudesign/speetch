@@ -95,6 +95,37 @@ export function ContactAvatar() {
     }
   }, [open]);
 
+  /* Écoute un event window « speetch:open-chat » pour s'ouvrir depuis
+   * n'importe où (CTA « Demander un brief » dans <SkillPanel>, etc.).
+   * Si un skillTitle est passé en detail, on ajoute un message
+   * assistant contextuel qui amorce la conversation autour de ce
+   * skill. Si la conversation est vierge (juste le welcome), on le
+   * remplace ; sinon on append pour préserver l'historique. */
+  useEffect(() => {
+    function onOpen(e: Event) {
+      const detail = (e as CustomEvent<{
+        skillTitle?: string;
+        skillLabel?: string;
+      }>).detail;
+      setOpen(true);
+      if (detail?.skillTitle) {
+        const ctx = `Vous regardiez **${detail.skillTitle}** — souhaitez-vous en discuter ? En quelques mots : votre contexte (entreprise, projet, échéance), et je vous oriente vers Kevin pour un rappel ou un créneau visio.`;
+        setMessages((prev) => {
+          if (
+            prev.length === 1 &&
+            prev[0].role === "assistant" &&
+            prev[0].content === CONTACT_BOT_WELCOME
+          ) {
+            return [{ role: "assistant", content: ctx }];
+          }
+          return [...prev, { role: "assistant", content: ctx }];
+        });
+      }
+    }
+    window.addEventListener("speetch:open-chat", onOpen);
+    return () => window.removeEventListener("speetch:open-chat", onOpen);
+  }, []);
+
   async function send(text: string) {
     const content = text.trim();
     if (!content || pending) return;

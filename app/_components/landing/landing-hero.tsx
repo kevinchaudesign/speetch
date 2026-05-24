@@ -255,8 +255,37 @@ export function LandingHero() {
         )}
       </AnimatePresence>
 
-      {/* Header retiré — le logo est devenu l'avatar flottant
-          bottom-right (cf. <ContactAvatar /> dans app/page.tsx). */}
+      {/* ────── Wordmark Speetch — top-left ──────
+          Logo texte de la marque. Reste discret mais identifie le site
+          en permanence. Fade out pendant le zoom skill / le swap de
+          domaine pour ne pas concurrencer le panel ou le H1 dynamique. */}
+      <motion.a
+        href="#top"
+        initial={{ opacity: 0, y: -8 }}
+        animate={{
+          opacity: loaded && !activeSkillId && !centralHidden ? 1 : 0,
+          y: 0,
+        }}
+        transition={{ duration: 0.7, delay: 0.4, ease: EASE_OUT_EXPO }}
+        aria-label="Speetch — retour en haut"
+        className="group absolute left-6 top-[2vh] z-20 select-none font-sans font-light tracking-tight text-[#F5F5F7] transition-colors duration-300 hover:text-cyan-100 md:left-10 md:top-[2.5vh]"
+        style={{
+          fontSize: "clamp(1rem, 1.4vw, 1.25rem)",
+          textShadow:
+            "0 0 14px rgba(125, 211, 252, 0.4), 0 0 36px rgba(125, 211, 252, 0.18)",
+        }}
+      >
+        Speetch
+        <span
+          aria-hidden
+          className="ml-0.5 inline-block text-cyan-200/85 transition-opacity duration-300 group-hover:opacity-100"
+          style={{
+            textShadow: "0 0 10px rgba(125, 211, 252, 0.85)",
+          }}
+        >
+          .
+        </span>
+      </motion.a>
 
       {/* ────── Couche 0 : orbe holographique central (domaine actif) ────── */}
       <HeroOrb
