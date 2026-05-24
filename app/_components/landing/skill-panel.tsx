@@ -211,7 +211,7 @@ export function SkillPanel({
                   textShadow: "0 0 10px rgba(0, 0, 0, 0.8)",
                 }}
               >
-                <span>Demander un brief</span>
+                <span>Envoyer un brief</span>
                 <span className="inline-block h-px w-6 bg-cyan-200/85 transition-all duration-500 ease-out group-hover:w-12 group-hover:bg-cyan-100" />
               </button>
             </div>
