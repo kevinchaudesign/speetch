@@ -176,7 +176,7 @@ export function HeroOrb({
   return (
     <div
       aria-hidden
-      className="pointer-events-none absolute inset-0 z-[5] flex items-start justify-center overflow-hidden pt-[7vh] md:pt-[10vh]"
+      className="pointer-events-none absolute inset-0 z-[5] flex items-start justify-center overflow-hidden pt-[max(7vh,calc(50vh-50vw-125px))] md:pt-[10vh]"
       style={{
         opacity: loaded && !transitioning ? 1 : 0,
         // Initial load : fade lent (2400ms) avec delay esthétique.

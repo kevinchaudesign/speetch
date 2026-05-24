@@ -69,16 +69,28 @@ const SATELLITE_LAYOUT: ReadonlyArray<{
  *  Le `top` est calculé depuis le bord bas de l'orbe (pt-[7vh] +
  *  100vw) + hauteur réservée au H1 (~60px). Tailles asymétriques pour
  *  garder la sensation de profondeur. */
-const MOBILE_SATELLITE_TOP = "calc(7vh + 100vw + 60px)";
+// Centrage vertical mobile avec triple contrainte :
+//  - baseline (+36px) : position minimum, sat collé sous l'orbe sur
+//    écrans courts (320×568) → préserve le gap avec le chatbot.
+//  - centered (-29px) : pousse les sats vers le bas sur écrans hauts
+//    (~+20px de descente vs avant) → plus de respiration entre H1 et
+//    satellites pour autoriser des tailles plus grandes.
+//  - cap (100vh - 188px) : hard limit anti-collision chatbot
+//    (76px chatbot + 20px safety + 92px sat 2 = 188px sous le bas).
+const MOBILE_SATELLITE_TOP =
+  "max(calc(7vh + 100vw + 36px), min(calc(100vh - 188px), calc(50vh + 50vw - 29px)))";
 const SATELLITE_LAYOUT_MOBILE: ReadonlyArray<{
   size: number;
   blur: number;
   position: React.CSSProperties;
 }> = [
-  { size: 70, blur: 0.6, position: { top: MOBILE_SATELLITE_TOP, left: "4vw" } },
-  { size: 90, blur: 0.3, position: { top: MOBILE_SATELLITE_TOP, left: "25vw" } },
-  { size: 82, blur: 0.45, position: { top: MOBILE_SATELLITE_TOP, right: "25vw" } },
-  { size: 65, blur: 0.7, position: { top: MOBILE_SATELLITE_TOP, right: "4vw" } },
+  // Tailles +4-5% par rapport à 75/92/85/70 pour profiter du gap
+  // vertical élargi. Sat 2 (le plus proche) reste capé à 92px →
+  // contrainte chatbot sur écrans courts.
+  { size: 78, blur: 0.6, position: { top: MOBILE_SATELLITE_TOP, left: "3vw" } },
+  { size: 92, blur: 0.3, position: { top: MOBILE_SATELLITE_TOP, left: "25vw" } },
+  { size: 88, blur: 0.45, position: { top: MOBILE_SATELLITE_TOP, right: "25vw" } },
+  { size: 72, blur: 0.7, position: { top: MOBILE_SATELLITE_TOP, right: "3vw" } },
 ];
 
 // Segments du H1 — rendus en ligne (inline), pas empilés. « IA » en
@@ -277,9 +289,13 @@ export function LandingHero() {
         }}
         transition={{ duration: 0.7, delay: 0.4, ease: EASE_OUT_EXPO }}
         aria-label="Speetch — retour en haut"
-        className="group absolute left-6 top-[2vh] z-20 select-none font-sans font-light tracking-tight text-[#F5F5F7] transition-colors duration-300 hover:text-cyan-100 md:left-10 md:top-[2.5vh]"
+        className="group absolute left-6 top-[2vh] z-20 select-none font-semibold tracking-[-0.02em] text-[#F5F5F7] transition-colors duration-300 hover:text-cyan-100 md:left-10 md:top-[2.5vh]"
         style={{
-          fontSize: "clamp(1rem, 1.4vw, 1.25rem)",
+          // Space Grotesk — sans tech moderne avec quirks subtils
+          // (a, g, k, æ). Weight 600 pour un wordmark confident vs
+          // le font-sans extralight (Inter 200) du H1.
+          fontFamily: "var(--font-display), system-ui, sans-serif",
+          fontSize: "clamp(1.5rem, 1.8vw, 1.75rem)",
           textShadow:
             "0 0 14px rgba(125, 211, 252, 0.4), 0 0 36px rgba(125, 211, 252, 0.18)",
         }}
@@ -400,10 +416,14 @@ export function LandingHero() {
       <div
         className="absolute left-0 right-0 z-20 flex flex-col items-center px-6 md:px-10"
         style={{
-          // Mobile : posé juste sous le bord bas de l'orbe central
-          // (pt-[7vh] + orb de 100vw + 16px de marge visuelle).
+          // Mobile : H1 rapproché de l'orbe (offset -8px sous le bord
+          // bas du wrapper, soit ~18px sous le bord visible de l'orbe).
+          // max(baseline, centered avec shift -50px) → suit l'orbe.
           // Desktop : ancré bas du viewport (bottom-[8vh]), comme avant.
-          top: viewport.w >= 768 ? "auto" : "calc(7vh + 100vw + 16px)",
+          top:
+            viewport.w >= 768
+              ? "auto"
+              : "max(calc(7vh + 100vw - 2px), calc(50vh + 50vw - 127px))",
           bottom: viewport.w >= 768 ? "8vh" : "auto",
           // Quand un skill est ouvert (orbe zoomée) ou pendant un swap
           // de domaine, le H1 fade out (et descend légèrement sur skill).
@@ -426,7 +446,7 @@ export function LandingHero() {
             conformément au délai cumulé dans <KineticLine>. */}
         <h1
           className="select-none whitespace-nowrap text-center font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7]"
-          style={{ fontSize: "clamp(1.1rem, 3.4vw, 2.5rem)" }}
+          style={{ fontSize: "clamp(1.75rem, 5.5vw, 3rem)" }}
         >
           <span className="block overflow-hidden pt-[0.05em] pb-[0.3em]">
             {headlineWords.map((w, segIdx) => (
@@ -620,14 +640,20 @@ function ZoomingOrb({
 
   // Centre visuel approximatif de l'orbe centrale.
   // Desktop (≥ md) : pt-[10vh] + orb de min(78vw, 640px).
-  // Mobile (< md)  : pt-[7vh] + orb de 100vw (cf. <HeroOrb>).
+  // Mobile (< md)  : pt = max(7vh, calc(50vh - 50vw - 125px)) → l'orbe
+  // est centrée puis remontée de 50px pour s'éloigner du chatbot.
   const isDesktop = viewport.w >= 768;
   const orbVisualWidth = isDesktop
     ? Math.min(viewport.w * 0.78, 640)
     : viewport.w;
-  const orbTopVh = isDesktop ? 0.1 : 0.07;
+  const orbTopPx = isDesktop
+    ? viewport.h * 0.1
+    : Math.max(
+        viewport.h * 0.07,
+        viewport.h * 0.5 - viewport.w * 0.5 - 125,
+      );
   const targetCenterX = viewport.w / 2;
-  const targetCenterY = viewport.h * orbTopVh + orbVisualWidth / 2;
+  const targetCenterY = orbTopPx + orbVisualWidth / 2;
 
   // Scale tel que la satellite zoomée occupe à peu près la taille
   // visible de l'orbe centrale (apparence finale ≈ remplace le central).

@@ -4,6 +4,7 @@ import {
   Fraunces,
   Playfair_Display,
   Cormorant_Garamond,
+  Space_Grotesk,
 } from "next/font/google";
 import "./globals.css";
 
@@ -37,6 +38,17 @@ const cormorant = Cormorant_Garamond({
   display: "swap",
   weight: ["400", "500"],
   style: ["normal", "italic"],
+});
+
+// Space Grotesk — sans tech moderne pour le wordmark Speetch.
+// Sans serif géométrique propre avec petites quirks (a, g, k, æ ont
+// du caractère sans déraper), vibe tech-AI contemporaine sans cliché
+// sci-fi. Weight 600 pour un logo confident.
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-display",
+  display: "swap",
+  weight: ["500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -96,7 +108,7 @@ export default function RootLayout({
   return (
     <html
       lang="fr"
-      className={`${inter.variable} ${fraunces.variable} ${playfair.variable} ${cormorant.variable} dark`}
+      className={`${inter.variable} ${fraunces.variable} ${playfair.variable} ${cormorant.variable} ${spaceGrotesk.variable} dark`}
       suppressHydrationWarning
     >
       <body className="relative min-h-screen bg-black font-sans text-[#F5F5F7] antialiased selection:bg-[#F5F5F7] selection:text-black overflow-x-hidden">
