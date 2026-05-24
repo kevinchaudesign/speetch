@@ -101,7 +101,18 @@ export async function POST(req: NextRequest) {
     const res = await anthropic.messages.create({
       model: CONTACT_BOT_MODEL,
       max_tokens: MAX_TOKENS,
-      system: CONTACT_BOT_PERSONA,
+      // Persona + catalogue exhaustif des 80 skills ≈ 3500 tokens.
+      // On le passe en bloc structuré avec cache_control ephemeral
+      // (TTL 5min) pour éviter que chaque visiteur paie l'intégralité
+      // à chaque tour — un seul utilisateur fait plusieurs requêtes
+      // dans la même session.
+      system: [
+        {
+          type: "text",
+          text: CONTACT_BOT_PERSONA,
+          cache_control: { type: "ephemeral" },
+        },
+      ],
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
     });
 

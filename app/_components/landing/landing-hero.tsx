@@ -175,72 +175,18 @@ export function LandingHero() {
     return () => cancelAnimationFrame(frame);
   }, []);
 
-  /* Curseur — double système :
-   *  - `mouse` (state) → ghost cursor + parallaxes (orbe tilt, floating
-   *    labels counter-parallaxe). React rerender, acceptable car peu
-   *    de listeners abonnés.
-   *  - `mouseRef` (ref) → magnétisme des lettres du H1 (lu en raf,
-   *    zéro rerender React pour rester à 60fps avec 30+ spans)
-   */
-  const mouseRef = useRef({ x: 0, y: 0 });
+  /* Curseur — alimente le ghost cursor (mix-blend-difference) + le
+   * tilt 3D de l'orbe central via `mouse` state. Le magnétisme par
+   * lettre du H1 (translate + variable font-weight) a été retiré. */
   useEffect(() => {
     const fine = window.matchMedia("(pointer: fine)").matches;
     if (!fine) return;
     const onMove = (e: MouseEvent) => {
-      mouseRef.current = { x: e.clientX, y: e.clientY };
       setMouse({ x: e.clientX, y: e.clientY });
     };
     window.addEventListener("mousemove", onMove, { passive: true });
     return () => window.removeEventListener("mousemove", onMove);
   }, []);
-
-  /* Boucle raf — applique le magnétisme à chaque lettre du H1.
-   * Lit `mouseRef`, calcule la distance cursor → centre de la lettre,
-   * applique un displacement inverse-distance via CSS variables (pas de
-   * React rerender). Auto-arrêté en cas de prefers-reduced-motion. */
-  const letterRefs = useRef<Array<HTMLSpanElement | null>>([]);
-  useEffect(() => {
-    if (!loaded) return;
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (reduced) return;
-    const fine = window.matchMedia("(pointer: fine)").matches;
-    if (!fine) return;
-
-    const MAX_DISPLACE = 12; // px, displacement max d'une lettre
-    const INFLUENCE = 260; // rayon d'influence du curseur en px
-
-    let rafId = 0;
-    const tick = () => {
-      const { x: mx, y: my } = mouseRef.current;
-      for (const el of letterRefs.current) {
-        if (!el) continue;
-        const r = el.getBoundingClientRect();
-        const cx = r.left + r.width / 2;
-        const cy = r.top + r.height / 2;
-        const dx = mx - cx;
-        const dy = my - cy;
-        const dist = Math.hypot(dx, dy);
-        if (dist > INFLUENCE) {
-          el.style.setProperty("--mx", "0px");
-          el.style.setProperty("--my", "0px");
-          el.style.setProperty("--w", "200");
-          continue;
-        }
-        const power = 1 - dist / INFLUENCE; // 0..1
-        // Attraction subtile vers le curseur
-        const tx = (dx / dist || 0) * power * MAX_DISPLACE;
-        const ty = (dy / dist || 0) * power * MAX_DISPLACE;
-        // Variable weight 200 → 600 selon proximité
-        const w = Math.round(200 + power * 400);
-        el.style.setProperty("--mx", `${tx.toFixed(1)}px`);
-        el.style.setProperty("--my", `${ty.toFixed(1)}px`);
-        el.style.setProperty("--w", String(w));
-      }
-      rafId = requestAnimationFrame(tick);
-    };
-    rafId = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(rafId);
-  }, [loaded]);
 
   return (
     <section
@@ -406,14 +352,14 @@ export function LandingHero() {
           Anchorée en HAUT À GAUCHE du hero. Au zoom skill : s'éloigne
           vers le haut-gauche + fade out. */}
       <div
-        className="absolute left-0 top-0 z-20 flex flex-col items-start px-6 pt-[5vh] md:px-10 md:pt-[6vh]"
+        className="absolute bottom-[10vh] left-0 right-0 z-20 flex flex-col items-center px-6 md:bottom-[8vh] md:px-10"
         style={{
           // Quand un skill est ouvert (orbe zoomée) ou pendant un swap
-          // de domaine, le H1 fade out (et translate sur skill). Revient
-          // avec le nouveau label « {domaine} × IA » au dézoom/swap.
+          // de domaine, le H1 fade out (et descend légèrement sur skill).
+          // Revient avec le nouveau label « {domaine} × IA » au dézoom/swap.
           opacity: activeSkillId || centralHidden ? 0 : 1,
           transform: activeSkillId
-            ? "translate(-40px, -40px)"
+            ? "translate(0, 20px)"
             : "translate(0, 0)",
           transition:
             // Symétrie 380/380 sans delay — mêmes timings que <HeroOrb>
@@ -422,18 +368,16 @@ export function LandingHero() {
           pointerEvents: activeSkillId ? "none" : "auto",
         }}
       >
-        {/* H1 — magnétique au curseur, variable weight per letter, glow
-            + RGB split jaune/cyan sur « × IA ». Coin haut-gauche donc
-            text-left + clamp réduit (corner placement compact).
-            La key inclut activeDomainId → les DEUX segments remount à
-            chaque swap (et pas seulement le segment 0 dont le texte
-            change), pour que « × IA » re-staggere APRÈS le nouveau
-            label, conformément au délai cumulé dans <KineticLine>. */}
+        {/* H1 — éditorial centré SOUS l'orbe central, sans la chevaucher.
+            RGB split jaune/cyan sur « × IA ». La key inclut
+            activeDomainId → les DEUX segments remount à chaque swap
+            pour que « × IA » re-staggere APRÈS le nouveau label,
+            conformément au délai cumulé dans <KineticLine>. */}
         <h1
-          className="select-none whitespace-nowrap text-left font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7]"
+          className="select-none whitespace-nowrap text-center font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7]"
           style={{ fontSize: "clamp(1.1rem, 3.4vw, 2.5rem)" }}
         >
-          <span className="block overflow-hidden py-[0.05em]">
+          <span className="block overflow-hidden pt-[0.05em] pb-[0.3em]">
             {headlineWords.map((w, segIdx) => (
               <KineticLine
                 key={`${segIdx}-${activeDomainId}`}
@@ -441,7 +385,6 @@ export function LandingHero() {
                 italic={w.italic}
                 lineIndex={segIdx}
                 loaded={loaded}
-                letterRefs={letterRefs}
                 allWords={headlineWords}
               />
             ))}
@@ -520,34 +463,26 @@ export function LandingHero() {
  * Sub-components
  * ─────────────────────────────────────────────────────────────────── */
 
-/** Une ligne du H1 — split en lettres individuelles, chaque lettre
- *  reçoit une ref enregistrée dans `letterRefs` pour le magnétisme,
- *  et est animée en stagger reveal. Le segment italique (italic = true)
- *  porte un effet de chromatic aberration RGB statique (cyan / gold). */
+/** Une ligne du H1 — split en lettres individuelles, animées en
+ *  stagger reveal (slide-up letter-by-letter). Le segment italique
+ *  (italic = true) porte un effet de chromatic aberration RGB
+ *  statique (cyan / gold). Plus de déformation curseur ni de
+ *  variable font-weight par lettre. */
 function KineticLine({
   text,
   italic,
   lineIndex,
   loaded,
-  letterRefs,
   allWords,
 }: {
   text: string;
   italic: boolean;
   lineIndex: number;
   loaded: boolean;
-  letterRefs: React.MutableRefObject<Array<HTMLSpanElement | null>>;
-  /** Tous les segments du H1 — sert à calculer baseIndex (offset
-   *  cumulé des refs par ligne). Passé par le parent puisque le
-   *  contenu est désormais dérivé du domaine actif. */
+  /** Tous les segments du H1 — sert à calculer le délai de base
+   *  (les segments suivants attendent que le précédent ait fini). */
   allWords: HeadlineSegment[];
 }) {
-  // Calcule un offset global stable pour les refs (cumule les lignes
-  // précédentes — chaque KineticLine connaît son numéro de ligne).
-  const baseIndex = allWords
-    .slice(0, lineIndex)
-    .reduce((s, w) => s + w.text.length, 0);
-
   // Délai de base de cette ligne — attend que la ligne précédente
   // ait visuellement terminé son stagger reveal avant de démarrer.
   // Calculé depuis la longueur du segment précédent : last-letter-
@@ -574,14 +509,10 @@ function KineticLine({
       }
     >
         {Array.from(text).map((ch, i) => {
-          const refIndex = baseIndex + i;
           const isSpace = ch === " ";
           return (
             <motion.span
               key={`${ch}-${i}`}
-              ref={(el) => {
-                letterRefs.current[refIndex] = el;
-              }}
               initial={{ y: "110%" }}
               animate={{ y: loaded ? "0%" : "110%" }}
               transition={{
@@ -591,17 +522,6 @@ function KineticLine({
               }}
               className="inline-block"
               style={{
-                // CSS variables alimentées par la raf loop (magnétisme).
-                // Fallback `0px` / `200` si la loop n'a pas encore tourné
-                // ou si reduced-motion / coarse pointer.
-                transform: "translate(var(--mx, 0px), var(--my, 0px))",
-                fontVariationSettings: !italic
-                  ? "'wght' var(--w, 200)"
-                  : undefined,
-                fontWeight: !italic ? "var(--w, 200)" : undefined,
-                transition:
-                  "transform 320ms cubic-bezier(0.22, 1, 0.36, 1), font-weight 240ms ease-out",
-                willChange: "transform, font-weight",
                 whiteSpace: isSpace ? "pre" : undefined,
               }}
             >
