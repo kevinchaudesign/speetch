@@ -288,7 +288,7 @@ export async function createClientContext(
     if (file.size > MAX_HTML_SIZE) {
       return {
         status: "error",
-        error: "Fichier HTML trop volumineux (max 2 MB).",
+        error: "Fichier HTML trop volumineux (max 3 MB).",
       };
     }
     html = await file.text();

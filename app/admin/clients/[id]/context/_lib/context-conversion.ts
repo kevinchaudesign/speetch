@@ -18,7 +18,7 @@ import { marked } from "marked";
 import mammoth from "mammoth";
 import type { PageContent } from "@/types/database";
 
-export const MAX_HTML_SIZE = 2 * 1024 * 1024; // 2 MB
+export const MAX_HTML_SIZE = 3 * 1024 * 1024; // 3 MB
 export const MAX_MARKDOWN_SIZE = 2 * 1024 * 1024; // 2 MB
 export const MAX_DOCX_SIZE = 8 * 1024 * 1024; // 8 MB (binaire, plus volumineux)
 export const MAX_PDF_SIZE = 12 * 1024 * 1024; // 12 MB
@@ -539,7 +539,7 @@ export async function fetchHtmlFromUrl(url: string): Promise<FetchHtmlResult> {
     if (!reader) {
       const html = await response.text();
       if (html.length > URL_MAX_BYTES) {
-        return { ok: false, error: "Réponse trop volumineuse (max 2 MB)." };
+        return { ok: false, error: "Réponse trop volumineuse (max 3 MB)." };
       }
       return { ok: true, html };
     }
@@ -552,7 +552,7 @@ export async function fetchHtmlFromUrl(url: string): Promise<FetchHtmlResult> {
       totalSize += value.byteLength;
       if (totalSize > URL_MAX_BYTES) {
         await reader.cancel();
-        return { ok: false, error: "Réponse trop volumineuse (max 2 MB)." };
+        return { ok: false, error: "Réponse trop volumineuse (max 3 MB)." };
       }
       chunks.push(value);
     }

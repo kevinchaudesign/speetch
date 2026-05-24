@@ -33,7 +33,7 @@ const SOURCE_LABELS: Record<ImportSource, {
   html: {
     hint: "Fichier HTML d'artifact Claude",
     accept: ".html,.htm,text/html",
-    maxLabel: "max 2 MB",
+    maxLabel: "max 3 MB",
     badge: "Artifact",
     description:
       "Le HTML est stocké tel quel et rendu dans un iframe sandbox côté public. Idéal pour les artifacts Claude exportés (Code Interpreter, Document Builder…) ou les exports HTML de Word/Pages.",

@@ -139,7 +139,7 @@ export function NewRawHtmlPageForm({
             />
           </Field>
 
-          <Field label="Parchemin HTML" hint="max 2 MB">
+          <Field label="Parchemin HTML" hint="max 3 MB">
             <input
               type="file"
               name="file"

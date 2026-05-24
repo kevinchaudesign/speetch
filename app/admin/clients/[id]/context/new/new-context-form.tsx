@@ -372,7 +372,7 @@ export function NewContextForm({
             )}
 
           {sourceKind === "upload" && (
-            <Field label="Parchemin HTML" hint="max 2 MB">
+            <Field label="Parchemin HTML" hint="max 3 MB">
               <input
                 type="file"
                 name="file"

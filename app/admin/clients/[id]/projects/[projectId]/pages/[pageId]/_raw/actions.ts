@@ -69,9 +69,9 @@ export async function saveRawHtmlOverrides(input: {
 
   if (
     typeof input.rawHtmlOverride === "string" &&
-    input.rawHtmlOverride.length > 2 * 1024 * 1024
+    input.rawHtmlOverride.length > 3 * 1024 * 1024
   ) {
-    return { ok: false, error: "HTML trop volumineux (max 2 MB)." };
+    return { ok: false, error: "HTML trop volumineux (max 3 MB)." };
   }
 
   const { data: page, error: fetchError } = await auth.admin

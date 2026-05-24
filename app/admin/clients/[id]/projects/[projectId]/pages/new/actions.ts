@@ -17,7 +17,7 @@ export type CreatePageState = {
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-const MAX_HTML_SIZE = 2 * 1024 * 1024; // 2 MB
+const MAX_HTML_SIZE = 3 * 1024 * 1024; // 3 MB
 const MAX_DOCX_SIZE = 8 * 1024 * 1024; // 8 MB
 
 const ALLOWED_DOCX_MIME = new Set([
@@ -208,7 +208,7 @@ export async function createRawHtmlPage(
   if (file.size > MAX_HTML_SIZE) {
     return {
       status: "error",
-      error: "Fichier HTML trop volumineux (max 2 MB).",
+      error: "Fichier HTML trop volumineux (max 3 MB).",
     };
   }
 
@@ -390,7 +390,7 @@ export async function createBusinessPlanFromImport(
     if (file.size > MAX_HTML_SIZE) {
       return {
         status: "error",
-        error: "Fichier HTML trop volumineux (max 2 MB).",
+        error: "Fichier HTML trop volumineux (max 3 MB).",
       };
     }
     html = await file.text();
