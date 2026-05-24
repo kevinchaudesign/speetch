@@ -51,6 +51,12 @@ export function LandingFooter() {
               Disciplines
             </a>
             <a
+              href="#clients"
+              className="text-[13px] text-white/75 transition-colors hover:text-cyan-100"
+            >
+              Clients
+            </a>
+            <a
               href="#a-propos"
               className="text-[13px] text-white/75 transition-colors hover:text-cyan-100"
             >

@@ -1,4 +1,5 @@
 import { ScrollReveal } from "./scroll-reveal";
+import { ContactBackdrop } from "./contact-backdrop";
 
 const CONTACT_EMAIL = "hello@speetch.com";
 
@@ -14,10 +15,15 @@ export function LandingContact() {
         className="sw-scanlines pointer-events-none absolute inset-0 -z-10 opacity-25"
       />
 
+      {/* Backdrop orbital : aura + anneaux + nœuds + sonar. Converge
+          derrière le CTA email pour suggérer que tout le parcours
+          visiteur mène à ce point de contact. */}
+      <ContactBackdrop />
+
       <div className="mx-auto flex max-w-6xl flex-col items-start gap-16 md:gap-20">
         <ScrollReveal>
           <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
-            04 · Contact
+            05 · Contact
           </p>
         </ScrollReveal>
 
@@ -37,9 +43,30 @@ export function LandingContact() {
 
         <ScrollReveal delay={0.2}>
           <p className="max-w-2xl font-serif text-lg italic leading-relaxed text-white/65 md:text-xl">
-            Brief, prototype, refonte, plateforme sur-mesure — un mail suffit
-            pour démarrer la conversation. Premier appel sous 48h.
+            Brief, prototype, refonte, plateforme sur-mesure — un mail
+            suffit pour démarrer la conversation. Premier appel sous 48h.
           </p>
+        </ScrollReveal>
+
+        <ScrollReveal delay={0.25}>
+          <ul className="grid max-w-3xl gap-3 font-mono text-[11px] uppercase tracking-[0.28em] text-cyan-200/70 md:grid-cols-2">
+            <li>
+              <span className="text-amber-200/80">→</span> Founders qui
+              lancent une marque et son produit
+            </li>
+            <li>
+              <span className="text-amber-200/80">→</span> CMO qui veulent
+              être cités par les LLMs
+            </li>
+            <li>
+              <span className="text-amber-200/80">→</span> Heads of
+              product en build IA-native
+            </li>
+            <li>
+              <span className="text-amber-200/80">→</span> Marques en
+              transformation IA
+            </li>
+          </ul>
         </ScrollReveal>
 
         <ScrollReveal delay={0.3} className="w-full">

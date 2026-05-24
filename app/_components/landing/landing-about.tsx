@@ -22,7 +22,7 @@ export function LandingAbout() {
       <div className="mx-auto flex max-w-6xl flex-col gap-16 md:gap-24">
         <ScrollReveal>
           <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
-            03 · À propos
+            04 · À propos
           </p>
         </ScrollReveal>
 

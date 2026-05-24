@@ -53,8 +53,10 @@ const SATELLITE_LAYOUT: ReadonlyArray<{
   blur: number;
   position: React.CSSProperties;
 }> = [
-  // top-right — moyenne distance, flou modéré
-  { size: 210, blur: 1.4, position: { top: "8vh", right: "4vw" } },
+  // top-right — moyenne distance, flou modéré. Top abaissé à 13vh
+  // (au lieu de 8vh) pour libérer une marge safe sous le bouton de
+  // <NavConstellation> en top-8 right-8 (fixed top-right).
+  { size: 210, blur: 1.4, position: { top: "13vh", right: "4vw" } },
   // mid-left — la plus proche, presque nette
   { size: 250, blur: 0.4, position: { top: "40vh", left: "3vw" } },
   // mid-right — distance moyenne

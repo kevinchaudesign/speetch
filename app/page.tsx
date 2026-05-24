@@ -2,15 +2,18 @@ import type { Metadata } from "next";
 import { LandingHero } from "./_components/landing/landing-hero";
 import { LandingApproach } from "./_components/landing/landing-approach";
 import { LandingDisciplines } from "./_components/landing/landing-disciplines";
+import { LandingClients } from "./_components/landing/landing-clients";
 import { LandingAbout } from "./_components/landing/landing-about";
 import { LandingContact } from "./_components/landing/landing-contact";
 import { LandingFooter } from "./_components/landing/landing-footer";
 import { ContactAvatar } from "./_components/landing/contact-avatar";
+import { NavConstellation } from "./_components/landing/nav-constellation";
 
 const SITE_URL = "https://speetch.com";
-const SITE_TITLE = "Speetch — Direction artistique à l'ère de l'IA · Paris";
+const SITE_TITLE =
+  "Speetch — Studio de communication à l'ère de l'IA · Paris";
 const SITE_DESCRIPTION =
-  "Studio de communication parisien. Direction artistique, marques, expériences numériques et outils sur-mesure pensés avec l'IA comme partenaire créatif.";
+  "Studio parisien. Quatre disciplines — marque, produit, contenu, croissance — augmentées par l'IA (agents, MCP, GEO, brand voice, génération image/vidéo). Pour les founders, équipes produit et CMO qui veulent être présents dans Claude et ChatGPT autant que dans Google.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -22,11 +25,15 @@ export const metadata: Metadata = {
   publisher: "Speetch",
   keywords: [
     "agence communication Paris",
-    "studio direction artistique IA",
-    "design produit IA",
-    "studio AI Paris",
+    "studio IA Paris",
     "branding IA",
-    "Next.js studio",
+    "brand voice IA",
+    "GEO Generative Engine Optimization",
+    "MCP Model Context Protocol",
+    "agents IA",
+    "design produit Next.js Supabase",
+    "agence transformation IA",
+    "claude code studio",
     "Speetch",
   ],
   alternates: {
@@ -56,7 +63,7 @@ const ORGANIZATION_JSONLD = {
   name: "Speetch",
   url: SITE_URL,
   description:
-    "Studio de communication parisien à l'ère de l'IA. Direction artistique, marques, produits digitaux et outils sur-mesure.",
+    "Studio de communication parisien à l'ère de l'IA. Quatre disciplines (marque, produit, contenu, croissance) augmentées par une couche IA transverse — agents, MCP, GEO, brand voice, génération image/vidéo.",
   email: "hello@speetch.com",
   address: {
     "@type": "PostalAddress",
@@ -65,11 +72,17 @@ const ORGANIZATION_JSONLD = {
   },
   areaServed: { "@type": "Country", name: "France" },
   knowsAbout: [
-    "Direction artistique",
-    "Identité de marque",
     "Intelligence artificielle",
+    "Agents IA",
+    "Model Context Protocol",
+    "Generative Engine Optimization",
+    "Brand voice IA",
+    "Identité de marque",
+    "Direction artistique",
     "Design produit",
-    "Plateformes numériques",
+    "Plateformes Next.js Supabase",
+    "Contenu génératif",
+    "Croissance digitale",
   ],
   foundingDate: "2026",
 };
@@ -106,9 +119,14 @@ export default function HomePage() {
       <LandingHero />
       <LandingApproach />
       <LandingDisciplines />
+      <LandingClients />
       <LandingAbout />
       <LandingContact />
       <LandingFooter />
+
+      {/* Navigation constellation — bouton orbital top-right qui
+          ouvre un menu holographique vers les 5 sections du site. */}
+      <NavConstellation />
 
       {/* Avatar flottant Speetch — bottom-right, ouvre le chatbot
           concierge pour mise en relation visiteur ↔ studio. */}
