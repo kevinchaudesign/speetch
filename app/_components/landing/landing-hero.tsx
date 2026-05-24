@@ -63,6 +63,24 @@ const SATELLITE_LAYOUT: ReadonlyArray<{
   { size: 175, blur: 2.4, position: { bottom: "12vh", left: "5vw" } },
 ];
 
+/** Layout mobile (< md = 768px) — l'orbe central occupe 100vw donc
+ *  il ne reste pas de place sur les côtés. Les 4 satellites s'alignent
+ *  en une rangée horizontale SOUS le H1 (lui-même posé sous l'orbe).
+ *  Le `top` est calculé depuis le bord bas de l'orbe (pt-[7vh] +
+ *  100vw) + hauteur réservée au H1 (~60px). Tailles asymétriques pour
+ *  garder la sensation de profondeur. */
+const MOBILE_SATELLITE_TOP = "calc(7vh + 100vw + 60px)";
+const SATELLITE_LAYOUT_MOBILE: ReadonlyArray<{
+  size: number;
+  blur: number;
+  position: React.CSSProperties;
+}> = [
+  { size: 70, blur: 0.6, position: { top: MOBILE_SATELLITE_TOP, left: "4vw" } },
+  { size: 90, blur: 0.3, position: { top: MOBILE_SATELLITE_TOP, left: "25vw" } },
+  { size: 82, blur: 0.45, position: { top: MOBILE_SATELLITE_TOP, right: "25vw" } },
+  { size: 65, blur: 0.7, position: { top: MOBILE_SATELLITE_TOP, right: "4vw" } },
+];
+
 // Segments du H1 — rendus en ligne (inline), pas empilés. « IA » en
 // italique jaune + glow brand pour signer la couleur.
 type HeadlineSegment = { text: string; italic: boolean };
@@ -217,39 +235,30 @@ export function LandingHero() {
         transition={{ type: "spring", stiffness: 800, damping: 36 }}
       />
 
-      {/* Preloader cinématique */}
+      {/* Preloader cinématique — centré écran, sans texte. Juste le
+          compteur numérique 000→100 + la barre de progression cyan. */}
       <AnimatePresence mode="wait">
         {!loaded && (
           <motion.div
             key="loader"
             exit={{ opacity: 0, filter: "blur(8px)" }}
             transition={{ duration: 0.7, ease: EASE_IN_OUT_QUART }}
-            className="absolute inset-0 z-50 flex items-end justify-between bg-black px-6 py-8 md:px-12 md:py-12"
+            className="absolute inset-0 z-50 flex flex-col items-center justify-center gap-6 bg-black px-6 md:gap-8"
             role="status"
             aria-live="polite"
             aria-label={`Chargement ${progress}%`}
           >
-            <div className="flex flex-col gap-3">
-              <span className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/55">
-                Initialisation
-              </span>
-              <span className="font-sans text-7xl font-light leading-none tabular-nums md:text-9xl">
-                {String(progress).padStart(3, "0")}
-              </span>
-            </div>
-            <div className="flex max-w-[40%] flex-col items-end gap-3">
-              <span className="text-right text-[10px] uppercase tracking-[0.32em] text-cyan-200/55">
-                Speetch — Édition 2026
-              </span>
-              <div className="h-px w-40 overflow-hidden bg-cyan-200/15 md:w-64">
-                <motion.div
-                  className="h-full origin-left bg-cyan-200"
-                  initial={{ scaleX: 0 }}
-                  animate={{ scaleX: progress / 100 }}
-                  transition={{ ease: "linear" }}
-                  style={{ boxShadow: "0 0 8px rgba(125, 211, 252, 0.6)" }}
-                />
-              </div>
+            <span className="font-sans text-7xl font-light leading-none tabular-nums md:text-9xl">
+              {String(progress).padStart(3, "0")}
+            </span>
+            <div className="h-px w-40 overflow-hidden bg-cyan-200/15 md:w-64">
+              <motion.div
+                className="h-full origin-left bg-cyan-200"
+                initial={{ scaleX: 0 }}
+                animate={{ scaleX: progress / 100 }}
+                transition={{ ease: "linear" }}
+                style={{ boxShadow: "0 0 8px rgba(125, 211, 252, 0.6)" }}
+              />
             </div>
           </motion.div>
         )}
@@ -299,12 +308,13 @@ export function LandingHero() {
       />
 
       {/* ────── Couche 0.5 : 4 orbes satellites (autres domaines) ──────
-          Positionnées dans les coins libres : top-right, mid-left,
-          mid-right, bottom-left. Évite H1 top-left, scroll center, et
-          contact bottom-right. Cachées si un skill est ouvert. */}
+          Desktop : positionnées dans les coins libres autour de l'orbe.
+          Mobile : 4 satellites compacts en arc sous l'orbe (l'orbe
+          occupe 100vw, plus de place sur les côtés). Cachées si un
+          skill est ouvert. */}
       <div
         aria-label="Constellation des domaines Speetch"
-        className="pointer-events-none absolute inset-0 z-[8] hidden md:block"
+        className="pointer-events-none absolute inset-0 z-[8]"
         style={{
           opacity: loaded && !activeSkillId ? 1 : 0,
           transition:
@@ -316,19 +326,26 @@ export function LandingHero() {
             ça interceptait TOUS les clics et masquait les labels de
             skills sur l'orbe centrale derrière (z-5). Les
             <SatelliteOrb> activent eux-mêmes pointer-events: auto sur
-            leur <button>, donc seuls les boutons captent les clics. */}
-        {satelliteDomains.map((d, i) => (
+            leur <button>, donc seuls les boutons captent les clics.
+            Le layout est choisi selon viewport.w (md = 768px). */}
+        {satelliteDomains.map((d, i) => {
+          const layout =
+            viewport.w >= 768
+              ? SATELLITE_LAYOUT[i]
+              : SATELLITE_LAYOUT_MOBILE[i];
+          return (
           <SatelliteOrb
             key={d.id}
             domain={d}
-            size={SATELLITE_LAYOUT[i].size}
-            blur={SATELLITE_LAYOUT[i].blur}
-            position={SATELLITE_LAYOUT[i].position}
+            size={layout.size}
+            blur={layout.blur}
+            position={layout.position}
             onClick={handleSatelliteClick}
             hidden={zoom?.domain.id === d.id}
             dimmed={zoom !== null && zoom.domain.id !== d.id}
           />
-        ))}
+          );
+        })}
       </div>
 
       {/* ────── Overlay de zoom — satellite vers centre ──────
@@ -381,8 +398,13 @@ export function LandingHero() {
           Anchorée en HAUT À GAUCHE du hero. Au zoom skill : s'éloigne
           vers le haut-gauche + fade out. */}
       <div
-        className="absolute bottom-[10vh] left-0 right-0 z-20 flex flex-col items-center px-6 md:bottom-[8vh] md:px-10"
+        className="absolute left-0 right-0 z-20 flex flex-col items-center px-6 md:px-10"
         style={{
+          // Mobile : posé juste sous le bord bas de l'orbe central
+          // (pt-[7vh] + orb de 100vw + 16px de marge visuelle).
+          // Desktop : ancré bas du viewport (bottom-[8vh]), comme avant.
+          top: viewport.w >= 768 ? "auto" : "calc(7vh + 100vw + 16px)",
+          bottom: viewport.w >= 768 ? "8vh" : "auto",
           // Quand un skill est ouvert (orbe zoomée) ou pendant un swap
           // de domaine, le H1 fade out (et descend légèrement sur skill).
           // Revient avec le nouveau label « {domaine} × IA » au dézoom/swap.
@@ -596,12 +618,16 @@ function ZoomingOrb({
     return () => cancelAnimationFrame(id);
   }, []);
 
-  // Centre visuel approximatif de l'orbe centrale : son wrapper a
-  // pt-[10vh] et l'orbe occupe ~min(78vw, 640px) carré, donc le centre
-  // tombe à viewport.h * 0.10 + half.
-  const orbVisualWidth = Math.min(viewport.w * 0.78, 640);
+  // Centre visuel approximatif de l'orbe centrale.
+  // Desktop (≥ md) : pt-[10vh] + orb de min(78vw, 640px).
+  // Mobile (< md)  : pt-[7vh] + orb de 100vw (cf. <HeroOrb>).
+  const isDesktop = viewport.w >= 768;
+  const orbVisualWidth = isDesktop
+    ? Math.min(viewport.w * 0.78, 640)
+    : viewport.w;
+  const orbTopVh = isDesktop ? 0.1 : 0.07;
   const targetCenterX = viewport.w / 2;
-  const targetCenterY = viewport.h * 0.10 + orbVisualWidth / 2;
+  const targetCenterY = viewport.h * orbTopVh + orbVisualWidth / 2;
 
   // Scale tel que la satellite zoomée occupe à peu près la taille
   // visible de l'orbe centrale (apparence finale ≈ remplace le central).
