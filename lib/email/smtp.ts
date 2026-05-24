@@ -36,8 +36,15 @@ export async function sendEmail(
   const transporter = nodemailer.createTransport({
     host: account.smtp_host,
     port: account.smtp_port,
+    // secure=true → SSL direct (port 465). secure=false → plaintext puis
+    // STARTTLS (port 587 Infomaniak). requireTLS force l'upgrade STARTTLS
+    // côté plaintext pour ne jamais transmettre les credentials en clair.
     secure: account.smtp_secure,
+    requireTLS: !account.smtp_secure,
     auth: { user: account.email, pass: account.password },
+    // Recommandation Infomaniak : valider le certificat serveur (défaut
+    // nodemailer mais on l'explicite pour la sécurité documentée).
+    tls: { rejectUnauthorized: true },
     connectionTimeout: 30_000,
   });
 

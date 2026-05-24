@@ -61,6 +61,25 @@ export function EmailSettingsForm({
   const [deletePending, startDelete] = useTransition();
   const hasAccount = !!initialAccount;
 
+  // Port SMTP + flag SSL contrôlés. État initial = valeur sauvegardée
+  // exactement (pas d'override d'init — sinon le composant remount
+  // après revalidatePath déforce le choix de l'utilisateur).
+  // L'auto-sync sur change de port (587→STARTTLS, 465→SSL) ne déclenche
+  // que sur interaction utilisateur explicite.
+  const [smtpPort, setSmtpPort] = useState<number>(
+    initialAccount?.smtp_port ?? 587,
+  );
+  const [smtpSecure, setSmtpSecure] = useState<boolean>(
+    initialAccount?.smtp_secure ?? false,
+  );
+
+  function handleSmtpPortChange(value: number) {
+    setSmtpPort(value);
+    if (value === 587) setSmtpSecure(false);
+    else if (value === 465) setSmtpSecure(true);
+    // Pour d'autres ports, on laisse l'utilisateur choisir manuellement.
+  }
+
   function handleTest() {
     startTest(async () => {
       const res = await testEmailConnection();
@@ -179,7 +198,7 @@ export function EmailSettingsForm({
           <span className="text-[10px] uppercase tracking-[0.4em] text-cyan-200/65">
             SMTP · Envoi
           </span>
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_120px_100px]">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-[1fr_120px]">
             <Field label="Hôte">
               <input
                 type="text"
@@ -194,26 +213,57 @@ export function EmailSettingsForm({
                 type="number"
                 name="smtp_port"
                 required
-                defaultValue={initialAccount?.smtp_port ?? 465}
+                value={smtpPort}
+                onChange={(e) => handleSmtpPortChange(Number(e.target.value))}
                 min={1}
                 max={65535}
                 className="w-full border-b border-cyan-200/25 bg-transparent pb-2 font-mono text-sm text-[#F5F5F7] caret-cyan-200 focus:border-cyan-200/80 focus:outline-none"
               />
             </Field>
-            <Field label="SSL">
-              <label className="flex h-[28px] items-center gap-2">
+          </div>
+
+          {/* Chiffrement — radio explicite pour lever l'ambiguïté
+              STARTTLS vs SSL direct. Auto-aligné quand le port change. */}
+          <Field label="Chiffrement">
+            <div className="flex flex-col gap-3 pt-1 md:flex-row md:gap-6">
+              <label className="flex cursor-pointer items-start gap-3">
                 <input
-                  type="checkbox"
+                  type="radio"
                   name="smtp_secure"
-                  defaultChecked={initialAccount?.smtp_secure ?? true}
-                  className="h-4 w-4 cursor-pointer accent-cyan-300"
+                  value="starttls"
+                  checked={!smtpSecure}
+                  onChange={() => setSmtpSecure(false)}
+                  className="mt-0.5 h-4 w-4 cursor-pointer accent-cyan-300"
                 />
-                <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/70">
-                  Activé
+                <span className="flex flex-col">
+                  <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/85">
+                    STARTTLS
+                  </span>
+                  <span className="text-[11px] text-white/45">
+                    Port 587 · recommandé Infomaniak
+                  </span>
                 </span>
               </label>
-            </Field>
-          </div>
+              <label className="flex cursor-pointer items-start gap-3">
+                <input
+                  type="radio"
+                  name="smtp_secure"
+                  value="ssl"
+                  checked={smtpSecure}
+                  onChange={() => setSmtpSecure(true)}
+                  className="mt-0.5 h-4 w-4 cursor-pointer accent-cyan-300"
+                />
+                <span className="flex flex-col">
+                  <span className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/85">
+                    SSL / TLS direct
+                  </span>
+                  <span className="text-[11px] text-white/45">
+                    Port 465
+                  </span>
+                </span>
+              </label>
+            </div>
+          </Field>
         </div>
       </fieldset>
 

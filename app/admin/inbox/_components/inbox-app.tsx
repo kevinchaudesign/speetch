@@ -17,24 +17,72 @@ import {
   sendInboxEmail,
   type SendEmailState,
 } from "../actions";
-import type { InboxMessage } from "@/lib/email/imap";
+import type { EmailFolder, InboxMessage } from "@/lib/email/imap";
 import { Eyebrow } from "@/lib/ds";
 import { ConfirmDialog } from "@/lib/ds/confirm-dialog";
 
 const SEND_INITIAL: SendEmailState = { status: "idle" };
 
+/** Mappe l'attribut SPECIAL-USE IMAP RFC6154 vers un libellé FR. */
+function folderDisplayName(folder: EmailFolder): string {
+  if (folder.path === "INBOX") return "Boîte de réception";
+  switch (folder.specialUse) {
+    case "\\Sent":
+      return "Envoyés";
+    case "\\Drafts":
+      return "Brouillons";
+    case "\\Trash":
+      return "Corbeille";
+    case "\\Junk":
+      return "Spam";
+    case "\\Archive":
+      return "Archives";
+    default:
+      return folder.name;
+  }
+}
+
+/** Ordre standard pour les tabs : INBOX, Sent, Drafts, Trash, Junk, Archive,
+ *  puis le reste en alpha. */
+function sortFolders(folders: EmailFolder[]): EmailFolder[] {
+  const order: Record<string, number> = {
+    INBOX: 0,
+    "\\Sent": 1,
+    "\\Drafts": 2,
+    "\\Trash": 3,
+    "\\Junk": 4,
+    "\\Archive": 5,
+  };
+  return [...folders].sort((a, b) => {
+    const aKey = a.path === "INBOX" ? "INBOX" : a.specialUse ?? "";
+    const bKey = b.path === "INBOX" ? "INBOX" : b.specialUse ?? "";
+    const aRank = order[aKey] ?? 100;
+    const bRank = order[bKey] ?? 100;
+    if (aRank !== bRank) return aRank - bRank;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export function InboxApp({
   initialMessages,
+  initialFolders,
   initialError,
   accountEmail,
 }: {
   initialMessages: InboxMessage[];
+  initialFolders: EmailFolder[];
   initialError: string | null;
   accountEmail: string | null;
 }) {
+  const folders = sortFolders(initialFolders);
+  const [currentFolder, setCurrentFolder] = useState<string>("INBOX");
   const [messages, setMessages] = useState<InboxMessage[]>(initialMessages);
   const [error, setError] = useState<string | null>(initialError);
   const [refreshing, startRefresh] = useTransition();
+  // Initial null pour éviter le hydration mismatch (new Date() côté SSR
+  // ≠ côté client). Set au mount via useEffect (cf. plus bas) puis
+  // mis à jour à chaque refresh réussi.
+  const [lastSync, setLastSync] = useState<Date | null>(null);
   const [selectedUid, setSelectedUid] = useState<number | null>(
     initialMessages[0]?.uid ?? null,
   );
@@ -48,23 +96,45 @@ export function InboxApp({
   const [composeOpen, setComposeOpen] = useState(false);
   const [replyContext, setReplyContext] = useState<InboxMessage | null>(null);
 
-  function refresh() {
+  function refresh(folderOverride?: string) {
+    const folder = folderOverride ?? currentFolder;
     startRefresh(async () => {
-      const res = await listInbox(50);
+      const res = await listInbox(50, folder);
       if (res.status === "ok") {
         setMessages(res.messages);
         setError(null);
+        setLastSync(new Date());
       } else {
         setError(res.error);
       }
     });
   }
 
+  function switchFolder(folderPath: string) {
+    if (folderPath === currentFolder) return;
+    setCurrentFolder(folderPath);
+    setSelectedUid(null);
+    setOpenBody(null);
+    setMessages([]);
+    refresh(folderPath);
+  }
+
+  // Init du timestamp lastSync au mount client (évite hydration mismatch)
+  // + auto-refresh périodique (60s) tant que l'onglet est actif.
+  useEffect(() => {
+    setLastSync(new Date());
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === "visible") refresh();
+    }, 60_000);
+    return () => window.clearInterval(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   function selectMessage(uid: number) {
     setSelectedUid(uid);
     setOpenBody(null);
     startOpen(async () => {
-      const res = await openMessage(uid);
+      const res = await openMessage(uid, currentFolder);
       if (res.status === "ok") {
         setOpenBody({ uid, text: res.text, html: res.html });
         // Marquer comme vu localement
@@ -85,7 +155,8 @@ export function InboxApp({
   return (
     <>
       {/* Header — titre + actions */}
-      <header className="flex flex-wrap items-end justify-between gap-6 border-b border-cyan-200/15 px-6 py-6 md:px-10">
+      <header className="flex flex-col gap-5 border-b border-cyan-200/15 px-6 py-6 md:px-10">
+       <div className="flex flex-wrap items-end justify-between gap-6">
         <div className="flex flex-col gap-2">
           <Eyebrow tracking="lg" intensity="muted">
             Conseil · Transmissions
@@ -101,9 +172,21 @@ export function InboxApp({
           </h1>
         </div>
         <div className="flex items-center gap-6">
+          {lastSync && (
+            <span
+              className="font-mono text-[9px] uppercase tracking-[0.32em] text-white/40"
+              title={lastSync.toLocaleString("fr-FR")}
+            >
+              Synchro ·{" "}
+              {lastSync.toLocaleTimeString("fr-FR", {
+                hour: "2-digit",
+                minute: "2-digit",
+              })}
+            </span>
+          )}
           <button
             type="button"
-            onClick={refresh}
+            onClick={() => refresh()}
             disabled={refreshing}
             className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/70 transition-colors hover:text-cyan-100 disabled:opacity-40"
           >
@@ -117,6 +200,34 @@ export function InboxApp({
             ✱ Nouveau message
           </button>
         </div>
+       </div>
+
+        {/* Tabs dossiers — INBOX, Envoyés, Brouillons, Corbeille, Spam… */}
+        {folders.length > 0 && (
+          <nav
+            aria-label="Dossiers IMAP"
+            className="-mx-1 flex flex-wrap items-center gap-1 overflow-x-auto"
+          >
+            {folders.map((f) => {
+              const isActive = f.path === currentFolder;
+              return (
+                <button
+                  key={f.path}
+                  type="button"
+                  onClick={() => switchFolder(f.path)}
+                  disabled={refreshing && isActive}
+                  className={`shrink-0 border px-3 py-1.5 font-mono text-[10px] uppercase tracking-[0.32em] transition-colors duration-300 ${
+                    isActive
+                      ? "border-cyan-200/60 bg-cyan-200/[0.08] text-cyan-100"
+                      : "border-transparent text-cyan-200/55 hover:border-cyan-200/25 hover:text-cyan-100"
+                  } disabled:opacity-50`}
+                >
+                  {folderDisplayName(f)}
+                </button>
+              );
+            })}
+          </nav>
+        )}
       </header>
 
       {error && (
@@ -230,7 +341,10 @@ export function InboxApp({
           onClose={() => setComposeOpen(false)}
           onSent={() => {
             setComposeOpen(false);
-            refresh();
+            // Délai 4s : le SMTP de Infomaniak distribue à INBOX
+            // local de façon asynchrone après l'envoi. Refresh trop
+            // tôt = email pas encore visible côté IMAP.
+            window.setTimeout(() => refresh(), 4_000);
           }}
         />
       )}

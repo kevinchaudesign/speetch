@@ -65,8 +65,12 @@ export async function saveEmailAccount(
   const imapPort = Number(formData.get("imap_port") ?? 993);
   const imapSecure = formData.get("imap_secure") === "on";
   const smtpHost = String(formData.get("smtp_host") ?? "").trim();
-  const smtpPort = Number(formData.get("smtp_port") ?? 465);
-  const smtpSecure = formData.get("smtp_secure") === "on";
+  const smtpPort = Number(formData.get("smtp_port") ?? 587);
+  // Radio "starttls" → secure=false (STARTTLS, port 587, recommandé
+  // Infomaniak). Radio "ssl" → secure=true (SSL/TLS direct, port 465).
+  // Tolérant à l'ancien checkbox ("on") pour la rétrocompat.
+  const smtpSecureRaw = formData.get("smtp_secure");
+  const smtpSecure = smtpSecureRaw === "ssl" || smtpSecureRaw === "on";
 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return { status: "error", error: "Email invalide." };
@@ -155,23 +159,84 @@ export async function deleteEmailAccount(): Promise<EmailSettingsState> {
 }
 
 /**
- * Test de la connexion IMAP+SMTP — désactivé temporairement.
- *
- * Les deps `imapflow`, `nodemailer`, `mailparser` ont été retirées pour
- * stabiliser le build Hostinger (deps natives lourdes qui faisaient
- * planter le déploiement). À réintroduire en Phase 2 quand on aura
- * confirmé compatibilité avec l'environnement de prod.
+ * Test de la connexion IMAP + SMTP — tente une connexion réelle avec
+ * les credentials sauvegardés. Pas d'envoi ni de modification de la
+ * boîte : juste auth IMAP (LOGIN puis LOGOUT) et auth SMTP (verify()).
  */
 export async function testEmailConnection(): Promise<EmailSettingsState> {
   const auth = await requireOwnerProfile();
   if (!auth.ok) return { status: "error", error: auth.error };
 
+  const { loadOwnerEmailAccount } = await import("@/lib/email/account");
+  const account = await loadOwnerEmailAccount();
+  if (!account) {
+    return {
+      status: "error",
+      testResult: {
+        ok: false,
+        message: "Aucun compte sauvegardé. Sceller d'abord la config.",
+      },
+    };
+  }
+
+  // 1. IMAP
+  const { ImapFlow } = await import("imapflow");
+  const imap = new ImapFlow({
+    host: account.imap_host,
+    port: account.imap_port,
+    secure: account.imap_secure,
+    auth: { user: account.email, pass: account.password },
+    logger: false,
+    tls: { rejectUnauthorized: true },
+    socketTimeout: 15_000,
+  });
+  try {
+    await imap.connect();
+    await imap.logout();
+  } catch (err) {
+    return {
+      status: "error",
+      testResult: {
+        ok: false,
+        message:
+          "IMAP : " +
+          (err instanceof Error ? err.message : "connexion impossible"),
+      },
+    };
+  }
+
+  // 2. SMTP
+  const nodemailer = (await import("nodemailer")).default;
+  const transport = nodemailer.createTransport({
+    host: account.smtp_host,
+    port: account.smtp_port,
+    secure: account.smtp_secure,
+    requireTLS: !account.smtp_secure,
+    auth: { user: account.email, pass: account.password },
+    tls: { rejectUnauthorized: true },
+    connectionTimeout: 15_000,
+  });
+  try {
+    await transport.verify();
+  } catch (err) {
+    return {
+      status: "error",
+      testResult: {
+        ok: false,
+        message:
+          "SMTP : " +
+          (err instanceof Error ? err.message : "auth impossible"),
+      },
+    };
+  } finally {
+    transport.close();
+  }
+
   return {
-    status: "error",
+    status: "success",
     testResult: {
-      ok: false,
-      message:
-        "Test de connexion en attente — Phase 2 (fetch/send) à venir.",
+      ok: true,
+      message: "IMAP + SMTP : connexion réussie.",
     },
   };
 }

@@ -17,6 +17,44 @@ import "server-only";
 import { ImapFlow } from "imapflow";
 import type { EmailAccountWithSecret } from "./account";
 
+export type EmailFolder = {
+  /** Chemin IMAP interne (ex: "INBOX.Sent", "INBOX", "Trash"). */
+  path: string;
+  /** Nom affichable (dernier segment du path). */
+  name: string;
+  /** Attribut SPECIAL-USE RFC6154 ("\\Sent", "\\Drafts", "\\Trash",
+   *  "\\Junk", "\\Archive") ou null si dossier custom utilisateur. */
+  specialUse: string | null;
+};
+
+/**
+ * Liste les dossiers IMAP du compte. Filtre les Noselect (dossiers
+ * conteneurs sans messages). Identifie les dossiers via SPECIAL-USE
+ * pour pouvoir mapper Sent/Drafts/Trash/Junk indépendamment du nom
+ * serveur (Infomaniak peut nommer "Envoyés" ou "INBOX.Sent" selon
+ * la config).
+ */
+export async function discoverFolders(
+  account: EmailAccountWithSecret,
+): Promise<EmailFolder[]> {
+  const client = clientFromAccount(account);
+  await client.connect();
+  try {
+    // imapflow.list() retourne tous les dossiers avec specialUse auto-
+    // détecté (RFC6154). Pas d'options nécessaires.
+    const folders = await client.list();
+    return folders
+      .filter((f) => !f.flags?.has("\\Noselect"))
+      .map((f) => ({
+        path: f.path,
+        name: f.name,
+        specialUse: (f.specialUse as string | undefined) ?? null,
+      }));
+  } finally {
+    await client.logout().catch(() => {});
+  }
+}
+
 export type InboxMessage = {
   uid: number;
   /** Identifiant Message-ID RFC822 pour reply/thread. */
@@ -46,6 +84,8 @@ function clientFromAccount(account: EmailAccountWithSecret): ImapFlow {
     secure: account.imap_secure,
     auth: { user: account.email, pass: account.password },
     logger: false,
+    // Validation du certificat serveur (défaut, explicite pour la doc).
+    tls: { rejectUnauthorized: true },
     // Timeouts raisonnables pour ne pas pendre la requête
     socketTimeout: 30_000,
   });
@@ -66,18 +106,22 @@ function previewFromBody(text: string): string {
 }
 
 /**
- * Liste les N derniers messages d'INBOX (par défaut 50), triés du plus
- * récent au plus ancien. Inclut le preview texte mais pas le corps
- * complet (pour la perf — utiliser fetchMessageBody pour ça).
+ * Liste les N derniers messages d'un dossier (par défaut INBOX, 50
+ * messages), triés du plus récent au plus ancien. Inclut le preview
+ * texte mais pas le corps complet (pour la perf — utiliser
+ * fetchMessageBody pour ça).
  */
 export async function fetchInboxMessages(
   account: EmailAccountWithSecret,
-  { limit = 50 }: { limit?: number } = {},
+  {
+    limit = 50,
+    folder = "INBOX",
+  }: { limit?: number; folder?: string } = {},
 ): Promise<InboxMessage[]> {
   const client = clientFromAccount(account);
   await client.connect();
   try {
-    const lock = await client.getMailboxLock("INBOX");
+    const lock = await client.getMailboxLock(folder);
     try {
       // Récupérer les UIDs des N derniers messages
       const mailbox = client.mailbox as { exists: number } | null;
@@ -150,17 +194,19 @@ export async function fetchInboxMessages(
 }
 
 /**
- * Récupère le corps complet (text + html) d'un message par son UID.
- * Marque le message comme lu côté serveur.
+ * Récupère le corps complet (text + html) d'un message par son UID
+ * dans un dossier donné (INBOX par défaut). Marque le message comme
+ * lu côté serveur.
  */
 export async function fetchMessageBody(
   account: EmailAccountWithSecret,
   uid: number,
+  folder = "INBOX",
 ): Promise<{ text: string | null; html: string | null }> {
   const client = clientFromAccount(account);
   await client.connect();
   try {
-    const lock = await client.getMailboxLock("INBOX");
+    const lock = await client.getMailboxLock(folder);
     try {
       const msg = await client.fetchOne(
         String(uid),

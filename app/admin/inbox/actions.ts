@@ -14,8 +14,10 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { loadOwnerEmailAccount } from "@/lib/email/account";
 import {
+  discoverFolders,
   fetchInboxMessages,
   fetchMessageBody,
+  type EmailFolder,
   type InboxMessage,
 } from "@/lib/email/imap";
 import { sendEmail } from "@/lib/email/smtp";
@@ -37,7 +39,10 @@ export type ListInboxResult =
   | { status: "ok"; messages: InboxMessage[] }
   | { status: "error"; error: string };
 
-export async function listInbox(limit = 50): Promise<ListInboxResult> {
+export async function listInbox(
+  limit = 50,
+  folder = "INBOX",
+): Promise<ListInboxResult> {
   const auth = await requireOwner();
   if (!auth.ok) return { status: "error", error: auth.error };
 
@@ -49,7 +54,7 @@ export async function listInbox(limit = 50): Promise<ListInboxResult> {
     };
 
   try {
-    const messages = await fetchInboxMessages(account, { limit });
+    const messages = await fetchInboxMessages(account, { limit, folder });
     return { status: "ok", messages };
   } catch (err) {
     return {
@@ -62,11 +67,11 @@ export async function listInbox(limit = 50): Promise<ListInboxResult> {
   }
 }
 
-export type OpenMessageResult =
-  | { status: "ok"; text: string | null; html: string | null }
+export type ListFoldersResult =
+  | { status: "ok"; folders: EmailFolder[] }
   | { status: "error"; error: string };
 
-export async function openMessage(uid: number): Promise<OpenMessageResult> {
+export async function listFolders(): Promise<ListFoldersResult> {
   const auth = await requireOwner();
   if (!auth.ok) return { status: "error", error: auth.error };
 
@@ -75,7 +80,36 @@ export async function openMessage(uid: number): Promise<OpenMessageResult> {
     return { status: "error", error: "Aucun compte email configuré." };
 
   try {
-    const body = await fetchMessageBody(account, uid);
+    const folders = await discoverFolders(account);
+    return { status: "ok", folders };
+  } catch (err) {
+    return {
+      status: "error",
+      error:
+        err instanceof Error
+          ? `Découverte impossible : ${err.message}`
+          : "Découverte impossible.",
+    };
+  }
+}
+
+export type OpenMessageResult =
+  | { status: "ok"; text: string | null; html: string | null }
+  | { status: "error"; error: string };
+
+export async function openMessage(
+  uid: number,
+  folder = "INBOX",
+): Promise<OpenMessageResult> {
+  const auth = await requireOwner();
+  if (!auth.ok) return { status: "error", error: auth.error };
+
+  const account = await loadOwnerEmailAccount();
+  if (!account)
+    return { status: "error", error: "Aucun compte email configuré." };
+
+  try {
+    const body = await fetchMessageBody(account, uid, folder);
     revalidatePath("/admin/inbox");
     return { status: "ok", ...body };
   } catch (err) {

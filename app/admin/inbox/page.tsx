@@ -6,7 +6,12 @@ import {
   loadOwnerEmailAccount,
   loadOwnerEmailAccountMeta,
 } from "@/lib/email/account";
-import { fetchInboxMessages, type InboxMessage } from "@/lib/email/imap";
+import {
+  discoverFolders,
+  fetchInboxMessages,
+  type EmailFolder,
+  type InboxMessage,
+} from "@/lib/email/imap";
 import { InboxApp } from "./_components/inbox-app";
 
 export const metadata: Metadata = {
@@ -59,8 +64,9 @@ export default async function InboxPage() {
     );
   }
 
-  // Charge les messages côté serveur (avec password déchiffré)
+  // Charge dossiers + messages d'INBOX côté serveur en parallèle.
   let messages: InboxMessage[] = [];
+  let folders: EmailFolder[] = [];
   let error: string | null = null;
   try {
     const account = await loadOwnerEmailAccount();
@@ -68,7 +74,12 @@ export default async function InboxPage() {
       error =
         "Compte trouvé mais le mot de passe ne peut pas être déchiffré. Reconnectez la boîte.";
     } else {
-      messages = await fetchInboxMessages(account, { limit: 50 });
+      const [foldersRes, messagesRes] = await Promise.all([
+        discoverFolders(account),
+        fetchInboxMessages(account, { limit: 50, folder: "INBOX" }),
+      ]);
+      folders = foldersRes;
+      messages = messagesRes;
     }
   } catch (err) {
     error =
@@ -81,6 +92,7 @@ export default async function InboxPage() {
     <div className="flex h-[calc(100svh-72px)] flex-col bg-black">
       <InboxApp
         initialMessages={messages}
+        initialFolders={folders}
         initialError={error}
         accountEmail={meta.email}
       />
