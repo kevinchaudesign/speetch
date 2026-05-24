@@ -6,9 +6,11 @@
  * titre + preview + date (format Notes iOS).
  */
 
+import { useState } from "react";
 import { cn } from "@/lib/utils";
 import { splitNoteContent, type TodoNoteItem } from "../_lib/types";
 import type { SelectedScope } from "./todo-app";
+import { ConfirmDialog } from "@/lib/ds/confirm-dialog";
 
 const SCOPE_LABELS: Record<SelectedScope["kind"], string> = {
   all: "Toutes les notes",
@@ -43,6 +45,7 @@ export function NotesPanel({
   onBackMobile: () => void;
 }) {
   const title = SCOPE_LABELS[selectedScope.kind];
+  const [deleteId, setDeleteId] = useState<string | null>(null);
 
   return (
     <section
@@ -116,13 +119,24 @@ export function NotesPanel({
               selected={note.id === selectedNoteId}
               onSelect={() => onSelectNote(note.id)}
               onTogglePin={() => onTogglePin(note.id)}
-              onDelete={() => {
-                if (confirm("Effacer cette note ?")) onDeleteNote(note.id);
-              }}
+              onDelete={() => setDeleteId(note.id)}
             />
           ))
         )}
       </ul>
+
+      <ConfirmDialog
+        open={deleteId !== null}
+        title="Effacer cette note ?"
+        description="L'action est irréversible. La note sera définitivement perdue."
+        confirmLabel="Effacer"
+        tone="danger"
+        onConfirm={() => {
+          if (deleteId) onDeleteNote(deleteId);
+          setDeleteId(null);
+        }}
+        onCancel={() => setDeleteId(null)}
+      />
     </section>
   );
 }

@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useActionState, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { Field } from "@/lib/ds";
+import { ConfirmDialog } from "@/lib/ds/confirm-dialog";
 import {
   deleteEmailAccount,
   saveEmailAccount,
@@ -67,13 +68,14 @@ export function EmailSettingsForm({
     });
   }
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
   function handleDelete() {
-    if (
-      !confirm(
-        "Supprimer la configuration de la boîte email ? Les emails ne seront plus accessibles depuis l'admin.",
-      )
-    )
-      return;
+    setDeleteOpen(true);
+  }
+
+  function confirmDelete() {
+    setDeleteOpen(false);
     startDelete(async () => {
       await deleteEmailAccount();
     });
@@ -292,6 +294,16 @@ export function EmailSettingsForm({
         </div>
         <SubmitButton hasAccount={hasAccount} />
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Supprimer la configuration email ?"
+        description="Les emails ne seront plus accessibles depuis l'admin tant qu'une nouvelle boîte ne sera pas connectée."
+        confirmLabel="Supprimer"
+        tone="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </motion.form>
   );
 }

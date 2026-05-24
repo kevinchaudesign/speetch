@@ -31,6 +31,7 @@ import { TableHeader } from "@tiptap/extension-table-header";
 import { cn } from "@/lib/utils";
 import type { TodoNoteItem } from "../_lib/types";
 import { MediaEmbed, type MediaKind } from "./media-embed-node";
+import { ConfirmDialog } from "@/lib/ds/confirm-dialog";
 import { MediaPicker, type MediaPickerKind } from "./media-picker";
 
 const DEBOUNCE_MS = 600;
@@ -60,6 +61,7 @@ export function NoteEditor({
   );
   const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [pickerKind, setPickerKind] = useState<MediaPickerKind | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const editor = useEditor({
     extensions: [
@@ -262,7 +264,7 @@ export function NoteEditor({
           <button
             type="button"
             onClick={() => {
-              if (confirm("Effacer cette note ?")) onDelete(note.id);
+              setDeleteOpen(true);
             }}
             aria-label="Effacer cette note"
             title="Effacer cette note"
@@ -449,6 +451,19 @@ export function NoteEditor({
       <div className="flex flex-1 overflow-y-auto px-6 py-8 md:px-12 md:py-10">
         <EditorContent editor={editor} className="w-full flex-1" />
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Effacer cette note ?"
+        description="L'action est irréversible. La note sera définitivement perdue."
+        confirmLabel="Effacer"
+        tone="danger"
+        onConfirm={() => {
+          onDelete(note.id);
+          setDeleteOpen(false);
+        }}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </section>
   );
 }

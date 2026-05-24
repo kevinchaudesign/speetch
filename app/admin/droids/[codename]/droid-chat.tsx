@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ConfirmDialog } from "@/lib/ds/confirm-dialog";
 
 /**
  * <DroidChat> — interface chat dédiée d'un droïde. State client-only :
@@ -43,6 +44,7 @@ export function DroidChat({
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
   const storageKey = `speetch:droid:${codename}`;
@@ -130,15 +132,19 @@ export function DroidChat({
     }
   }
 
-  function reset() {
-    if (
-      messages.length > 0 &&
-      !confirm("Effacer cette transmission ? L'historique sera perdu.")
-    )
+  function requestReset() {
+    if (messages.length === 0) {
+      doReset();
       return;
+    }
+    setResetOpen(true);
+  }
+
+  function doReset() {
     setMessages([]);
     setError(null);
     sessionStorage.removeItem(storageKey);
+    setResetOpen(false);
   }
 
   return (
@@ -157,7 +163,7 @@ export function DroidChat({
         </div>
         <button
           type="button"
-          onClick={reset}
+          onClick={requestReset}
           disabled={pending}
           className="text-[10px] uppercase tracking-[0.28em] text-white/35 transition-colors hover:text-red-300 disabled:opacity-40"
         >
@@ -228,6 +234,16 @@ export function DroidChat({
       <div className="border-t border-cyan-200/10 px-5 py-2 text-[9px] uppercase tracking-[0.32em] text-white/30">
         ⌘ / Ctrl + ⏎ pour envoyer · session locale (perdue à la fermeture de l'onglet)
       </div>
+
+      <ConfirmDialog
+        open={resetOpen}
+        title="Effacer cette transmission ?"
+        description="L'historique de la conversation avec ce droïde sera perdu."
+        confirmLabel="Effacer"
+        tone="danger"
+        onConfirm={doReset}
+        onCancel={() => setResetOpen(false)}
+      />
     </div>
   );
 }

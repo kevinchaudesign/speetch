@@ -20,6 +20,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useRef, useState } from "react";
 import { SpeetchLogo } from "../speetch-logo";
 import { CONTACT_BOT_WELCOME } from "@/lib/contact-bot";
+import { ConfirmDialog } from "@/lib/ds/confirm-dialog";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const STORAGE_KEY = "speetch:contact-bot";
@@ -33,6 +34,7 @@ export function ContactAvatar() {
   const [input, setInput] = useState("");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [resetOpen, setResetOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement | null>(null);
 
@@ -172,15 +174,19 @@ export function ContactAvatar() {
     }
   }
 
-  function reset() {
-    if (
-      messages.length > 1 &&
-      !confirm("Effacer cette conversation et repartir de zéro ?")
-    )
+  function requestReset() {
+    if (messages.length <= 1) {
+      doReset();
       return;
+    }
+    setResetOpen(true);
+  }
+
+  function doReset() {
     setMessages([{ role: "assistant", content: CONTACT_BOT_WELCOME }]);
     setError(null);
     sessionStorage.removeItem(STORAGE_KEY);
+    setResetOpen(false);
   }
 
   return (
@@ -264,7 +270,7 @@ export function ContactAvatar() {
               <div className="flex items-center gap-3">
                 <button
                   type="button"
-                  onClick={reset}
+                  onClick={requestReset}
                   disabled={pending}
                   className="text-[9px] uppercase tracking-[0.28em] text-white/35 transition-colors hover:text-cyan-200 disabled:opacity-40"
                   title="Réinitialiser la conversation"
@@ -340,6 +346,19 @@ export function ContactAvatar() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Modale de confirmation reset — remplace le confirm() natif
+          par la modale Speetch (eyebrow + titre extralight + actions). */}
+      <ConfirmDialog
+        open={resetOpen}
+        title="Effacer cette conversation ?"
+        description="L'historique du chat avec Speetch sera perdu. Repartir de zéro avec un nouveau message d'accueil."
+        confirmLabel="Effacer"
+        cancelLabel="Annuler"
+        tone="danger"
+        onConfirm={doReset}
+        onCancel={() => setResetOpen(false)}
+      />
     </>
   );
 }

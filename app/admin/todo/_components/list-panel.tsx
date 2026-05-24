@@ -10,6 +10,7 @@ import { useState } from "react";
 import { cn } from "@/lib/utils";
 import type { TodoListItem } from "../_lib/types";
 import type { SelectedScope } from "./todo-app";
+import { ConfirmDialog } from "@/lib/ds/confirm-dialog";
 
 export function ListPanel({
   className,
@@ -33,6 +34,7 @@ export function ListPanel({
   onDeleteList: (id: string) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [deleteList, setDeleteList] = useState<TodoListItem | null>(null);
 
   return (
     <aside
@@ -142,15 +144,7 @@ export function ListPanel({
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        if (
-                          confirm(
-                            `Effacer la liste "${list.name}" ? Les notes seront déplacées en "Non classées".`,
-                          )
-                        ) {
-                          onDeleteList(list.id);
-                        }
-                      }}
+                      onClick={() => setDeleteList(list)}
                       className="text-[9px] uppercase tracking-[0.3em] text-white/35 transition-colors hover:text-red-300"
                     >
                       Effacer
@@ -173,6 +167,23 @@ export function ListPanel({
         <PlusIcon />
         <span>{pending ? "Forge…" : "Nouvelle liste"}</span>
       </button>
+
+      <ConfirmDialog
+        open={deleteList !== null}
+        title={
+          deleteList
+            ? `Effacer la liste « ${deleteList.name} » ?`
+            : "Effacer la liste ?"
+        }
+        description="Les notes qu'elle contient seront déplacées en « Non classées »."
+        confirmLabel="Effacer"
+        tone="danger"
+        onConfirm={() => {
+          if (deleteList) onDeleteList(deleteList.id);
+          setDeleteList(null);
+        }}
+        onCancel={() => setDeleteList(null)}
+      />
     </aside>
   );
 }

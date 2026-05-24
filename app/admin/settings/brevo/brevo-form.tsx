@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useActionState, useRef, useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { Field } from "@/lib/ds";
+import { ConfirmDialog } from "@/lib/ds/confirm-dialog";
 import {
   deleteBrevoSettingsAction,
   saveBrevoSettingsAction,
@@ -77,13 +78,14 @@ export function BrevoSettingsForm({
     });
   }
 
+  const [deleteOpen, setDeleteOpen] = useState(false);
+
   function handleDelete() {
-    if (
-      !confirm(
-        "Effacer la config Brevo ? Les transmissions seront bloquées tant qu'aucune nouvelle clé ne sera saisie.",
-      )
-    )
-      return;
+    setDeleteOpen(true);
+  }
+
+  function confirmDelete() {
+    setDeleteOpen(false);
     startDelete(async () => {
       await deleteBrevoSettingsAction();
     });
@@ -244,6 +246,16 @@ export function BrevoSettingsForm({
         </div>
         <SubmitButton hasConfig={hasConfig} />
       </div>
+
+      <ConfirmDialog
+        open={deleteOpen}
+        title="Effacer la config Brevo ?"
+        description="Les transmissions email seront bloquées tant qu'aucune nouvelle clé ne sera saisie."
+        confirmLabel="Effacer"
+        tone="danger"
+        onConfirm={confirmDelete}
+        onCancel={() => setDeleteOpen(false)}
+      />
     </motion.form>
   );
 }
