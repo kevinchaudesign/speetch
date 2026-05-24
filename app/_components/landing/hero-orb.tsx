@@ -139,11 +139,26 @@ export function HeroOrb({
   const tiltX = ((mouse.y / viewport.h) * 16 - 8).toFixed(2);
   const tiltY = (8 - (mouse.x / viewport.w) * 16).toFixed(2);
 
+  // Freeze des animations CSS quand on est zoomé sur un skill — APRÈS
+  // que la transition de zoom (transform scale 1→4, ~900ms) ait fini.
+  // Pendant la transition, rings/network/sonar continuent à tourner.
+  // À la fermeture, on reprend immédiatement pour que le dézoom soit
+  // « vivant ». Stoppe aussi les edges scintillants (cf. interval).
+  const [frozen, setFrozen] = useState(false);
+  useEffect(() => {
+    if (active) {
+      const id = window.setTimeout(() => setFrozen(true), 900);
+      return () => window.clearTimeout(id);
+    }
+    setFrozen(false);
+  }, [active]);
+
   // Stabilise un set d'edges "scintillantes" qui change toutes les ~2.2s
-  // → effet réseau neural qui s'allume par à-coups.
+  // → effet réseau neural qui s'allume par à-coups. Pause quand frozen
+  // pour que le zoom skill soit complètement immobile.
   const [activeEdges, setActiveEdges] = useState<Set<number>>(new Set());
   useEffect(() => {
-    if (!loaded) return;
+    if (!loaded || frozen) return;
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduced) return;
     const pick = () => {
@@ -156,7 +171,7 @@ export function HeroOrb({
     pick();
     const id = window.setInterval(pick, 2200);
     return () => window.clearInterval(id);
-  }, [edges.length, loaded]);
+  }, [edges.length, loaded, frozen]);
 
   return (
     <div
@@ -165,26 +180,27 @@ export function HeroOrb({
       style={{
         opacity: loaded && !transitioning ? 1 : 0,
         // Initial load : fade lent (2400ms) avec delay esthétique.
-        // Pendant un swap de domaine : fade rapide (380ms hors, 520ms in).
-        // Delay 180ms à la ré-apparition pour laisser l'overlay zoom
-        // s'effacer avant que le central revienne.
+        // Pendant un swap : symétrie 380/380 sans delay → le fade-in
+        // démarre PILE quand le swap se commit, en parallèle du fade-
+        // out de l'overlay zoom. Crossfade visuel propre, sans trou.
         transition: !loaded
           ? "opacity 2400ms cubic-bezier(0.22, 1, 0.36, 1) 700ms"
           : transitioning
             ? "opacity 380ms cubic-bezier(0.22, 1, 0.36, 1) 0ms"
-            : "opacity 520ms cubic-bezier(0.22, 1, 0.36, 1) 180ms",
+            : "opacity 380ms cubic-bezier(0.22, 1, 0.36, 1) 0ms",
         perspective: "1200px",
       }}
     >
       <svg
         viewBox={`0 0 ${SIZE} ${SIZE}`}
         overflow="visible"
-        className="speetch-orb h-auto w-[100vw] md:w-[min(78vw,640px)]"
+        className={`speetch-orb h-auto w-[100vw] md:w-[min(78vw,640px)]${frozen ? " speetch-orb-frozen" : ""}`}
         style={{
           // Quand actif : scale 4 vers le centre + glow renforcé →
-          // l'orbe sort largement du viewport, le centre vide accueille
-          // la description sans frame visible. Le tilt curseur est
-          // conservé pour garder la profondeur 3D pendant le zoom.
+          // l'orbe sort largement du viewport. L'aura radiale reste
+          // visible (sert de fond cyan au SkillPanel), seul le décor
+          // (anneaux, réseau, labels, kyber, sonar) fade à opacity 0
+          // via le <g.speetch-orb-decor> juste en dessous.
           transform: `scale(${active ? 4 : 1}) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`,
           transition:
             "transform 900ms cubic-bezier(0.22, 1, 0.36, 1), filter 700ms cubic-bezier(0.22, 1, 0.36, 1)",
@@ -223,6 +239,26 @@ export function HeroOrb({
           </filter>
         </defs>
 
+        {/* Aura radiale — TOUJOURS visible, sert de fond cyan au
+            SkillPanel quand l'orbe est zoomée. À scale 4, le gradient
+            (440px) couvre la majorité du viewport (1760px) → backdrop
+            cohérent au lieu d'un fond noir/starfield. */}
+        <circle cx={CX} cy={CY} r="220" fill="url(#orb-core-glow)" />
+
+        {/* Décor — anneaux, réseau, kyber, sonar, labels. Fade à
+            opacity 0 pendant les 400 dernières ms du zoom (delay 500ms,
+            duration 400ms → fin pile au scale-up done à 900ms). Au
+            close, fade-in 500ms sans delay pendant le dézoom. */}
+        <g
+          className="speetch-orb-decor"
+          style={{
+            opacity: active ? 0 : 1,
+            transition: active
+              ? "opacity 400ms cubic-bezier(0.22, 1, 0.36, 1) 500ms"
+              : "opacity 500ms cubic-bezier(0.22, 1, 0.36, 1) 0ms",
+            willChange: "opacity",
+          }}
+        >
         {/* ──────────────── 1. Ondes sonar ──────────────── */}
         {[0, 1, 2].map((i) => (
           <circle
@@ -237,9 +273,6 @@ export function HeroOrb({
             style={{ animationDelay: `${i * 1.4}s` }}
           />
         ))}
-
-        {/* Aura radiale au centre */}
-        <circle cx={CX} cy={CY} r="220" fill="url(#orb-core-glow)" />
 
         {/* ──────────────── 2. Anneaux orbitaux ──────────────── */}
         {/* Anneau extérieur — rotation lente CCW */}
@@ -347,24 +380,75 @@ export function HeroOrb({
               />
             );
           })}
-          {/* Nœuds */}
-          {nodes.map((n, i) => (
-            <g key={`n-${i}`}>
-              <circle
-                cx={n.x}
-                cy={n.y}
-                r={n.r + 2.5}
-                fill="rgba(125, 211, 252, 0.15)"
-              />
-              <circle
-                cx={n.x}
-                cy={n.y}
-                r={n.r}
-                fill="rgb(186, 230, 253)"
-                filter="url(#orb-glow)"
-              />
-            </g>
-          ))}
+          {/* Nœuds — cliquables avec le même handler que le label
+              adjacent. Hit area = un cercle posé sur le MIDPOINT
+              noeud↔label, dimensionné pour englober les deux. onClick
+              directement sur le <circle> (même pattern que les <text>
+              labels qui marchent) plutôt que via bubbling depuis le
+              <g>, plus fiable sur tous les navigateurs. */}
+          {nodes.map((n, i) => {
+            const skill = skills[i];
+            // Calcul du midpoint noeud↔label (même que la boucle labels)
+            const dx = n.x - CX;
+            const dy = n.y - CY;
+            const len = Math.hypot(dx, dy) || 1;
+            const ux = dx / len;
+            const uy = dy / len;
+            const labelOffset = n.orbit === 0 ? 30 : 37;
+            const lx = n.x + ux * labelOffset;
+            const ly = n.y + uy * labelOffset;
+            const midX = (n.x + lx) / 2;
+            const midY = (n.y + ly) / 2;
+            // Rayon : couvre noeud + label + ~22px de marge typo
+            const hitR = labelOffset / 2 + 22;
+            return (
+              <g
+                key={`n-${i}`}
+                className={skill ? "speetch-orb-skill-group" : undefined}
+              >
+                <circle
+                  cx={n.x}
+                  cy={n.y}
+                  r={n.r + 2.5}
+                  fill="rgba(125, 211, 252, 0.15)"
+                />
+                <circle
+                  cx={n.x}
+                  cy={n.y}
+                  r={n.r}
+                  fill="rgb(186, 230, 253)"
+                  filter="url(#orb-glow)"
+                />
+                {skill && (
+                  <circle
+                    cx={midX}
+                    cy={midY}
+                    r={hitR}
+                    // Légèrement teinté (alpha 0.001) pour être
+                    // « painted » sans être visible — évite les coins
+                    // navigateur où fill="transparent" + visiblePainted
+                    // ne capture pas le clic.
+                    fill="rgba(125, 211, 252, 0.001)"
+                    onClick={() => onSkillClick?.(skill.id)}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Découvrir ${skill.title}`}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onSkillClick?.(skill.id);
+                      }
+                    }}
+                    style={{
+                      cursor: "pointer",
+                      pointerEvents: "all",
+                      outline: "none",
+                    }}
+                  />
+                )}
+              </g>
+            );
+          })}
 
           {/* Labels skills IA — orbitent AVEC les nœuds (sont dans
               `.speetch-orb-net` qui tourne CW 120s). Chaque <text> a sa
@@ -485,6 +569,7 @@ export function HeroOrb({
             filter="url(#orb-glow-strong)"
           />
         </g>
+        </g>{/* /.speetch-orb-decor */}
       </svg>
 
       <style>{`
@@ -518,6 +603,21 @@ export function HeroOrb({
           filter: drop-shadow(0 0 8px rgba(253, 224, 71, 0.9)) drop-shadow(0 0 16px rgba(250, 204, 21, 0.5)) !important;
         }
 
+        /* Skill group (noeud + halo + hit area) cliquable. Hover sur
+           n'importe quel descendant déclenche le drop-shadow cyan
+           plus vif sur le <g> entier → rejaillit uniquement sur les
+           cercles VISIBLES (halo + point). La hit area est quasi-
+           transparente donc reste invisible. focus-within pour le
+           clavier. */
+        .speetch-orb-skill-group {
+          transition: filter 200ms ease-out;
+        }
+        .speetch-orb-skill-group:hover,
+        .speetch-orb-skill-group:focus-within {
+          filter: drop-shadow(0 0 8px rgba(186, 230, 253, 0.95))
+                  drop-shadow(0 0 18px rgba(125, 211, 252, 0.5));
+        }
+
         @keyframes speetch-orb-pulse {
           0%, 100% { transform: scale(1);   opacity: 0.6; }
           50%      { transform: scale(1.6); opacity: 1;   }
@@ -536,6 +636,23 @@ export function HeroOrb({
           transform-box: fill-box;
           transform-origin: center;
           animation: speetch-orb-sonar 4.2s ease-out infinite;
+        }
+
+        /* Mode « frozen » — activé 900ms après que l'orbe entre en
+           mode skill zoom (cf. useEffect frozen côté React, après que
+           le scale 1→4 ait fini). Met en pause TOUTES les animations
+           internes : anneaux, réseau neural, labels counter-rotation,
+           kyber, sonar, pulse du noyau. Le panneau de description se
+           pose alors sur une composition immobile, plus lisible. */
+        .speetch-orb-frozen .speetch-orb-rot-cw-fast,
+        .speetch-orb-frozen .speetch-orb-rot-ccw-fast,
+        .speetch-orb-frozen .speetch-orb-rot-cw-medium,
+        .speetch-orb-frozen .speetch-orb-rot-ccw-slow,
+        .speetch-orb-frozen .speetch-orb-net,
+        .speetch-orb-frozen .speetch-orb-label-counter,
+        .speetch-orb-frozen .speetch-orb-pulse,
+        .speetch-orb-frozen .speetch-orb-sonar {
+          animation-play-state: paused;
         }
 
         @media (prefers-reduced-motion: reduce) {

@@ -17,14 +17,19 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect } from "react";
 import type { Skill } from "@/lib/skills";
+import type { Domain } from "@/lib/domains";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
 export function SkillPanel({
   skill,
+  domain,
   onClose,
 }: {
   skill: Skill | null;
+  /** Domaine parent du skill — fournit le contexte workflow Speetch
+   *  (phase + paragraphe explicatif) affiché sous la description. */
+  domain: Domain | null;
   onClose: () => void;
 }) {
   // Esc pour fermer
@@ -36,6 +41,30 @@ export function SkillPanel({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [skill, onClose]);
+
+  // Lock du scroll body quand le panel est ouvert — le zoom skill
+  // occupe plein écran et fait office d'état modal : pas de scroll
+  // de la page derrière. Restaure overflow + paddingRight (compensation
+  // de la scrollbar pour éviter le saut de layout).
+  useEffect(() => {
+    if (!skill) return;
+    const html = document.documentElement;
+    const body = document.body;
+    const prevHtmlOverflow = html.style.overflow;
+    const prevBodyOverflow = body.style.overflow;
+    const prevBodyPadRight = body.style.paddingRight;
+    const scrollbarWidth = window.innerWidth - html.clientWidth;
+    html.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    if (scrollbarWidth > 0) {
+      body.style.paddingRight = `${scrollbarWidth}px`;
+    }
+    return () => {
+      html.style.overflow = prevHtmlOverflow;
+      body.style.overflow = prevBodyOverflow;
+      body.style.paddingRight = prevBodyPadRight;
+    };
+  }, [skill]);
 
   return (
     <AnimatePresence>
@@ -132,6 +161,32 @@ export function SkillPanel({
             >
               {skill.description}
             </p>
+
+            {/* Bloc workflow — où cette compétence intervient dans
+                l'engagement Speetch. Eyebrow cyan « Dans le flux · {phase} »
+                + paragraphe contextuel issu du domaine parent. */}
+            {domain && (
+              <div className="mt-7">
+                <p
+                  className="font-mono text-[9px] uppercase tracking-[0.4em] text-cyan-200/80"
+                  style={{
+                    textShadow:
+                      "0 0 8px rgba(125, 211, 252, 0.45), 0 0 4px rgba(0,0,0,0.9)",
+                  }}
+                >
+                  Dans le flux Speetch · {domain.workflowPhase}
+                </p>
+                <p
+                  className="mx-auto mt-3 max-w-lg text-balance font-serif text-[14px] leading-relaxed text-white/75 md:text-[15px]"
+                  style={{
+                    textShadow:
+                      "0 0 12px rgba(0, 0, 0, 0.85), 0 0 32px rgba(0, 0, 0, 0.7)",
+                  }}
+                >
+                  {domain.workflowContext}
+                </p>
+              </div>
+            )}
 
             {/* Footer — CTA seul, centré */}
             <div className="mt-7 flex items-center justify-center">

@@ -26,24 +26,43 @@ export type Domain = {
   tagline: string;      // une ligne pour décrire le domaine
   accent: SkillAccent;
   skills: Skill[];      // exactement 16, ordre = position orbitale
+  /** Position dans le flux Speetch (« Phase 1 · ... », ou « transverse »
+   *  pour IA). Affiché en eyebrow dans <SkillPanel>. */
+  workflowPhase: string;
+  /** Paragraphe expliquant où cette phase intervient dans l'engagement
+   *  agence (qui parle à qui, ce qui précède, ce qui suit). Affiché
+   *  dans <SkillPanel> pour contextualiser le skill cliqué. */
+  workflowContext: string;
 };
 
-/* ─── Domaine 1 : IA augmentée (central) ─── */
+/* ─── Domaine 1 : IA augmentée (central) ───
+ * Skills recherchés par les agences IA-natives en 2026. Mix
+ * « plateforme » (inner orbit : agents, MCP, évals…) et
+ * « outputs » (outer orbit : image, vidéo, voix, GEO, code…). */
 const SKILLS_IA: Skill[] = [
-  {
-    id: "ia.automatisations",
-    label: "AUTOMATISATIONS",
-    title: "Automatisations IA",
-    description:
-      "Workflows sur-mesure qui orchestrent vos outils existants avec une couche d'intelligence — n8n, Make, ou code maison. Speetch dessine la logique métier et l'expérience derrière, pas juste les connecteurs.",
-    accent: "amber",
-  },
+  // ─── Orbite intérieure : la plateforme agentique ──────────────
   {
     id: "ia.agents",
     label: "AGENTS IA",
     title: "Agents IA",
     description:
-      "Équipes d'agents spécialisés qui collaborent pour exécuter des tâches complexes en autonomie. Speetch dessine leurs rôles, leur voix, leurs garde-fous, leurs handoffs.",
+      "Équipes d'agents spécialisés qui collaborent pour exécuter des tâches complexes en autonomie. Speetch dessine leurs rôles, leur voix, leurs garde-fous, leurs handoffs — et choisit Claude, GPT ou un OSS selon la mission.",
+    accent: "amber",
+  },
+  {
+    id: "ia.mcp",
+    label: "MCP",
+    title: "MCP · Model Context Protocol",
+    description:
+      "Le standard ouvert qui connecte vos outils, vos données et vos APIs aux LLMs (Claude, agents). Speetch monte des serveurs MCP custom — typés, versionnés, sécurisés — pour exposer votre métier aux agents IA sans bricoler.",
+    accent: "amber",
+  },
+  {
+    id: "ia.automatisations",
+    label: "AUTOMATISATIONS",
+    title: "Automatisations IA",
+    description:
+      "Workflows sur-mesure qui orchestrent vos outils existants avec une couche d'intelligence — n8n, Make, ou code maison + LLM. Speetch dessine la logique métier et l'expérience derrière, pas juste les connecteurs.",
     accent: "amber",
   },
   {
@@ -55,11 +74,11 @@ const SKILLS_IA: Skill[] = [
     accent: "amber",
   },
   {
-    id: "ia.llms-custom",
-    label: "LLMS CUSTOM",
-    title: "LLMs custom",
+    id: "ia.rag",
+    label: "RAG",
+    title: "RAG · Retrieval augmented generation",
     description:
-      "Choix du bon modèle (Claude, GPT, Mistral, open source), architecture multi-modèle, intégration. Speetch arbitre coût/qualité/latence et orchestre les bascules en cas de panne.",
+      "Connexion d'un LLM à vos sources internes pour des réponses ancrées dans VOTRE vérité. Speetch monte l'indexation, le re-ranking, l'UX de citation, et arbitre RAG vs fine-tuning vs long-context selon le cas.",
     accent: "amber",
   },
   {
@@ -67,47 +86,48 @@ const SKILLS_IA: Skill[] = [
     label: "FINE-TUNING",
     title: "Fine-tuning",
     description:
-      "Spécialisation d'un modèle de base sur vos données — style éditorial, vocabulaire métier, formats internes. Pour quand le prompt ne suffit plus.",
+      "Spécialisation d'un modèle de base sur vos données — style éditorial, vocabulaire métier, formats internes. Pour quand le prompt et le RAG ne suffisent plus.",
     accent: "amber",
   },
   {
-    id: "ia.rag",
-    label: "RAG",
-    title: "RAG · Retrieval augmented generation",
+    id: "ia.llms-custom",
+    label: "MODÈLES",
+    title: "Arbitrage & orchestration de modèles",
     description:
-      "Connexion d'un LLM à vos sources internes pour des réponses ancrées dans VOTRE vérité. Speetch monte l'indexation, le ranking, l'UX de citation.",
+      "Choix du bon modèle pour chaque tâche (Claude, GPT, Gemini, Mistral, OSS), architecture multi-modèle, fallback inter-fournisseurs. Speetch arbitre coût/qualité/latence et orchestre les bascules en cas de panne.",
     accent: "amber",
   },
   {
-    id: "ia.embeddings",
-    label: "EMBEDDINGS",
-    title: "Embeddings",
+    id: "ia.evals",
+    label: "ÉVALUATIONS",
+    title: "Évaluations & observabilité IA",
     description:
-      "Représentation sémantique de vos contenus pour search vectoriel, clustering, recommandation. Speetch choisit le modèle et la base vectorielle selon votre volume.",
+      "Mesurer ce qui marche : datasets de test, scorers automatiques (Braintrust, Langfuse, Helicone), évals A/B en prod, monitoring des dérives. Speetch installe les évals AVANT de déployer — pas après le ticket client.",
+    accent: "amber",
+  },
+  // ─── Orbite extérieure : les outputs / spécialités ────────────
+  {
+    id: "ia.computer-use",
+    label: "COMPUTER USE",
+    title: "Computer use & agents navigateur",
+    description:
+      "Agents qui pilotent un navigateur ou un OS comme un humain (Claude Computer Use, browser-use, Playwright + LLM). Speetch dessine les flows, les garde-fous et les fallbacks pour automatiser ce qui n'a pas d'API.",
     accent: "amber",
   },
   {
-    id: "ia.workflows",
-    label: "WORKFLOWS",
-    title: "Workflows IA",
+    id: "ia.code",
+    label: "CODE IA",
+    title: "Code assisté & agents SWE",
     description:
-      "Orchestration de chaînes d'opérations IA complexes : extraction → analyse → génération → validation. Speetch structure les étapes, gère les fallbacks, mesure les coûts.",
+      "Claude Code, Cursor, agents software engineers qui livrent du vrai code mergeable. Speetch monte le setup (CLAUDE.md, hooks, MCP, commandes custom) qui décuple la vélocité dev — Kevin est dev senior, ça parle au métier.",
     accent: "amber",
   },
   {
-    id: "ia.geo",
-    label: "GEO",
-    title: "GEO · Generative Engine Optimization",
+    id: "ia.memory",
+    label: "MÉMOIRE",
+    title: "Mémoire & contexte long",
     description:
-      "Optimisation pour être citée par les LLMs quand un prospect demande votre métier. Speetch travaille la structure, la sémantique et l'autorité de votre présence numérique.",
-    accent: "amber",
-  },
-  {
-    id: "ia.voix-synth",
-    label: "VOIX SYNTH.",
-    title: "Voix synthétique",
-    description:
-      "Clonage de voix, TTS premium (ElevenLabs, Cartesia), narration multilingue. Speetch produit voix-off, podcasts assistés, ou interfaces vocales qui sonnent humain.",
+      "Systèmes de mémoire pour agents : court-terme (session), long-terme (profil), épisodique, sémantique. Speetch dessine la stratégie de persistance + le pruning pour rester dans le budget contexte sans rien oublier d'utile.",
     accent: "amber",
   },
   {
@@ -115,7 +135,7 @@ const SKILLS_IA: Skill[] = [
     label: "IMAGE GÉN.",
     title: "Image générative",
     description:
-      "Direction artistique assistée par Midjourney, Higgsfield, Flux, Nano Banana. Speetch livre des prompts esthétiques cohérents avec votre marque + workflows de variantes.",
+      "Direction artistique assistée par Midjourney v7, Higgsfield, Flux, Nano Banana. Speetch livre des prompts esthétiques cohérents avec votre marque + workflows de variantes + image-to-image strict pour la cohérence personnage.",
     accent: "amber",
   },
   {
@@ -123,31 +143,23 @@ const SKILLS_IA: Skill[] = [
     label: "VIDÉO GÉN.",
     title: "Vidéo générative",
     description:
-      "Création vidéo via Sora, Runway, Higgsfield, Kling. Storyboards, sequence shots, motion design assistés — l'œil DA reste dans la boucle.",
+      "Création vidéo via Sora 2, Veo 3, Runway, Higgsfield, Kling. Storyboards, sequence shots, motion design assistés — l'œil DA reste dans la boucle, l'IA accélère, ne décide pas.",
     accent: "amber",
   },
   {
-    id: "ia.edition",
-    label: "ÉDITION IA",
-    title: "Édition assistée par IA",
+    id: "ia.voix-synth",
+    label: "VOIX TEMPS RÉEL",
+    title: "Voix temps réel & agents vocaux",
     description:
-      "Retouche image (Photoshop Generative Fill, Firefly), montage vidéo (Descript, Captions), édition audio. Speetch industrialise sans perdre la finition humaine.",
+      "Agents vocaux temps réel (Cartesia, ElevenLabs Realtime, OpenAI Realtime), clonage de voix, narration multilingue, conversations naturelles avec interruption. Speetch produit voix-off, podcasts assistés, ou interfaces vocales qui sonnent humain.",
     accent: "amber",
   },
   {
-    id: "ia.search-aug",
-    label: "SEARCH AUG.",
-    title: "Recherche augmentée",
+    id: "ia.geo",
+    label: "GEO",
+    title: "GEO · Generative Engine Optimization",
     description:
-      "Moteurs de recherche enrichis par LLM dans vos produits : reformulation, synthèse, suggestions, citations. UX conçue pour la fiabilité.",
-    accent: "amber",
-  },
-  {
-    id: "ia.data-pipes",
-    label: "DATA PIPES",
-    title: "Data pipelines",
-    description:
-      "Ingestion, nettoyage, structuration des données qui nourrissent vos systèmes IA. Pipelines Python, n8n, Airbyte, dbt — qualité en amont.",
+      "Optimisation pour être citée par ChatGPT, Claude, Perplexity, Gemini quand un prospect demande votre métier. Speetch travaille la structure, la sémantique et l'autorité de votre présence — le nouveau SEO, en plus stratégique.",
     accent: "amber",
   },
   {
@@ -155,7 +167,7 @@ const SKILLS_IA: Skill[] = [
     label: "BRAND VOICE",
     title: "Brand voice IA",
     description:
-      "Codification de votre voix de marque pour les LLMs : grammaire, vocabulaire, ce que vous dites et ne dites jamais. Guide + agent IA qui l'incarne.",
+      "Codification de votre voix de marque pour les LLMs : grammaire, vocabulaire, anti-vocabulaire, ce que vous dites et ne dites jamais. Guide + agent IA qui l'incarne dans tous vos canaux automatisés.",
     accent: "amber",
   },
 ];
@@ -698,6 +710,9 @@ export const DOMAINS: readonly Domain[] = [
     tagline: "Agents, automatisations, contenu génératif, GEO",
     accent: "amber",
     skills: SKILLS_IA,
+    workflowPhase: "Couche transverse",
+    workflowContext:
+      "L'IA n'est pas une phase isolée chez Speetch — c'est une couche qui accélère chaque livrable des 4 autres domaines. Pendant la Marque on outille la voix IA, en Produit on monte les serveurs MCP, en Contenu on bat la cadence avec les modèles génératifs, en Croissance on mesure et optimise via agents. Ce skill peut donc intervenir à n'importe quel moment de l'engagement, en parallèle des phases linéaires.",
   },
   {
     id: "marque",
@@ -706,6 +721,9 @@ export const DOMAINS: readonly Domain[] = [
     tagline: "Identité, typo, voix, storytelling",
     accent: "rose",
     skills: SKILLS_MARQUE,
+    workflowPhase: "Phase 1 · Positionnement & identité",
+    workflowContext:
+      "C'est par là qu'on commence. Avant l'UX, avant le code, avant le contenu : qui vous êtes, à qui vous parlez, comment. Speetch livre l'identité, la voix, le manifeste, le brand book — la matière première que Produit, Contenu et Croissance déclineront ensuite. Sans cette fondation, tout le reste devient cosmétique.",
   },
   {
     id: "produit",
@@ -714,6 +732,9 @@ export const DOMAINS: readonly Domain[] = [
     tagline: "UX, design system, plateformes Next + Supabase",
     accent: "cyan",
     skills: SKILLS_PRODUIT,
+    workflowPhase: "Phase 2 · Conception & build",
+    workflowContext:
+      "Une fois la marque cadrée, on conçoit et on construit le produit ou la plateforme qui l'incarne. UX research, design system, code Next/Supabase, accessibilité, perf. Speetch livre une fondation typée, performante, mesurable — sur laquelle Contenu pourra accrocher des récits et Croissance pourra brancher l'acquisition.",
   },
   {
     id: "contenu",
@@ -722,6 +743,9 @@ export const DOMAINS: readonly Domain[] = [
     tagline: "Création visuelle, éditoriale, motion, social",
     accent: "gold",
     skills: SKILLS_CONTENU,
+    workflowPhase: "Phase 3 · Production éditoriale & visuelle",
+    workflowContext:
+      "Le produit existe, la marque est cadrée — il faut maintenant l'incarner et lui donner du grain. Speetch produit visuels, copy, motion, social, podcasts, à l'échelle, en mixant production humaine et IA générative selon le format. C'est la couche qui transforme un site vide en récit habité, et qui nourrit ensuite Croissance en assets.",
   },
   {
     id: "croissance",
@@ -730,6 +754,9 @@ export const DOMAINS: readonly Domain[] = [
     tagline: "Distribution, RP, SEO/GEO, lancement, analytics",
     accent: "emerald",
     skills: SKILLS_CROISSANCE,
+    workflowPhase: "Phase 4 · Lancement & itération",
+    workflowContext:
+      "Tout est prêt — il faut maintenant que ça existe dans le monde. Distribution multi-canal, RP, SEO/GEO, analytics, A/B tests, monitoring perf. Speetch orchestre le lancement, mesure ce qui marche, et reste sur la durée pour itérer. C'est la phase qui transforme un produit fini en marque qui vit, scale, et apprend de ses utilisateurs.",
   },
 ];
 
@@ -742,6 +769,18 @@ export function findSkill(skillId: string): Skill | null {
   for (const d of DOMAINS) {
     const s = d.skills.find((sk) => sk.id === skillId);
     if (s) return s;
+  }
+  return null;
+}
+
+/** Cherche un skill et renvoie son domaine parent — utilisé par
+ *  <SkillPanel> pour afficher le contexte workflow. */
+export function findSkillContext(
+  skillId: string,
+): { skill: Skill; domain: Domain } | null {
+  for (const d of DOMAINS) {
+    const s = d.skills.find((sk) => sk.id === skillId);
+    if (s) return { skill: s, domain: d };
   }
   return null;
 }

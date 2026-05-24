@@ -22,18 +22,23 @@ import { useEffect, useRef, useState } from "react";
 import { HeroOrb } from "./hero-orb";
 import { SatelliteOrb, SatelliteVisual } from "./satellite-orb";
 import { SkillPanel } from "./skill-panel";
-import { DOMAINS, findSkill, getDomain, type Domain } from "@/lib/domains";
+import {
+  DOMAINS,
+  findSkillContext,
+  getDomain,
+  type Domain,
+} from "@/lib/domains";
 
 /* Timeline transition zoom satellite → central (en ms) :
- *  - 0           : déclenchement du zoom (overlay translate+scale)
- *  - SWAP_AT     : on commit le swap activeDomainId ; l'overlay
- *                  continue à scroller vers le centre pendant que le
- *                  central refait fade-in avec les nouveaux skills.
- *  - END_AT      : l'overlay disparaît (a déjà fini de fade-out).
- *  Le décalage SWAP_AT → END_AT crée un crossfade propre entre la
- *  satellite zoomée et le central qui réapparaît. */
-const ZOOM_SWAP_AT = 520;
-const ZOOM_END_AT = 880;
+ *  - 0       : clic — overlay zoom mount à startRect, central fade-out
+ *  - SWAP_AT : central à opacity 0, on commit activeDomainId, central
+ *              refait fade-in IMMÉDIATEMENT avec les nouveaux skills.
+ *              L'overlay continue son transform et commence à fade-out
+ *              → crossfade visuel entre overlay et nouveau central.
+ *  - END_AT  : unmount overlay (déjà à opacity 0 depuis ~80ms).
+ *  Symétrie 380/380 → pas de « trou » d'invisibilité perceptible. */
+const ZOOM_SWAP_AT = 380;
+const ZOOM_END_AT = 760;
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const EASE_IN_OUT_QUART: [number, number, number, number] = [0.65, 0, 0.35, 1];
@@ -99,7 +104,9 @@ export function LandingHero() {
     h: 1,
   });
   const [activeSkillId, setActiveSkillId] = useState<string | null>(null);
-  const activeSkill = activeSkillId ? findSkill(activeSkillId) : null;
+  const activeSkillCtx = activeSkillId ? findSkillContext(activeSkillId) : null;
+  const activeSkill = activeSkillCtx?.skill ?? null;
+  const activeSkillDomain = activeSkillCtx?.domain ?? null;
   const [activeDomainId, setActiveDomainId] = useState<string>("ia");
   const activeDomain = getDomain(activeDomainId) ?? DOMAINS[0];
   const satelliteDomains = DOMAINS.filter((d) => d.id !== activeDomainId);
@@ -330,20 +337,23 @@ export function LandingHero() {
           transitionDelay: activeSkillId ? "0ms" : "1400ms",
         }}
       >
-        <div className="pointer-events-auto absolute inset-0">
-          {satelliteDomains.map((d, i) => (
-            <SatelliteOrb
-              key={d.id}
-              domain={d}
-              size={SATELLITE_LAYOUT[i].size}
-              blur={SATELLITE_LAYOUT[i].blur}
-              position={SATELLITE_LAYOUT[i].position}
-              onClick={handleSatelliteClick}
-              hidden={zoom?.domain.id === d.id}
-              dimmed={zoom !== null && zoom.domain.id !== d.id}
-            />
-          ))}
-        </div>
+        {/* Pas de div pointer-events-auto qui couvre inset-0 ici :
+            ça interceptait TOUS les clics et masquait les labels de
+            skills sur l'orbe centrale derrière (z-5). Les
+            <SatelliteOrb> activent eux-mêmes pointer-events: auto sur
+            leur <button>, donc seuls les boutons captent les clics. */}
+        {satelliteDomains.map((d, i) => (
+          <SatelliteOrb
+            key={d.id}
+            domain={d}
+            size={SATELLITE_LAYOUT[i].size}
+            blur={SATELLITE_LAYOUT[i].blur}
+            position={SATELLITE_LAYOUT[i].position}
+            onClick={handleSatelliteClick}
+            hidden={zoom?.domain.id === d.id}
+            dimmed={zoom !== null && zoom.domain.id !== d.id}
+          />
+        ))}
       </div>
 
       {/* ────── Overlay de zoom — satellite vers centre ──────
@@ -405,17 +415,20 @@ export function LandingHero() {
           transform: activeSkillId
             ? "translate(-40px, -40px)"
             : "translate(0, 0)",
-          transition: centralHidden
-            ? "opacity 380ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1)"
-            : "opacity 520ms cubic-bezier(0.22, 1, 0.36, 1) 180ms, transform 520ms cubic-bezier(0.22, 1, 0.36, 1)",
+          transition:
+            // Symétrie 380/380 sans delay — mêmes timings que <HeroOrb>
+            // pour que le H1 fade-in en synchro avec le nouveau central.
+            "opacity 380ms cubic-bezier(0.22, 1, 0.36, 1), transform 520ms cubic-bezier(0.22, 1, 0.36, 1)",
           pointerEvents: activeSkillId ? "none" : "auto",
         }}
       >
         {/* H1 — magnétique au curseur, variable weight per letter, glow
             + RGB split jaune/cyan sur « × IA ». Coin haut-gauche donc
             text-left + clamp réduit (corner placement compact).
-            Le label varie avec le domaine actif ; chaque swap remount
-            la KineticLine via key={text} → restagger reveal animation. */}
+            La key inclut activeDomainId → les DEUX segments remount à
+            chaque swap (et pas seulement le segment 0 dont le texte
+            change), pour que « × IA » re-staggere APRÈS le nouveau
+            label, conformément au délai cumulé dans <KineticLine>. */}
         <h1
           className="select-none whitespace-nowrap text-left font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7]"
           style={{ fontSize: "clamp(1.1rem, 3.4vw, 2.5rem)" }}
@@ -423,7 +436,7 @@ export function LandingHero() {
           <span className="block overflow-hidden py-[0.05em]">
             {headlineWords.map((w, segIdx) => (
               <KineticLine
-                key={w.text}
+                key={`${segIdx}-${activeDomainId}`}
                 text={w.text}
                 italic={w.italic}
                 lineIndex={segIdx}
@@ -491,9 +504,12 @@ export function LandingHero() {
         }
       `}</style>
 
-      {/* Modal de description quand une compétence est cliquée */}
+      {/* Modal de description quand une compétence est cliquée —
+          reçoit aussi le domaine parent pour afficher le contexte
+          workflow Speetch (phase + paragraphe explicatif). */}
       <SkillPanel
         skill={activeSkill}
+        domain={activeSkillDomain}
         onClose={() => setActiveSkillId(null)}
       />
     </section>
@@ -532,6 +548,18 @@ function KineticLine({
     .slice(0, lineIndex)
     .reduce((s, w) => s + w.text.length, 0);
 
+  // Délai de base de cette ligne — attend que la ligne précédente
+  // ait visuellement terminé son stagger reveal avant de démarrer.
+  // Calculé depuis la longueur du segment précédent : last-letter-
+  // start (length × 0.018s) + visual-settle (~0.4s) + petite pause.
+  // Résultat : « × IA » apparaît APRÈS le label de domaine.
+  const baseDelaySec = allWords
+    .slice(0, lineIndex)
+    .reduce(
+      (s, w) => s + Math.max(0.5, w.text.length * 0.022 + 0.35),
+      0,
+    );
+
   return (
     <span
       className={
@@ -558,7 +586,7 @@ function KineticLine({
               animate={{ y: loaded ? "0%" : "110%" }}
               transition={{
                 duration: 1.1,
-                delay: 0.58 + lineIndex * 0.16 + i * 0.018,
+                delay: 0.58 + baseDelaySec + i * 0.018,
                 ease: EASE_OUT_EXPO,
               }}
               className="inline-block"
@@ -651,11 +679,11 @@ function ZoomingOrb({
           : "translate3d(0, 0, 0) scale(1)",
         opacity: zoomed ? 0 : 1,
         transformOrigin: "center center",
-        // Transform fluide 760ms. Fade-out final 280ms à partir de
-        // 460ms → croise le fade-in du central qui démarre à 520ms +
-        // 180ms = ~700ms. Crossfade visible mais sans trou.
+        // Transform fluide 760ms. Fade-out de l'overlay : démarre PILE
+        // au swap (380ms = ZOOM_SWAP_AT) pour croiser le fade-in du
+        // nouveau central qui démarre au même instant. 300ms de crossfade.
         transition:
-          "transform 760ms cubic-bezier(0.22, 1, 0.36, 1), opacity 280ms cubic-bezier(0.22, 1, 0.36, 1) 460ms",
+          "transform 760ms cubic-bezier(0.22, 1, 0.36, 1), opacity 300ms cubic-bezier(0.22, 1, 0.36, 1) 380ms",
         willChange: "transform, opacity",
       }}
     >
