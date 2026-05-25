@@ -341,6 +341,14 @@ export function MediaLibraryView({
     return map;
   }, [folders]);
 
+  // Sous-dossiers à afficher en haut de la grille quand on est dans un dossier
+  // parent. Vide pour "Tous", "Hors dossier", et pour les sous-dossiers eux-mêmes
+  // (depth max = 1, donc un sous-dossier n'a jamais d'enfants).
+  const subFoldersInView = useMemo(() => {
+    if (selection.kind !== "folder") return [];
+    return childrenByParent.get(selection.id) ?? [];
+  }, [selection, childrenByParent]);
+
   const counts = useMemo(() => {
     const byFolder = new Map<string | null, number>();
     for (const m of items) {
@@ -641,8 +649,24 @@ export function MediaLibraryView({
               </AnimatePresence>
             </div>
 
-            {/* Grille */}
-            {filtered.length === 0 ? (
+            {/* Sous-dossiers du dossier courant (parent) — tuiles en tête de grille */}
+            {subFoldersInView.length > 0 && (
+              <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
+                {subFoldersInView.map((sf) => (
+                  <FolderTile
+                    key={sf.id}
+                    folder={sf}
+                    count={counts.get(sf.id) ?? 0}
+                    onClick={() =>
+                      setSelection({ kind: "folder", id: sf.id })
+                    }
+                  />
+                ))}
+              </ul>
+            )}
+
+            {/* Grille des médias */}
+            {filtered.length === 0 && subFoldersInView.length === 0 ? (
               <p className="py-12 text-center font-serif text-base italic text-white/35">
                 {selection.kind === "all"
                   ? "Aucun média pour le moment."
@@ -650,7 +674,7 @@ export function MediaLibraryView({
                     ? "Aucun média hors dossier."
                     : "Ce dossier est vide."}
               </p>
-            ) : (
+            ) : filtered.length === 0 ? null : (
               <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-4">
                 {filtered.map((m) => {
                   const inPersonaFolder =
@@ -1377,6 +1401,67 @@ function MediaTile({
           onChange={onSetPersona}
         />
       )}
+    </li>
+  );
+}
+
+function FolderTile({
+  folder,
+  count,
+  onClick,
+}: {
+  folder: MediaFolder;
+  count: number;
+  onClick: () => void;
+}) {
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className="group relative flex aspect-square w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all hover:border-white/30"
+      >
+        {folder.cover_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={folder.cover_url}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-80 transition-opacity duration-500 group-hover:opacity-100"
+          />
+        ) : (
+          <div
+            aria-hidden
+            className="absolute inset-0 flex items-center justify-center text-white/30"
+          >
+            <svg
+              width="40"
+              height="40"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M3 7.5a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2V18a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7.5Z" />
+            </svg>
+          </div>
+        )}
+        {/* Voile en bas pour la lisibilité du label sur les covers claires */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-2/3 bg-gradient-to-t from-black/85 via-black/35 to-transparent"
+        />
+        <span className="absolute left-2 top-2 rounded-full bg-black/60 px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-white/80 backdrop-blur-sm">
+          Dossier
+        </span>
+        <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2 py-0.5 font-mono text-[9px] uppercase tracking-[0.2em] text-white/80 backdrop-blur-sm">
+          {count}
+        </span>
+        <span className="absolute inset-x-3 bottom-3 truncate text-left text-sm font-light text-white">
+          {folder.name}
+        </span>
+      </button>
     </li>
   );
 }
