@@ -69,6 +69,9 @@ export function PageEditor({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  // Accordéon : id de la section top-level actuellement dépliée. Null = toutes
+  // fermées. Une seule ouverte à la fois.
+  const [openSectionId, setOpenSectionId] = useState<string | null>(null);
 
   const content: PageContent = (page.content as PageContent) ?? {};
   const sections: Section[] = content.sections ?? [];
@@ -129,6 +132,8 @@ export function PageEditor({
           content: { ...c, sections: [...(c.sections ?? []), result.section] },
         };
       });
+      // Auto-ouvre la nouvelle section pour la rendre éditable immédiatement.
+      setOpenSectionId(result.section.id);
     });
   }
 
@@ -484,6 +489,10 @@ export function PageEditor({
                     onReplace={handleReplaceSection}
                     onRemove={() => handleRemoveSection(s.id)}
                     onMove={(d) => handleMoveSection(s.id, d)}
+                    isOpen={openSectionId === s.id}
+                    onToggle={() =>
+                      setOpenSectionId((prev) => (prev === s.id ? null : s.id))
+                    }
                     onAddChild={
                       s.type === "container"
                         ? (t) => handleAddChildSection(s.id, t)

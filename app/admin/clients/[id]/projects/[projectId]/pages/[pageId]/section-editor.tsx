@@ -35,6 +35,15 @@ type Props = {
   onRemoveChild?: (childId: string) => void;
   /** Présent uniquement quand section.type === "container". */
   onMoveChild?: (childId: string, direction: "up" | "down") => void;
+  /**
+   * Accordéon : si défini, la section est repliable. Le header reste cliquable
+   * pour basculer l'état. Le corps reste monté dans le DOM (display: none)
+   * pour préserver l'état des autosaves et uploads en cours.
+   * Si `undefined`, la section est toujours ouverte (rétro-compat, ex : enfants
+   * d'un conteneur qui restent tous visibles).
+   */
+  isOpen?: boolean;
+  onToggle?: () => void;
 };
 
 export function SectionEditor({
@@ -49,6 +58,8 @@ export function SectionEditor({
   onReplaceChild,
   onRemoveChild,
   onMoveChild,
+  isOpen,
+  onToggle,
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -76,20 +87,58 @@ export function SectionEditor({
 
   const isContainer = section.type === "container";
   const containerChildren = isContainer ? section.children ?? [] : [];
+  // collapsible si onToggle est fourni ; sinon toujours ouvert (cas des enfants
+  // de conteneur, ou rétro-compat).
+  const collapsible = typeof onToggle === "function";
+  const open = collapsible ? isOpen === true : true;
+  const titlePreview = (section.title ?? "").trim();
 
   return (
     <article className="flex flex-col gap-6 rounded-2xl border border-white/10 bg-white/[0.015] p-6 md:p-8">
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] uppercase tracking-[0.4em] text-white/30">
-            {String(index + 1).padStart(2, "0")}
-            <span className="mx-2 text-white/15">/</span>
-            {String(total).padStart(2, "0")}
-          </span>
-          <span className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.28em] text-white/70">
-            {getSectionTypeLabel(section.type)}
-          </span>
-        </div>
+        {collapsible ? (
+          <button
+            type="button"
+            onClick={onToggle}
+            aria-expanded={open}
+            className="group flex flex-1 min-w-0 items-center gap-3 rounded-md py-1 text-left transition-colors hover:opacity-90"
+          >
+            <span
+              aria-hidden
+              className={`inline-block text-white/45 transition-transform duration-200 ${
+                open ? "rotate-90" : ""
+              }`}
+            >
+              ▸
+            </span>
+            <span className="text-[10px] uppercase tracking-[0.4em] text-white/30">
+              {String(index + 1).padStart(2, "0")}
+              <span className="mx-2 text-white/15">/</span>
+              {String(total).padStart(2, "0")}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.28em] text-white/70">
+              {getSectionTypeLabel(section.type)}
+            </span>
+            <span
+              className={`min-w-0 flex-1 truncate font-sans text-sm font-light md:text-base ${
+                titlePreview ? "text-white/85" : "italic text-white/35"
+              }`}
+            >
+              {titlePreview || "Sans titre"}
+            </span>
+          </button>
+        ) : (
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] uppercase tracking-[0.4em] text-white/30">
+              {String(index + 1).padStart(2, "0")}
+              <span className="mx-2 text-white/15">/</span>
+              {String(total).padStart(2, "0")}
+            </span>
+            <span className="inline-flex items-center rounded-full border border-white/15 bg-white/[0.04] px-2.5 py-0.5 text-[10px] uppercase tracking-[0.28em] text-white/70">
+              {getSectionTypeLabel(section.type)}
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center gap-1">
           <button
@@ -142,6 +191,7 @@ export function SectionEditor({
         onCancel={() => setConfirmOpen(false)}
       />
 
+      <div className={open ? "flex flex-col gap-6" : "hidden"}>
       <AutosaveField
         initialValue={section.title ?? ""}
         onSave={(v) => savePatch({ title: v })}
@@ -249,6 +299,7 @@ export function SectionEditor({
           )}
         </div>
       )}
+      </div>
     </article>
   );
 }
