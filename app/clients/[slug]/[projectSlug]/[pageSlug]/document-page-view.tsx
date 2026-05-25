@@ -135,14 +135,53 @@ export function DocumentPageView({
           </p>
         ) : (
           <div className="mt-16 flex flex-col gap-16 md:mt-20 md:gap-20">
-            {sections.map((section, i) => (
-              <DocSection
-                key={section.id ?? `${section.type}-${i}`}
-                section={section}
-                index={i}
-                highlightedHtml={highlightedCode[section.id ?? ""]}
-              />
-            ))}
+            {sections.map((section, i) => {
+              if (section.type === "container") {
+                return (
+                  <motion.section
+                    key={section.id ?? `container-${i}`}
+                    initial={{ opacity: 0, y: 16 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true, margin: "-10%" }}
+                    transition={{ duration: 0.9, ease: EASE_OUT_EXPO }}
+                    className="flex flex-col gap-10"
+                  >
+                    {(section.title || true) && (
+                      <header className="flex flex-col gap-2">
+                        <span className="doc-num">
+                          {String(i + 1).padStart(2, "0")}
+                        </span>
+                        {section.title && (
+                          <h2
+                            className="doc-display leading-[1.1]"
+                            style={{ fontSize: "clamp(1.5rem, 3.2vw, 2.125rem)" }}
+                          >
+                            <em>{section.title}</em>
+                          </h2>
+                        )}
+                        <span className="doc-rule mt-2" aria-hidden />
+                      </header>
+                    )}
+                    {(section.children ?? []).map((child) => (
+                      <DocSection
+                        key={child.id}
+                        section={child as Section}
+                        index={-1}
+                        highlightedHtml={highlightedCode[child.id ?? ""]}
+                      />
+                    ))}
+                  </motion.section>
+                );
+              }
+              return (
+                <DocSection
+                  key={section.id ?? `${section.type}-${i}`}
+                  section={section}
+                  index={i}
+                  highlightedHtml={highlightedCode[section.id ?? ""]}
+                />
+              );
+            })}
           </div>
         )}
 
@@ -212,19 +251,28 @@ function DocSection({
       transition={{ duration: 0.9, ease: EASE_OUT_EXPO }}
       className="flex flex-col gap-5"
     >
-      {/* Numéro doré + titre Playfair italique */}
+      {/* Numéro doré + titre Playfair italique. Si index < 0, on est dans un
+          conteneur : on n'affiche pas le numéro (le parent en porte un), mais
+          on garde le titre si présent. */}
       {(section.title || index >= 0) && (
         <header className="flex flex-col gap-2">
-          <span className="doc-num">{String(index + 1).padStart(2, "0")}</span>
+          {index >= 0 && (
+            <span className="doc-num">{String(index + 1).padStart(2, "0")}</span>
+          )}
           {section.title && (
             <h2
               className="doc-display leading-[1.1]"
-              style={{ fontSize: "clamp(1.5rem, 3.2vw, 2.125rem)" }}
+              style={{
+                fontSize:
+                  index >= 0
+                    ? "clamp(1.5rem, 3.2vw, 2.125rem)"
+                    : "clamp(1.125rem, 2.4vw, 1.5rem)",
+              }}
             >
               <em>{section.title}</em>
             </h2>
           )}
-          <span className="doc-rule mt-2" aria-hidden />
+          {index >= 0 && <span className="doc-rule mt-2" aria-hidden />}
         </header>
       )}
 

@@ -7,7 +7,10 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { PageContent } from "@/types/database";
 import { CUSTOM_TEMPLATE_ID } from "@/lib/page-templates";
 import {
+  isValidChildSectionType,
   isValidSectionType,
+  type ChildSection,
+  type ChildSectionType,
   type Section,
   type SectionType,
 } from "@/lib/section-types";
@@ -143,7 +146,69 @@ function makeEmptySection(type: SectionType): Section {
       return { id, type, title: "", media: [] };
     case "code":
       return { id, type, title: "", code: "", language: "text" };
+    case "container":
+      return { id, type, title: "", children: [] };
   }
+}
+
+function makeEmptyChildSection(type: ChildSectionType): ChildSection {
+  const id = randomUUID();
+  switch (type) {
+    case "text":
+      return { id, type, title: "", body: "" };
+    case "image":
+      return { id, type, title: "", media: [] };
+    case "video":
+      return { id, type, title: "", media: [] };
+    case "embed":
+      return { id, type, title: "", embedUrl: "" };
+    case "gallery":
+      return { id, type, title: "", media: [] };
+    case "code":
+      return { id, type, title: "", code: "", language: "text" };
+  }
+}
+
+/**
+ * Localise une section par son id dans l'arbre top-level / enfants de container.
+ * Renvoie `null` si introuvable. Profondeur max : 1 (un container ne contient
+ * pas d'autre container).
+ */
+type SectionLocation =
+  | { kind: "top"; index: number }
+  | { kind: "child"; parentIndex: number; childIndex: number };
+
+function findSectionLocation(
+  sections: Section[],
+  sectionId: string,
+): SectionLocation | null {
+  for (let i = 0; i < sections.length; i++) {
+    if (sections[i].id === sectionId) return { kind: "top", index: i };
+    if (sections[i].type === "container") {
+      const children = sections[i].children ?? [];
+      for (let j = 0; j < children.length; j++) {
+        if (children[j].id === sectionId) {
+          return { kind: "child", parentIndex: i, childIndex: j };
+        }
+      }
+    }
+  }
+  return null;
+}
+
+/** Collecte tous les chemins de média (section + enfants si container). */
+function collectMediaPaths(section: Section | ChildSection): string[] {
+  const paths: string[] = [];
+  for (const m of section.media ?? []) {
+    const p = extractStoragePath(m.url);
+    if (p) paths.push(p);
+  }
+  if ("children" in section && section.children) {
+    for (const child of section.children) {
+      paths.push(...collectMediaPaths(child));
+    }
+  }
+  return paths;
 }
 
 // ─── Page-level fields ──────────────────────────────────────────────────
@@ -298,19 +363,31 @@ export async function updateSection(
   if (!page.ok) return { ok: false, error: page.error };
 
   const sections = page.content.sections ?? [];
-  const idx = sections.findIndex((s) => s.id === input.sectionId);
-  if (idx === -1) return { ok: false, error: "Section introuvable." };
-
-  // Garde id et type fixes ; le reste est patché.
-  const merged: Section = {
-    ...sections[idx],
-    ...input.patch,
-    id: sections[idx].id,
-    type: sections[idx].type,
-  };
+  const loc = findSectionLocation(sections, input.sectionId);
+  if (!loc) return { ok: false, error: "Section introuvable." };
 
   const nextSections = [...sections];
-  nextSections[idx] = merged;
+  if (loc.kind === "top") {
+    const current = sections[loc.index];
+    nextSections[loc.index] = {
+      ...current,
+      ...input.patch,
+      id: current.id,
+      type: current.type,
+    };
+  } else {
+    const parent = sections[loc.parentIndex];
+    const children = [...(parent.children ?? [])];
+    const currentChild = children[loc.childIndex];
+    children[loc.childIndex] = {
+      ...currentChild,
+      ...(input.patch as Partial<ChildSection>),
+      id: currentChild.id,
+      type: currentChild.type,
+    };
+    nextSections[loc.parentIndex] = { ...parent, children };
+  }
+
   const next: PageContent = { ...page.content, sections: nextSections };
 
   const result = await saveContent(auth.admin, input.pageId, next);
@@ -318,6 +395,47 @@ export async function updateSection(
 
   revalidateEditor(input);
   return { ok: true };
+}
+
+/**
+ * Ajoute un nouveau bloc enfant à la fin d'un conteneur. Un conteneur ne peut
+ * pas contenir un autre conteneur (validation côté serveur).
+ */
+export async function addChildSection(
+  input: ActionContext & { parentId: string; childType: ChildSectionType },
+): Promise<SectionResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  const err = validateContext(input);
+  if (err) return { ok: false, error: err };
+
+  if (!isValidChildSectionType(input.childType)) {
+    return { ok: false, error: "Type de bloc enfant inconnu." };
+  }
+
+  const page = await fetchOwnedPage(auth.admin, input);
+  if (!page.ok) return { ok: false, error: page.error };
+
+  const sections = page.content.sections ?? [];
+  const parentIdx = sections.findIndex((s) => s.id === input.parentId);
+  if (parentIdx === -1) return { ok: false, error: "Conteneur introuvable." };
+  if (sections[parentIdx].type !== "container") {
+    return { ok: false, error: "Ce bloc n'est pas un conteneur." };
+  }
+
+  const child = makeEmptyChildSection(input.childType);
+  const parent = sections[parentIdx];
+  const nextChildren = [...(parent.children ?? []), child];
+  const nextSections = [...sections];
+  nextSections[parentIdx] = { ...parent, children: nextChildren };
+
+  const next: PageContent = { ...page.content, sections: nextSections };
+  const result = await saveContent(auth.admin, input.pageId, next);
+  if (!result.ok) return result;
+
+  revalidateEditor(input);
+  return { ok: true, section: child as Section };
 }
 
 export async function removeSection(
@@ -333,18 +451,30 @@ export async function removeSection(
   if (!page.ok) return { ok: false, error: page.error };
 
   const sections = page.content.sections ?? [];
-  const target = sections.find((s) => s.id === input.sectionId);
-  if (!target) return { ok: false, error: "Section introuvable." };
+  const loc = findSectionLocation(sections, input.sectionId);
+  if (!loc) return { ok: false, error: "Section introuvable." };
 
-  // Cleanup des médias liés
-  const mediaPaths = (target.media ?? [])
-    .map((m) => extractStoragePath(m.url))
-    .filter((p): p is string => !!p);
+  let nextSections: Section[];
+  let mediaPaths: string[] = [];
+
+  if (loc.kind === "top") {
+    const target = sections[loc.index];
+    mediaPaths = collectMediaPaths(target);
+    nextSections = sections.filter((_, i) => i !== loc.index);
+  } else {
+    const parent = sections[loc.parentIndex];
+    const children = parent.children ?? [];
+    const targetChild = children[loc.childIndex];
+    mediaPaths = collectMediaPaths(targetChild);
+    const nextChildren = children.filter((_, j) => j !== loc.childIndex);
+    nextSections = [...sections];
+    nextSections[loc.parentIndex] = { ...parent, children: nextChildren };
+  }
+
   if (mediaPaths.length > 0) {
     await auth.admin.storage.from(BUCKET).remove(mediaPaths);
   }
 
-  const nextSections = sections.filter((s) => s.id !== input.sectionId);
   const next: PageContent = { ...page.content, sections: nextSections };
   const result = await saveContent(auth.admin, input.pageId, next);
   if (!result.ok) return result;
@@ -369,15 +499,33 @@ export async function moveSection(
   if (!page.ok) return { ok: false, error: page.error };
 
   const sections = [...(page.content.sections ?? [])];
-  const idx = sections.findIndex((s) => s.id === input.sectionId);
-  if (idx === -1) return { ok: false, error: "Section introuvable." };
+  const loc = findSectionLocation(sections, input.sectionId);
+  if (!loc) return { ok: false, error: "Section introuvable." };
 
-  const newIdx = input.direction === "up" ? idx - 1 : idx + 1;
-  if (newIdx < 0 || newIdx >= sections.length) {
-    return { ok: true, sections };
+  if (loc.kind === "top") {
+    const newIdx = input.direction === "up" ? loc.index - 1 : loc.index + 1;
+    if (newIdx < 0 || newIdx >= sections.length) {
+      return { ok: true, sections };
+    }
+    [sections[loc.index], sections[newIdx]] = [
+      sections[newIdx],
+      sections[loc.index],
+    ];
+  } else {
+    const parent = sections[loc.parentIndex];
+    const children = [...(parent.children ?? [])];
+    const newIdx =
+      input.direction === "up" ? loc.childIndex - 1 : loc.childIndex + 1;
+    if (newIdx < 0 || newIdx >= children.length) {
+      return { ok: true, sections };
+    }
+    [children[loc.childIndex], children[newIdx]] = [
+      children[newIdx],
+      children[loc.childIndex],
+    ];
+    sections[loc.parentIndex] = { ...parent, children };
   }
 
-  [sections[idx], sections[newIdx]] = [sections[newIdx], sections[idx]];
   const next: PageContent = { ...page.content, sections };
   const result = await saveContent(auth.admin, input.pageId, next);
   if (!result.ok) return result;
@@ -417,9 +565,13 @@ export async function uploadSectionMedia(
   if (!page.ok) return { ok: false, error: page.error };
 
   const sections = page.content.sections ?? [];
-  const idx = sections.findIndex((s) => s.id === sectionId);
-  if (idx === -1) return { ok: false, error: "Section introuvable." };
-  const section = sections[idx];
+  const loc = findSectionLocation(sections, sectionId);
+  if (!loc) return { ok: false, error: "Section introuvable." };
+
+  const section: Section | ChildSection =
+    loc.kind === "top"
+      ? sections[loc.index]
+      : (sections[loc.parentIndex].children ?? [])[loc.childIndex];
 
   const filename = sanitizeFilename(file.name);
   const path = `${ctx.pageId}/${sectionId}/${Date.now()}-${filename}`;
@@ -460,16 +612,31 @@ export async function uploadSectionMedia(
     }
   }
 
-  const updated: Section = { ...section, media: nextMedia };
   const nextSections = [...sections];
-  nextSections[idx] = updated;
+  let updatedReturn: Section;
+  if (loc.kind === "top") {
+    const updated: Section = { ...(section as Section), media: nextMedia };
+    nextSections[loc.index] = updated;
+    updatedReturn = updated;
+  } else {
+    const parent = sections[loc.parentIndex];
+    const children = [...(parent.children ?? [])];
+    const updatedChild: ChildSection = {
+      ...(section as ChildSection),
+      media: nextMedia,
+    };
+    children[loc.childIndex] = updatedChild;
+    nextSections[loc.parentIndex] = { ...parent, children };
+    updatedReturn = updatedChild as Section;
+  }
+
   const next: PageContent = { ...page.content, sections: nextSections };
 
   const result = await saveContent(auth.admin, ctx.pageId, next);
   if (!result.ok) return result;
 
   revalidateEditor(ctx);
-  return { ok: true, section: updated };
+  return { ok: true, section: updatedReturn };
 }
 
 export async function removeSectionMedia(
@@ -488,10 +655,14 @@ export async function removeSectionMedia(
   if (!page.ok) return { ok: false, error: page.error };
 
   const sections = page.content.sections ?? [];
-  const idx = sections.findIndex((s) => s.id === input.sectionId);
-  if (idx === -1) return { ok: false, error: "Section introuvable." };
+  const loc = findSectionLocation(sections, input.sectionId);
+  if (!loc) return { ok: false, error: "Section introuvable." };
 
-  const section = sections[idx];
+  const section: Section | ChildSection =
+    loc.kind === "top"
+      ? sections[loc.index]
+      : (sections[loc.parentIndex].children ?? [])[loc.childIndex];
+
   const nextMedia = (section.media ?? []).filter(
     (m) => m.url !== input.mediaUrl,
   );
@@ -501,16 +672,31 @@ export async function removeSectionMedia(
     await auth.admin.storage.from(BUCKET).remove([path]);
   }
 
-  const updated: Section = { ...section, media: nextMedia };
   const nextSections = [...sections];
-  nextSections[idx] = updated;
+  let updatedReturn: Section;
+  if (loc.kind === "top") {
+    const updated: Section = { ...(section as Section), media: nextMedia };
+    nextSections[loc.index] = updated;
+    updatedReturn = updated;
+  } else {
+    const parent = sections[loc.parentIndex];
+    const children = [...(parent.children ?? [])];
+    const updatedChild: ChildSection = {
+      ...(section as ChildSection),
+      media: nextMedia,
+    };
+    children[loc.childIndex] = updatedChild;
+    nextSections[loc.parentIndex] = { ...parent, children };
+    updatedReturn = updatedChild as Section;
+  }
+
   const next: PageContent = { ...page.content, sections: nextSections };
 
   const result = await saveContent(auth.admin, input.pageId, next);
   if (!result.ok) return result;
 
   revalidateEditor(input);
-  return { ok: true, section: updated };
+  return { ok: true, section: updatedReturn };
 }
 
 // ─── Delete page ────────────────────────────────────────────────────────
@@ -525,13 +711,10 @@ export async function deletePage(input: ActionContext): Promise<ActionResult> {
   const page = await fetchOwnedPage(auth.admin, input);
   if (!page.ok) return { ok: false, error: page.error };
 
-  // Cleanup tous les médias des sections
+  // Cleanup tous les médias des sections (incluant ceux des enfants de containers)
   const mediaPaths: string[] = [];
   for (const section of page.content.sections ?? []) {
-    for (const m of section.media ?? []) {
-      const p = extractStoragePath(m.url);
-      if (p) mediaPaths.push(p);
-    }
+    mediaPaths.push(...collectMediaPaths(section));
   }
   if (mediaPaths.length > 0) {
     await auth.admin.storage.from(BUCKET).remove(mediaPaths);

@@ -124,13 +124,43 @@ export function PublicPageView({
         </section>
       ) : (
         <div className="mt-20 flex flex-col gap-20 px-6 md:mt-28 md:gap-28 md:px-12">
-          {sections.map((section, i) => (
-            <SectionBlock
-              key={section.id ?? `${section.type}-${i}`}
-              section={section}
-              highlightedHtml={highlightedCode[section.id ?? ""]}
-            />
-          ))}
+          {sections.map((section, i) => {
+            if (section.type === "container") {
+              return (
+                <motion.section
+                  key={section.id ?? `container-${i}`}
+                  initial={{ opacity: 0, y: 24 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  viewport={{ once: true, margin: "-10%" }}
+                  transition={{ duration: 1.1, ease: EASE_OUT_EXPO }}
+                  className="flex flex-col gap-12"
+                >
+                  {section.title && (
+                    <h2
+                      className="font-sans font-extralight leading-[0.95] tracking-[-0.03em] text-[#F5F5F7]"
+                      style={{ fontSize: "clamp(1.5rem, 3.5vw, 2.5rem)" }}
+                    >
+                      {section.title}
+                    </h2>
+                  )}
+                  {(section.children ?? []).map((child) => (
+                    <SectionBlock
+                      key={child.id}
+                      section={child as Section}
+                      highlightedHtml={highlightedCode[child.id ?? ""]}
+                    />
+                  ))}
+                </motion.section>
+              );
+            }
+            return (
+              <SectionBlock
+                key={section.id ?? `${section.type}-${i}`}
+                section={section}
+                highlightedHtml={highlightedCode[section.id ?? ""]}
+              />
+            );
+          })}
         </div>
       )}
 

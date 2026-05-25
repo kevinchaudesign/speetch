@@ -10,6 +10,8 @@ import type { PageContent } from "@/types/database";
 export type Section = NonNullable<PageContent["sections"]>[number];
 export type SectionType = Section["type"];
 export type SectionMedia = NonNullable<Section["media"]>[number];
+export type ChildSection = NonNullable<Section["children"]>[number];
+export type ChildSectionType = ChildSection["type"];
 
 export const SECTION_TYPES: ReadonlyArray<{
   value: SectionType;
@@ -34,10 +36,34 @@ export const SECTION_TYPES: ReadonlyArray<{
     label: "Code",
     tagline: "Snippet avec coloration syntaxique",
   },
+  {
+    value: "container",
+    label: "Conteneur",
+    tagline: "Regroupe d'autres blocs (texte, image, code…) à la suite",
+  },
 ];
+
+/**
+ * Types autorisés DANS un conteneur. Un conteneur ne peut pas contenir
+ * un autre conteneur (1 niveau d'imbrication maximum).
+ */
+export const CHILD_SECTION_TYPES: ReadonlyArray<{
+  value: ChildSectionType;
+  label: string;
+  tagline: string;
+}> = SECTION_TYPES.filter(
+  (t): t is { value: ChildSectionType; label: string; tagline: string } =>
+    t.value !== "container",
+);
 
 export function isValidSectionType(value: string): value is SectionType {
   return SECTION_TYPES.some((t) => t.value === value);
+}
+
+export function isValidChildSectionType(
+  value: string,
+): value is ChildSectionType {
+  return CHILD_SECTION_TYPES.some((t) => t.value === value);
 }
 
 export function getSectionTypeLabel(value: SectionType): string {

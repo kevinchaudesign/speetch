@@ -306,6 +306,7 @@ export function FwaPageView({
           total={sections.length}
           section={section}
           highlightedHtml={highlightedCode[section.id ?? ""]}
+          highlightedCodeMap={highlightedCode}
         />
       ))}
 
@@ -407,13 +408,17 @@ type ChapterProps = {
   total: number;
   section: Section;
   highlightedHtml?: string;
+  /** Map sectionId → HTML coloré, pour rendre les enfants de container. */
+  highlightedCodeMap?: Record<string, string>;
 };
 
 const Chapter = forwardRef<HTMLElement, ChapterProps>(function Chapter(
-  { index, section, total, highlightedHtml },
+  { index, section, total, highlightedHtml, highlightedCodeMap },
   ref,
 ) {
   const { num, title } = parseChapterTitle(section.title, index);
+  const isContainer = section.type === "container";
+  const children = isContainer ? section.children ?? [] : [];
   return (
     <motion.section
       ref={ref as React.Ref<HTMLDivElement>}
@@ -446,12 +451,32 @@ const Chapter = forwardRef<HTMLElement, ChapterProps>(function Chapter(
       <div className="mt-16 grid grid-cols-1 gap-12 md:gap-24 lg:grid-cols-[200px_1fr]">
         <aside className="hidden lg:block">
           <span className="block border-t border-white/10 pt-3 text-[10px] uppercase tracking-[0.36em] text-white/45">
-            {section.type === "text" ? "Lecture" : section.type}
+            {isContainer
+              ? "Composition"
+              : section.type === "text"
+                ? "Lecture"
+                : section.type}
           </span>
         </aside>
 
-        <div className="flex max-w-[64ch] flex-col gap-6">
-          <SectionBody section={section} highlightedHtml={highlightedHtml} />
+        <div className="flex max-w-[64ch] flex-col gap-10">
+          {isContainer ? (
+            children.map((child) => (
+              <div key={child.id} className="flex flex-col gap-3">
+                {child.title && (
+                  <h3 className="font-sans font-extralight text-[#F5F5F7] text-xl leading-[1.2] tracking-[-0.02em] md:text-2xl">
+                    {child.title}
+                  </h3>
+                )}
+                <SectionBody
+                  section={child as Section}
+                  highlightedHtml={highlightedCodeMap?.[child.id]}
+                />
+              </div>
+            ))
+          ) : (
+            <SectionBody section={section} highlightedHtml={highlightedHtml} />
+          )}
         </div>
       </div>
     </motion.section>

@@ -137,12 +137,29 @@ export default async function PublicPageRoute({ params }: Props) {
   // Pré-rendu des sections code via shiki (server-side). Map sectionId → HTML
   // coloré, passée aux 3 views client (document, fwa, public). Variante de
   // thème selon le rendu : "light" pour le document éditorial, "dark" sinon.
+  // Aplati top-level + enfants de containers — un container ne contient pas
+  // de code lui-même, mais ses enfants peuvent.
   let highlightedCode: Record<string, string> = {};
   if (!style || style === "document" || style === "fwa") {
     const variant: "dark" | "light" = style === "document" ? "light" : "dark";
-    const codeSections = (content.sections ?? []).filter(
-      (s) => s.type === "code" && s.code,
-    );
+    const codeSections: Array<{ id: string; code?: string; language?: string }> =
+      [];
+    for (const s of content.sections ?? []) {
+      if (s.type === "code" && s.code) {
+        codeSections.push({ id: s.id, code: s.code, language: s.language });
+      }
+      if (s.type === "container") {
+        for (const child of s.children ?? []) {
+          if (child.type === "code" && child.code) {
+            codeSections.push({
+              id: child.id,
+              code: child.code,
+              language: child.language,
+            });
+          }
+        }
+      }
+    }
     if (codeSections.length > 0) {
       const entries = await Promise.all(
         codeSections.map(

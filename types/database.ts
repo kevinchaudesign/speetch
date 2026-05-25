@@ -396,7 +396,7 @@ export type ProjectContent = {
   intro?: string;
   sections?: Array<{
     id: string;
-    type: "text" | "image" | "video" | "embed" | "gallery" | "code";
+    type: "text" | "image" | "video" | "embed" | "gallery" | "code" | "container";
     title?: string;
     body?: string;
     media?: Array<{
@@ -410,6 +410,25 @@ export type ProjectContent = {
     code?: string;
     /** Langage du bloc code (type: "code"). Voir CODE_LANGUAGES dans lib/code-highlight.ts. */
     language?: string;
+    /**
+     * Enfants d'un bloc `container` (1 niveau d'imbrication uniquement —
+     * un container ne peut pas contenir un autre container).
+     */
+    children?: Array<{
+      id: string;
+      type: "text" | "image" | "video" | "embed" | "gallery" | "code";
+      title?: string;
+      body?: string;
+      media?: Array<{
+        url: string;
+        caption?: string;
+        width?: number;
+        height?: number;
+      }>;
+      embedUrl?: string;
+      code?: string;
+      language?: string;
+    }>;
   }>;
   meta?: {
     project_name?: string;

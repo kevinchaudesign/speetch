@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
   SECTION_TYPES,
+  type ChildSection,
+  type ChildSectionType,
   type Section,
   type SectionType,
 } from "@/lib/section-types";
@@ -12,6 +14,7 @@ import { Button, ConfirmDialog, Eyebrow, StatusBadge } from "@/lib/ds";
 import { AutosaveField, type AutosaveResult } from "./autosave-input";
 import { SectionEditor } from "./section-editor";
 import {
+  addChildSection,
   addSection,
   deletePage,
   moveSection,
@@ -132,9 +135,20 @@ export function PageEditor({
   function handleReplaceSection(updated: Section) {
     setPage((p) => {
       const c = (p.content as PageContent) ?? {};
-      const next = (c.sections ?? []).map((s) =>
-        s.id === updated.id ? updated : s,
-      );
+      const next = (c.sections ?? []).map((s) => {
+        if (s.id === updated.id) return updated;
+        if (s.type === "container" && s.children?.some((ch) => ch.id === updated.id)) {
+          return {
+            ...s,
+            children: s.children.map((ch) =>
+              ch.id === updated.id
+                ? ({ ...ch, ...updated, type: ch.type } as ChildSection)
+                : ch,
+            ),
+          };
+        }
+        return s;
+      });
       return { ...p, content: { ...c, sections: next } };
     });
   }
@@ -149,11 +163,52 @@ export function PageEditor({
       }
       setPage((p) => {
         const c = (p.content as PageContent) ?? {};
+        const sections = c.sections ?? [];
+        const isTopLevel = sections.some((s) => s.id === sectionId);
+        const next = isTopLevel
+          ? sections.filter((s) => s.id !== sectionId)
+          : sections.map((s) =>
+              s.type === "container"
+                ? {
+                    ...s,
+                    children: (s.children ?? []).filter(
+                      (ch) => ch.id !== sectionId,
+                    ),
+                  }
+                : s,
+            );
+        return { ...p, content: { ...c, sections: next } };
+      });
+    });
+  }
+
+  function handleAddChildSection(
+    parentId: string,
+    childType: ChildSectionType,
+  ) {
+    setError(null);
+    startTransition(async () => {
+      const result = await addChildSection({
+        ...context,
+        parentId,
+        childType,
+      });
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      const newChild = result.section as unknown as ChildSection;
+      setPage((p) => {
+        const c = (p.content as PageContent) ?? {};
         return {
           ...p,
           content: {
             ...c,
-            sections: (c.sections ?? []).filter((s) => s.id !== sectionId),
+            sections: (c.sections ?? []).map((s) =>
+              s.id === parentId
+                ? { ...s, children: [...(s.children ?? []), newChild] }
+                : s,
+            ),
           },
         };
       });
@@ -429,6 +484,27 @@ export function PageEditor({
                     onReplace={handleReplaceSection}
                     onRemove={() => handleRemoveSection(s.id)}
                     onMove={(d) => handleMoveSection(s.id, d)}
+                    onAddChild={
+                      s.type === "container"
+                        ? (t) => handleAddChildSection(s.id, t)
+                        : undefined
+                    }
+                    onReplaceChild={
+                      s.type === "container"
+                        ? (child) =>
+                            handleReplaceSection(child as unknown as Section)
+                        : undefined
+                    }
+                    onRemoveChild={
+                      s.type === "container"
+                        ? (childId) => handleRemoveSection(childId)
+                        : undefined
+                    }
+                    onMoveChild={
+                      s.type === "container"
+                        ? (childId, d) => handleMoveSection(childId, d)
+                        : undefined
+                    }
                   />
                 ))}
               </div>
