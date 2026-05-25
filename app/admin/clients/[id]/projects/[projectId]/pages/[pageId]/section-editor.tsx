@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import {
   CHILD_SECTION_TYPES,
   getSectionTypeLabel,
@@ -63,6 +63,9 @@ export function SectionEditor({
 }: Props) {
   const [pending, startTransition] = useTransition();
   const [confirmOpen, setConfirmOpen] = useState(false);
+  // Accordéon des enfants (utilisé uniquement quand section.type === "container",
+  // mais le hook est déclaré systématiquement pour préserver l'ordre des hooks).
+  const [openChildId, setOpenChildId] = useState<string | null>(null);
 
   async function savePatch(
     patch: Partial<Section>,
@@ -87,6 +90,18 @@ export function SectionEditor({
 
   const isContainer = section.type === "container";
   const containerChildren = isContainer ? section.children ?? [] : [];
+
+  // Auto-ouvre le dernier enfant quand un nouveau vient d'être ajouté
+  // (addChildSection append toujours en fin du tableau).
+  const prevChildrenCountRef = useRef(containerChildren.length);
+  useEffect(() => {
+    if (!isContainer) return;
+    if (containerChildren.length > prevChildrenCountRef.current) {
+      const newest = containerChildren[containerChildren.length - 1];
+      if (newest) setOpenChildId(newest.id);
+    }
+    prevChildrenCountRef.current = containerChildren.length;
+  }, [isContainer, containerChildren]);
   // collapsible si onToggle est fourni ; sinon toujours ouvert (cas des enfants
   // de conteneur, ou rétro-compat).
   const collapsible = typeof onToggle === "function";
@@ -289,6 +304,12 @@ export function SectionEditor({
                   }
                   onRemove={() => onRemoveChild?.(child.id)}
                   onMove={(d) => onMoveChild?.(child.id, d)}
+                  isOpen={openChildId === child.id}
+                  onToggle={() =>
+                    setOpenChildId((prev) =>
+                      prev === child.id ? null : child.id,
+                    )
+                  }
                 />
               ))}
             </div>
