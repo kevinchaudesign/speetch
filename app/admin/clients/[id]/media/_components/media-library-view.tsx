@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  Fragment,
   useCallback,
   useEffect,
   useMemo,
@@ -24,6 +25,7 @@ import {
   moveClientMediaBatch,
   renameClientMedia,
   setMediaPersona,
+  setMediaFolderCover,
 } from "../actions";
 
 // Nom (case-insensitive) qu'un dossier doit avoir pour qu'on expose le tag
@@ -40,7 +42,87 @@ export type MediaFolder = {
   id: string;
   name: string;
   position: number;
+  /** NULL = top-level. Sinon référence le dossier parent (1 niveau max). */
+  parent_id: string | null;
+  /** FK vers MediaItem.id — image désignée comme aperçu. */
+  cover_media_id: string | null;
+  /** URL publique du cover_media_id, résolue côté server. */
+  cover_url: string | null;
 };
+
+/**
+ * Aplatit l'arborescence dossiers (max depth = 1) en respectant l'ordre :
+ * parent, puis ses enfants. Utilisé par les modales Move pour proposer
+ * les sous-dossiers comme cibles, libellés "Parent / Enfant".
+ */
+function flattenFolderTree(
+  folders: MediaFolder[],
+): Array<{ id: string; label: string; isChild: boolean }> {
+  const top = folders.filter((f) => f.parent_id === null);
+  const childrenByParent = new Map<string, MediaFolder[]>();
+  for (const f of folders) {
+    if (f.parent_id) {
+      const arr = childrenByParent.get(f.parent_id);
+      if (arr) arr.push(f);
+      else childrenByParent.set(f.parent_id, [f]);
+    }
+  }
+  const out: Array<{ id: string; label: string; isChild: boolean }> = [];
+  for (const t of top) {
+    out.push({ id: t.id, label: t.name, isChild: false });
+    for (const c of childrenByParent.get(t.id) ?? []) {
+      out.push({ id: c.id, label: `${t.name} / ${c.name}`, isChild: true });
+    }
+  }
+  return out;
+}
+
+/**
+ * Télécharge un média via fetch + blob (contourne le fait que l'attribut
+ * `download` est ignoré sur les URLs cross-origin par Chrome).
+ */
+async function downloadSingleMedia(url: string, filename: string): Promise<void> {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const blob = await res.blob();
+  const objUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objUrl;
+  a.download = filename || "media";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objUrl);
+}
+
+/**
+ * Demande au serveur de zipper plusieurs médias et déclenche le téléchargement.
+ */
+async function downloadBatchAsZip(
+  profileId: string,
+  mediaIds: string[],
+): Promise<void> {
+  const res = await fetch("/api/admin/client-media/download", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profileId, mediaIds }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(text || `HTTP ${res.status}`);
+  }
+  const blob = await res.blob();
+  const objUrl = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = objUrl;
+  const cd = res.headers.get("Content-Disposition") ?? "";
+  const match = cd.match(/filename="([^"]+)"/);
+  a.download = match?.[1] ?? "mediatheque.zip";
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(objUrl);
+}
 
 export type MediaItem = {
   id: string;
@@ -134,7 +216,12 @@ export function MediaLibraryView({
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Modal state
-  const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  // createFolderState : null = fermé, { parentId } = ouvert. parentId NULL =
+  // top-level, string = sous-dossier de ce parent.
+  const [createFolderState, setCreateFolderState] = useState<
+    { parentId: string | null } | null
+  >(null);
+  const createFolderOpen = createFolderState !== null;
   const [renameFolderState, setRenameFolderState] = useState<MediaFolder | null>(
     null,
   );
@@ -236,6 +323,23 @@ export function MediaLibraryView({
       return items.filter((m) => m.folder_id === null);
     return items.filter((m) => m.folder_id === selection.id);
   }, [items, selection]);
+
+  // Tree des dossiers (max 1 niveau) : top-level + map parent → enfants.
+  const topLevelFolders = useMemo(
+    () => folders.filter((f) => f.parent_id === null),
+    [folders],
+  );
+  const childrenByParent = useMemo(() => {
+    const map = new Map<string, MediaFolder[]>();
+    for (const f of folders) {
+      if (f.parent_id) {
+        const arr = map.get(f.parent_id);
+        if (arr) arr.push(f);
+        else map.set(f.parent_id, [f]);
+      }
+    }
+    return map;
+  }, [folders]);
 
   const counts = useMemo(() => {
     const byFolder = new Map<string | null, number>();
@@ -414,7 +518,7 @@ export function MediaLibraryView({
               </Eyebrow>
               <button
                 type="button"
-                onClick={() => setCreateFolderOpen(true)}
+                onClick={() => setCreateFolderState({ parentId: null })}
                 className="text-[11px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white"
               >
                 + Nouveau
@@ -437,19 +541,45 @@ export function MediaLibraryView({
               {folders.length > 0 && (
                 <li className="my-2 h-px bg-white/10" aria-hidden />
               )}
-              {folders.map((f) => (
-                <FolderRow
-                  key={f.id}
-                  label={f.name}
-                  count={counts.get(f.id) ?? 0}
-                  active={
-                    selection.kind === "folder" && selection.id === f.id
-                  }
-                  onClick={() => setSelection({ kind: "folder", id: f.id })}
-                  onRename={() => setRenameFolderState(f)}
-                  onDelete={() => setDeleteFolderState(f)}
-                />
-              ))}
+              {topLevelFolders.map((f) => {
+                const children = childrenByParent.get(f.id) ?? [];
+                return (
+                  <Fragment key={f.id}>
+                    <FolderRow
+                      label={f.name}
+                      count={counts.get(f.id) ?? 0}
+                      coverUrl={f.cover_url}
+                      depth={0}
+                      active={
+                        selection.kind === "folder" && selection.id === f.id
+                      }
+                      onClick={() => setSelection({ kind: "folder", id: f.id })}
+                      onRename={() => setRenameFolderState(f)}
+                      onDelete={() => setDeleteFolderState(f)}
+                      onCreateSub={() =>
+                        setCreateFolderState({ parentId: f.id })
+                      }
+                    />
+                    {children.map((c) => (
+                      <FolderRow
+                        key={c.id}
+                        label={c.name}
+                        count={counts.get(c.id) ?? 0}
+                        coverUrl={c.cover_url}
+                        depth={1}
+                        active={
+                          selection.kind === "folder" && selection.id === c.id
+                        }
+                        onClick={() =>
+                          setSelection({ kind: "folder", id: c.id })
+                        }
+                        onRename={() => setRenameFolderState(c)}
+                        onDelete={() => setDeleteFolderState(c)}
+                      />
+                    ))}
+                  </Fragment>
+                );
+              })}
             </ul>
           </aside>
 
@@ -559,6 +689,44 @@ export function MediaLibraryView({
                         setOpenMenuId(null);
                         setDeleteMediaState(m);
                       }}
+                      onDownload={async () => {
+                        setOpenMenuId(null);
+                        try {
+                          await downloadSingleMedia(m.public_url, m.filename);
+                        } catch (err) {
+                          setError(
+                            err instanceof Error
+                              ? err.message
+                              : "Téléchargement impossible.",
+                          );
+                        }
+                      }}
+                      onSetAsCover={
+                        isImage(m.mime_type) && m.folder_id !== null
+                          ? async () => {
+                              setOpenMenuId(null);
+                              const currentCoverId =
+                                folders.find((f) => f.id === m.folder_id)
+                                  ?.cover_media_id ?? null;
+                              const isCurrent = currentCoverId === m.id;
+                              const res = await setMediaFolderCover({
+                                profileId,
+                                folderId: m.folder_id!,
+                                mediaId: isCurrent ? null : m.id,
+                              });
+                              if (!res.ok) {
+                                setError(res.error);
+                                return;
+                              }
+                              refresh();
+                            }
+                          : null
+                      }
+                      isCurrentCover={
+                        m.folder_id !== null &&
+                        (folders.find((f) => f.id === m.folder_id)
+                          ?.cover_media_id ?? null) === m.id
+                      }
                     />
                   );
                 })}
@@ -585,14 +753,25 @@ export function MediaLibraryView({
 
       <CreateFolderModal
         open={createFolderOpen}
-        onClose={() => setCreateFolderOpen(false)}
+        parentName={
+          createFolderState?.parentId
+            ? (folders.find((f) => f.id === createFolderState.parentId)?.name ??
+              null)
+            : null
+        }
+        onClose={() => setCreateFolderState(null)}
         onSubmit={async (name) => {
-          const res = await createMediaFolder({ profileId, name });
+          if (!createFolderState) return false;
+          const res = await createMediaFolder({
+            profileId,
+            name,
+            parentId: createFolderState.parentId,
+          });
           if (!res.ok) {
             setError(res.error);
             return false;
           }
-          setCreateFolderOpen(false);
+          setCreateFolderState(null);
           setSelection({ kind: "folder", id: res.folderId });
           refresh();
           return true;
@@ -736,8 +915,22 @@ export function MediaLibraryView({
       <BatchActionBar
         count={selectedIds.size}
         allVisibleCount={filtered.length}
+        pending={batchPending}
         onMove={() => setBatchMoveOpen(true)}
         onDelete={() => setBatchDeleteOpen(true)}
+        onDownload={async () => {
+          if (selectedIds.size === 0) return;
+          setBatchPending(true);
+          try {
+            await downloadBatchAsZip(profileId, Array.from(selectedIds));
+          } catch (err) {
+            setError(
+              err instanceof Error ? err.message : "Téléchargement ZIP impossible.",
+            );
+          } finally {
+            setBatchPending(false);
+          }
+        }}
         onSelectAll={selectAllVisible}
         onClear={clearSelection}
       />
@@ -809,6 +1002,12 @@ function FolderRow({
   onClick,
   onRename,
   onDelete,
+  /** URL d'aperçu (image désignée comme cover). */
+  coverUrl,
+  /** 0 = top-level, 1 = sous-dossier (indenté). */
+  depth = 0,
+  /** Optionnel : callback pour créer un sous-dossier (top-level seulement). */
+  onCreateSub,
 }: {
   label: string;
   count: number;
@@ -816,6 +1015,9 @@ function FolderRow({
   onClick: () => void;
   onRename?: () => void;
   onDelete?: () => void;
+  coverUrl?: string | null;
+  depth?: 0 | 1;
+  onCreateSub?: () => void;
 }) {
   const [hover, setHover] = useState(false);
   return (
@@ -823,7 +1025,8 @@ function FolderRow({
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       className={cn(
-        "group flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm transition-colors",
+        "group flex items-center justify-between gap-2 rounded-md py-1.5 text-sm transition-colors",
+        depth === 1 ? "ml-4 pl-2 pr-2" : "px-2",
         active
           ? "bg-white/[0.06] text-white"
           : "text-white/55 hover:bg-white/[0.03] hover:text-white/85",
@@ -832,15 +1035,53 @@ function FolderRow({
       <button
         type="button"
         onClick={onClick}
-        className="flex min-w-0 flex-1 items-center justify-between gap-2 text-left"
+        className="flex min-w-0 flex-1 items-center gap-2 text-left"
       >
-        <span className="truncate">{label}</span>
+        {/* Indent visuel pour un sous-dossier */}
+        {depth === 1 && (
+          <span
+            aria-hidden
+            className="inline-block h-px w-2 shrink-0 bg-white/15"
+          />
+        )}
+        {/* Aperçu (cover) : thumbnail 18px en début de ligne, sinon spacer pour
+            aligner les rows avec/sans aperçu. */}
+        <span
+          aria-hidden
+          className={cn(
+            "relative h-[18px] w-[18px] shrink-0 overflow-hidden rounded-[3px] border",
+            coverUrl
+              ? "border-white/10"
+              : "border-dashed border-white/10 bg-white/[0.02]",
+          )}
+        >
+          {coverUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={coverUrl}
+              alt=""
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+        </span>
+        <span className="min-w-0 flex-1 truncate">{label}</span>
         <span className="shrink-0 font-mono text-[10px] text-white/35">
           {count}
         </span>
       </button>
-      {(onRename || onDelete) && hover && (
+      {(onRename || onDelete || onCreateSub) && hover && (
         <div className="flex items-center gap-2">
+          {onCreateSub && (
+            <button
+              type="button"
+              onClick={onCreateSub}
+              aria-label="Créer un sous-dossier"
+              title="Créer un sous-dossier"
+              className="text-[10px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white"
+            >
+              +
+            </button>
+          )}
           {onRename && (
             <button
               type="button"
@@ -882,6 +1123,9 @@ function MediaTile({
   onRename,
   onMove,
   onDelete,
+  onDownload,
+  onSetAsCover,
+  isCurrentCover,
 }: {
   item: MediaItem;
   /** Octets transférés du thumb AVIF/WebP via /_next/image, ou null si pas encore mesuré. */
@@ -899,6 +1143,11 @@ function MediaTile({
   onRename: () => void;
   onMove: () => void;
   onDelete: () => void;
+  onDownload: () => void;
+  /** null = action désactivée (média non-image ou hors dossier). */
+  onSetAsCover: (() => void) | null;
+  /** Vrai si ce média est déjà l'aperçu du dossier où il vit. */
+  isCurrentCover: boolean;
 }) {
   const img = isImage(item.mime_type);
   const vid = isVideo(item.mime_type);
@@ -1084,6 +1333,7 @@ function MediaTile({
               >
                 <MenuItem onClick={onRename}>Renommer</MenuItem>
                 <MenuItem onClick={onMove}>Déplacer…</MenuItem>
+                <MenuItem onClick={onDownload}>Télécharger</MenuItem>
                 <MenuItem
                   onClick={() => {
                     navigator.clipboard.writeText(item.public_url);
@@ -1092,6 +1342,13 @@ function MediaTile({
                 >
                   Copier l'URL
                 </MenuItem>
+                {onSetAsCover && (
+                  <MenuItem onClick={onSetAsCover}>
+                    {isCurrentCover
+                      ? "Retirer l'aperçu du dossier"
+                      : "Désigner comme aperçu du dossier"}
+                  </MenuItem>
+                )}
                 <div className="h-px bg-white/10" />
                 <MenuItem onClick={onDelete} danger>
                   Supprimer
@@ -1305,17 +1562,20 @@ function TextModal({
 
 function CreateFolderModal({
   open,
+  parentName,
   onClose,
   onSubmit,
 }: {
   open: boolean;
+  /** Nom du dossier parent si on crée un sous-dossier ; null pour top-level. */
+  parentName: string | null;
   onClose: () => void;
   onSubmit: (name: string) => Promise<boolean>;
 }) {
   return (
     <TextModal
       open={open}
-      title="Nouveau dossier"
+      title={parentName ? `Sous-dossier de « ${parentName} »` : "Nouveau dossier"}
       label="Nom du dossier"
       initialValue=""
       submitLabel="Créer"
@@ -1429,10 +1689,11 @@ function MoveMediaModal({
               {folders.length > 0 && (
                 <li className="my-1 h-px bg-white/10" aria-hidden />
               )}
-              {folders.map((f) => (
+              {flattenFolderTree(folders).map((f) => (
                 <MoveTarget
                   key={f.id}
-                  label={f.name}
+                  label={f.label}
+                  isChild={f.isChild}
                   disabled={currentFolderId === f.id || submitting !== null}
                   pending={submitting === f.id}
                   onClick={async () => {
@@ -1464,11 +1725,13 @@ function MoveTarget({
   disabled,
   pending,
   onClick,
+  isChild = false,
 }: {
   label: string;
   disabled: boolean;
   pending: boolean;
   onClick: () => void;
+  isChild?: boolean;
 }) {
   return (
     <li>
@@ -1483,7 +1746,14 @@ function MoveTarget({
             : "text-white/65 hover:bg-white/[0.04] hover:text-white",
         )}
       >
-        <span className="truncate">{label}</span>
+        <span className="flex min-w-0 items-center gap-2 truncate">
+          {isChild && (
+            <span aria-hidden className="shrink-0 text-white/30">
+              ↳
+            </span>
+          )}
+          <span className="truncate">{label}</span>
+        </span>
         {pending && (
           <span className="text-[10px] uppercase tracking-[0.32em] text-white/40">
             …
@@ -1610,15 +1880,19 @@ function PreviewModal({
 function BatchActionBar({
   count,
   allVisibleCount,
+  pending,
   onMove,
   onDelete,
+  onDownload,
   onSelectAll,
   onClear,
 }: {
   count: number;
   allVisibleCount: number;
+  pending: boolean;
   onMove: () => void;
   onDelete: () => void;
+  onDownload: () => void;
   onSelectAll: () => void;
   onClear: () => void;
 }) {
@@ -1664,7 +1938,8 @@ function BatchActionBar({
             <button
               type="button"
               onClick={onMove}
-              className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/85 transition-colors hover:text-white"
+              disabled={pending}
+              className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/85 transition-colors hover:text-white disabled:opacity-50"
             >
               <span>Déplacer dans…</span>
               <span
@@ -1675,8 +1950,22 @@ function BatchActionBar({
 
             <button
               type="button"
+              onClick={onDownload}
+              disabled={pending}
+              className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/85 transition-colors hover:text-white disabled:opacity-50"
+            >
+              <span>{pending ? "ZIP en cours…" : "Télécharger (ZIP)"}</span>
+              <span
+                aria-hidden
+                className="inline-block h-px w-4 bg-current transition-all duration-500 group-hover:w-10"
+              />
+            </button>
+
+            <button
+              type="button"
               onClick={onDelete}
-              className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/75 transition-colors hover:text-red-300/85"
+              disabled={pending}
+              className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-white/75 transition-colors hover:text-red-300/85 disabled:opacity-50"
             >
               <span>Supprimer</span>
               <span
@@ -1753,10 +2042,11 @@ function MoveBatchModal({
               {folders.length > 0 && (
                 <li className="my-1 h-px bg-white/10" aria-hidden />
               )}
-              {folders.map((f) => (
+              {flattenFolderTree(folders).map((f) => (
                 <MoveTarget
                   key={f.id}
-                  label={f.name}
+                  label={f.label}
+                  isChild={f.isChild}
                   disabled={pending}
                   pending={false}
                   onClick={() => onSubmit(f.id)}

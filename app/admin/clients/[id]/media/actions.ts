@@ -125,6 +125,9 @@ export type CreateMediaFolderResult =
 export async function createMediaFolder(input: {
   profileId: string;
   name: string;
+  /** ID du dossier parent (null/undefined = top-level). Profondeur max = 1 :
+   *  un dossier qui a déjà un parent ne peut pas être parent d'un autre. */
+  parentId?: string | null;
 }): Promise<CreateMediaFolderResult> {
   const auth = await requireOwnerAndAdmin();
   if (!auth.ok) return { ok: false, error: auth.error };
@@ -134,13 +137,43 @@ export async function createMediaFolder(input: {
   const name = normalizeName(input.name);
   if (!name) return { ok: false, error: "Le nom du dossier est requis." };
 
+  const parentId =
+    input.parentId === undefined || input.parentId === null
+      ? null
+      : input.parentId;
+  if (parentId !== null && !UUID_REGEX.test(parentId)) {
+    return { ok: false, error: "Dossier parent invalide." };
+  }
+
   const own = await ensureProfileExists(auth.admin, input.profileId);
   if (!own.ok) return { ok: false, error: own.error };
 
-  const { data: maxRow } = await auth.admin
+  // Valide le parent : même profile + lui-même top-level (max depth = 1).
+  if (parentId !== null) {
+    const { data: parent } = await auth.admin
+      .from("client_media_folders" as never)
+      .select("id, profile_id, parent_id")
+      .eq("id", parentId)
+      .maybeSingle<Pick<MediaFolderRow, "id" | "profile_id" | "parent_id">>();
+    if (!parent || parent.profile_id !== input.profileId) {
+      return { ok: false, error: "Dossier parent introuvable." };
+    }
+    if (parent.parent_id !== null) {
+      return {
+        ok: false,
+        error: "Un sous-dossier ne peut pas contenir d'autres sous-dossiers.",
+      };
+    }
+  }
+
+  // Position : on push à la fin de la "vue" (parent_id). Top-level = parent_id NULL,
+  // sous-dossier = même parent_id.
+  let query = auth.admin
     .from("client_media_folders" as never)
     .select("position")
-    .eq("profile_id", input.profileId)
+    .eq("profile_id", input.profileId);
+  query = parentId === null ? query.is("parent_id", null) : query.eq("parent_id", parentId);
+  const { data: maxRow } = await query
     .order("position", { ascending: false })
     .limit(1)
     .maybeSingle<Pick<MediaFolderRow, "position">>();
@@ -152,6 +185,7 @@ export async function createMediaFolder(input: {
       profile_id: input.profileId,
       name,
       position: nextPosition,
+      parent_id: parentId,
     } as never)
     .select("id")
     .single<{ id: string }>();
@@ -671,6 +705,70 @@ export async function setMediaPersona(input: {
     .eq("profile_id", input.profileId);
   if (error) {
     console.error("[setMediaPersona] update error:", error);
+    return { ok: false, error: error.message };
+  }
+  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  return { ok: true };
+}
+
+export type SetMediaFolderCoverResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Désigne une image comme aperçu d'un dossier (ou retire l'aperçu si mediaId = null).
+ * L'image doit appartenir au même client ; pas obligée d'être dans le dossier
+ * (volontairement souple — un dossier "Covers" peut alimenter d'autres dossiers).
+ */
+export async function setMediaFolderCover(input: {
+  profileId: string;
+  folderId: string;
+  mediaId: string | null;
+}): Promise<SetMediaFolderCoverResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  if (!UUID_REGEX.test(input.folderId)) {
+    return { ok: false, error: "Dossier invalide." };
+  }
+  if (input.mediaId !== null && !UUID_REGEX.test(input.mediaId)) {
+    return { ok: false, error: "Média invalide." };
+  }
+
+  // Vérifie que le dossier appartient au client.
+  const { data: folder } = await auth.admin
+    .from("client_media_folders" as never)
+    .select("id, profile_id")
+    .eq("id", input.folderId)
+    .maybeSingle<Pick<MediaFolderRow, "id" | "profile_id">>();
+  if (!folder || folder.profile_id !== input.profileId) {
+    return { ok: false, error: "Dossier introuvable." };
+  }
+
+  // Vérifie que le média (si fourni) appartient au même client et est une image.
+  if (input.mediaId !== null) {
+    const { data: media } = await auth.admin
+      .from("client_media" as never)
+      .select("id, profile_id, mime_type")
+      .eq("id", input.mediaId)
+      .maybeSingle<Pick<MediaRow, "id" | "profile_id" | "mime_type">>();
+    if (!media || media.profile_id !== input.profileId) {
+      return { ok: false, error: "Média introuvable pour ce client." };
+    }
+    if (!media.mime_type.startsWith("image/")) {
+      return { ok: false, error: "L'aperçu doit être une image." };
+    }
+  }
+
+  const { error } = await auth.admin
+    .from("client_media_folders" as never)
+    .update({ cover_media_id: input.mediaId } as never)
+    .eq("id", input.folderId)
+    .eq("profile_id", input.profileId);
+  if (error) {
+    console.error("[setMediaFolderCover] update error:", error);
     return { ok: false, error: error.message };
   }
   revalidatePath(`/admin/clients/${input.profileId}/media`);

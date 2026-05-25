@@ -8,6 +8,12 @@ export type MediaFolderRow = {
   profile_id: string;
   name: string;
   position: number;
+  /** FK vers client_media_folders.id — parent dans la hiérarchie. NULL = top-level.
+   *  Profondeur max = 1 (un sous-dossier ne peut pas avoir d'enfants),
+   *  contrainte imposée côté application dans createMediaFolder. */
+  parent_id: string | null;
+  /** FK vers client_media.id — image désignée comme aperçu du dossier. */
+  cover_media_id: string | null;
   created_at: string;
 };
 

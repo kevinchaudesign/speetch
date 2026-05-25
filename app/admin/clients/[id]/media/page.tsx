@@ -54,11 +54,21 @@ export default async function ClientMediaPage({
 
   const { data: foldersData } = await admin
     .from("client_media_folders" as never)
-    .select("id, name, position, created_at")
+    .select("id, name, position, parent_id, cover_media_id, created_at")
     .eq("profile_id", profile.id)
     .order("position", { ascending: true })
     .returns<
-      Array<Pick<MediaFolderRow, "id" | "name" | "position" | "created_at">>
+      Array<
+        Pick<
+          MediaFolderRow,
+          | "id"
+          | "name"
+          | "position"
+          | "parent_id"
+          | "cover_media_id"
+          | "created_at"
+        >
+      >
     >();
 
   const { data: mediaData } = await admin
@@ -96,11 +106,43 @@ export default async function ClientMediaPage({
     .order("position", { ascending: true })
     .returns<Array<Pick<ClientPersonaRow, "id" | "name" | "position">>>();
 
-  const folders: MediaFolder[] = (foldersData ?? []).map((f) => ({
-    id: f.id,
-    name: f.name,
-    position: f.position,
-  }));
+  // Résout l'URL publique des images d'aperçu : pour chaque cover_media_id,
+  // on remonte le storage_path du média correspondant via une seule requête.
+  const coverMediaIds = Array.from(
+    new Set(
+      (foldersData ?? [])
+        .map((f) => f.cover_media_id)
+        .filter((v): v is string => !!v),
+    ),
+  );
+  const coverPathById = new Map<string, string>();
+  if (coverMediaIds.length > 0) {
+    const { data: coversData } = await admin
+      .from("client_media" as never)
+      .select("id, storage_path")
+      .in("id", coverMediaIds)
+      .returns<Array<Pick<MediaRow, "id" | "storage_path">>>();
+    for (const c of coversData ?? []) {
+      coverPathById.set(c.id, c.storage_path);
+    }
+  }
+
+  const folders: MediaFolder[] = (foldersData ?? []).map((f) => {
+    const coverPath = f.cover_media_id
+      ? (coverPathById.get(f.cover_media_id) ?? null)
+      : null;
+    const coverUrl = coverPath
+      ? admin.storage.from(BUCKET).getPublicUrl(coverPath).data.publicUrl
+      : null;
+    return {
+      id: f.id,
+      name: f.name,
+      position: f.position,
+      parent_id: f.parent_id,
+      cover_media_id: f.cover_media_id,
+      cover_url: coverUrl,
+    };
+  });
 
   const items: MediaItem[] = (mediaData ?? []).map((m) => {
     const { data: pub } = admin.storage
