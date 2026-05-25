@@ -534,6 +534,127 @@ export async function moveSection(
   return { ok: true, sections };
 }
 
+// ─── Reorder (drag & drop complet) ──────────────────────────────────────
+
+/**
+ * Réorganise l'intégralité de l'arbre des sections d'une page selon un
+ * plan client. Supporte le réordonnement top-level, l'imbrication dans
+ * un conteneur, le déplacement entre conteneurs, et la sortie d'un
+ * conteneur. Validation stricte :
+ *   - tous les IDs existants doivent être présents dans le plan (rien
+ *     perdu, rien ajouté)
+ *   - le TYPE de chaque bloc est conservé (le drag ne change que la
+ *     position, pas le contenu)
+ *   - un conteneur ne peut pas devenir enfant d'un autre conteneur
+ */
+export async function reorderSections(
+  input: ActionContext & {
+    plan: Array<{ id: string; childIds?: string[] }>;
+  },
+): Promise<SectionListResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+
+  const err = validateContext(input);
+  if (err) return { ok: false, error: err };
+
+  const page = await fetchOwnedPage(auth.admin, input);
+  if (!page.ok) return { ok: false, error: page.error };
+
+  const currentSections = page.content.sections ?? [];
+
+  // Index de tous les blocs (top + enfants) par id.
+  const index = new Map<string, Section | ChildSection>();
+  for (const s of currentSections) {
+    if (index.has(s.id)) {
+      return { ok: false, error: "Données corrompues : id dupliqué." };
+    }
+    index.set(s.id, s);
+    if (s.type === "container") {
+      for (const c of s.children ?? []) {
+        if (index.has(c.id)) {
+          return { ok: false, error: "Données corrompues : id dupliqué." };
+        }
+        index.set(c.id, c);
+      }
+    }
+  }
+
+  // Vérifier que le plan utilise exactement les mêmes IDs (set égal).
+  const planIds = new Set<string>();
+  for (const entry of input.plan) {
+    if (planIds.has(entry.id)) {
+      return { ok: false, error: "Plan invalide : id dupliqué." };
+    }
+    planIds.add(entry.id);
+    for (const childId of entry.childIds ?? []) {
+      if (planIds.has(childId)) {
+        return { ok: false, error: "Plan invalide : id dupliqué." };
+      }
+      planIds.add(childId);
+    }
+  }
+  if (planIds.size !== index.size) {
+    return { ok: false, error: "Plan invalide : nombre de blocs incohérent." };
+  }
+  for (const id of index.keys()) {
+    if (!planIds.has(id)) {
+      return { ok: false, error: "Plan invalide : bloc manquant." };
+    }
+  }
+
+  // Reconstruire les sections selon le plan.
+  const newSections: Section[] = [];
+  for (const entry of input.plan) {
+    const block = index.get(entry.id);
+    if (!block) return { ok: false, error: "Plan invalide : bloc inconnu." };
+
+    const childIds = entry.childIds ?? [];
+
+    if (childIds.length > 0 && block.type !== "container") {
+      return {
+        ok: false,
+        error: "Plan invalide : seul un conteneur peut avoir des enfants.",
+      };
+    }
+
+    if (block.type === "container") {
+      // Reconstruit les enfants à partir des childIds du plan.
+      const newChildren: ChildSection[] = [];
+      for (const childId of childIds) {
+        const child = index.get(childId);
+        if (!child) {
+          return { ok: false, error: "Plan invalide : enfant inconnu." };
+        }
+        if (child.type === "container") {
+          return {
+            ok: false,
+            error:
+              "Plan invalide : un conteneur ne peut pas être imbriqué dans un autre.",
+          };
+        }
+        newChildren.push(child as ChildSection);
+      }
+      newSections.push({ ...(block as Section), children: newChildren });
+    } else {
+      // Bloc top-level non-container : on s'assure que `children` n'est pas
+      // accidentellement traîné depuis l'ancien état.
+      const { children: _drop, ...rest } = block as Section & {
+        children?: ChildSection[];
+      };
+      void _drop;
+      newSections.push(rest as Section);
+    }
+  }
+
+  const next: PageContent = { ...page.content, sections: newSections };
+  const result = await saveContent(auth.admin, input.pageId, next);
+  if (!result.ok) return result;
+
+  revalidateEditor(input);
+  return { ok: true, sections: newSections };
+}
+
 // ─── Media ──────────────────────────────────────────────────────────────
 
 export async function uploadSectionMedia(

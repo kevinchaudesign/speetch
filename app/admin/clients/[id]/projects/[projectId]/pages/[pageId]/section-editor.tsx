@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import {
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { useDroppable } from "@dnd-kit/core";
 import {
   CHILD_SECTION_TYPES,
   getSectionTypeLabel,
@@ -67,6 +74,23 @@ export function SectionEditor({
   // mais le hook est déclaré systématiquement pour préserver l'ordre des hooks).
   const [openChildId, setOpenChildId] = useState<string | null>(null);
 
+  // Sortable : utilise toujours le hook (préserve l'ordre des hooks). Si le
+  // composant est rendu hors DndContext, le hook reste no-op.
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: section.id });
+
+  const sortableStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+  };
+
   async function savePatch(
     patch: Partial<Section>,
   ): Promise<AutosaveResult> {
@@ -89,7 +113,10 @@ export function SectionEditor({
   }
 
   const isContainer = section.type === "container";
-  const containerChildren = isContainer ? section.children ?? [] : [];
+  const containerChildren = useMemo(
+    () => (isContainer ? section.children ?? [] : []),
+    [isContainer, section.children],
+  );
 
   // Auto-ouvre le dernier enfant quand un nouveau vient d'être ajouté
   // (addChildSection append toujours en fin du tableau).
@@ -109,8 +136,20 @@ export function SectionEditor({
   const titlePreview = (section.title ?? "").trim();
 
   return (
-    <article className="flex flex-col gap-6 rounded-2xl border border-white/10 bg-white/[0.015] p-6 md:p-8">
+    <article
+      ref={setNodeRef}
+      style={sortableStyle}
+      className="flex flex-col gap-6 rounded-2xl border border-white/10 bg-white/[0.015] p-6 md:p-8"
+    >
       <header className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <span
+          {...attributes}
+          {...listeners}
+          aria-label="Glisser pour réordonner"
+          className="cursor-grab touch-none select-none rounded-md px-1.5 py-1 text-sm text-white/40 transition-colors hover:bg-white/[0.05] hover:text-white/85 active:cursor-grabbing"
+        >
+          ⋮⋮
+        </span>
         {collapsible ? (
           <button
             type="button"
@@ -281,14 +320,14 @@ export function SectionEditor({
       )}
 
       {isContainer && (
-        <div className="flex flex-col gap-4 rounded-xl border border-cyan-200/15 bg-cyan-200/[0.015] p-4 md:p-5">
-          <span className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/65">
-            Blocs du conteneur · {containerChildren.length}
-          </span>
-
+        <ContainerDroppableZone
+          containerId={section.id}
+          childrenIds={containerChildren.map((c) => c.id)}
+        >
           {containerChildren.length === 0 ? (
             <p className="rounded-md border border-dashed border-cyan-200/15 bg-black/20 p-5 text-center font-serif italic text-white/45">
-              Ce conteneur est vide. Ajoute un bloc ci-dessous.
+              Ce conteneur est vide. Glisse un bloc ici ou ajoute-en un
+              ci-dessous.
             </p>
           ) : (
             <div className="flex flex-col gap-4">
@@ -318,10 +357,55 @@ export function SectionEditor({
           {onAddChild && (
             <AddChildBar onAdd={onAddChild} disabled={pending} />
           )}
-        </div>
+        </ContainerDroppableZone>
       )}
       </div>
     </article>
+  );
+}
+
+/**
+ * Zone interne d'un conteneur : combine un SortableContext (pour réordonner
+ * les enfants entre eux) et un useDroppable (pour qu'un bloc venant d'ailleurs
+ * — top-level ou autre conteneur — puisse être déposé ici, même si la zone
+ * est vide).
+ *
+ * L'id droppable est `container-zone-{containerId}` pour le distinguer de
+ * l'id sortable du conteneur lui-même (qui est utilisé pour le drag du
+ * conteneur au top-level).
+ */
+function ContainerDroppableZone({
+  containerId,
+  childrenIds,
+  children,
+}: {
+  containerId: string;
+  childrenIds: string[];
+  children: React.ReactNode;
+}) {
+  const { setNodeRef, isOver } = useDroppable({
+    id: `container-zone-${containerId}`,
+    data: { kind: "container-zone", containerId },
+  });
+  return (
+    <div
+      ref={setNodeRef}
+      className={`flex flex-col gap-4 rounded-xl border bg-cyan-200/[0.015] p-4 transition-colors md:p-5 ${
+        isOver
+          ? "border-cyan-200/60 bg-cyan-200/[0.06]"
+          : "border-cyan-200/15"
+      }`}
+    >
+      <span className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/65">
+        Blocs du conteneur · {childrenIds.length}
+      </span>
+      <SortableContext
+        items={childrenIds}
+        strategy={verticalListSortingStrategy}
+      >
+        {children}
+      </SortableContext>
+    </div>
   );
 }
 

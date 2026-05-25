@@ -3,6 +3,22 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
+  DndContext,
+  KeyboardSensor,
+  PointerSensor,
+  closestCorners,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragOverEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  arrayMove,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import {
   SECTION_TYPES,
   type ChildSection,
   type ChildSectionType,
@@ -19,6 +35,7 @@ import {
   deletePage,
   moveSection,
   removeSection,
+  reorderSections,
   updatePageIntro,
   updatePageName,
   updatePagePublished,
@@ -245,6 +262,103 @@ export function PageEditor({
   function confirmDeletePage() {
     startTransition(async () => {
       await deletePage(context);
+    });
+  }
+
+  // ─── Drag & Drop ─────────────────────────────────────────────────────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  );
+
+  function handleDragOver(event: DragOverEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overIdRaw = String(over.id);
+
+    const source = findContainerOf(activeId, sections);
+    if (!source) return;
+
+    // overId peut être l'id d'un bloc OU "container-zone-{id}" pour la zone
+    // interne d'un conteneur vide.
+    let targetContainer: string | "TOP" | null = null;
+    let overBlockId: string | null = null;
+    if (overIdRaw.startsWith("container-zone-")) {
+      targetContainer = overIdRaw.slice("container-zone-".length);
+    } else {
+      targetContainer = findContainerOf(overIdRaw, sections);
+      overBlockId = overIdRaw;
+    }
+    if (!targetContainer) return;
+    if (source === targetContainer) return; // gestion intra-liste par dnd-kit
+
+    // Interdit : déplacer un conteneur dans un autre conteneur.
+    const activeBlock = findBlock(activeId, sections);
+    if (!activeBlock) return;
+    if (activeBlock.type === "container" && targetContainer !== "TOP") return;
+
+    setSections((current) =>
+      moveCrossContainer(current, activeId, source, targetContainer!, overBlockId),
+    );
+  }
+
+  function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event;
+    if (!over) return;
+    const activeId = String(active.id);
+    const overIdRaw = String(over.id);
+
+    let next = sections;
+
+    // Reorder dans la même liste (top OU container) si on a relâché sur
+    // un autre bloc.
+    if (!overIdRaw.startsWith("container-zone-") && activeId !== overIdRaw) {
+      const containerOfActive = findContainerOf(activeId, next);
+      const containerOfOver = findContainerOf(overIdRaw, next);
+      if (
+        containerOfActive &&
+        containerOfOver &&
+        containerOfActive === containerOfOver
+      ) {
+        next = reorderWithin(next, containerOfActive, activeId, overIdRaw);
+      }
+    }
+
+    // Si rien n'a changé (vs page.content actuel), pas de commit serveur.
+    const initialSections = ((page.content as PageContent) ?? {}).sections ?? [];
+    if (sameArrangement(initialSections, next)) return;
+
+    const plan = next.map((s) => ({
+      id: s.id,
+      childIds:
+        s.type === "container" ? (s.children ?? []).map((c) => c.id) : undefined,
+    }));
+
+    // Optimistic apply + snapshot pour rollback
+    const snapshot = initialSections;
+    setPage((p) => ({
+      ...p,
+      content: { ...((p.content as PageContent) ?? {}), sections: next },
+    }));
+
+    startTransition(async () => {
+      const result = await reorderSections({ ...context, plan });
+      if (!result.ok) {
+        setError(result.error);
+        setPage((p) => ({
+          ...p,
+          content: { ...((p.content as PageContent) ?? {}), sections: snapshot },
+        }));
+      }
+    });
+  }
+
+  /** Helper : applique un updater à `page.content.sections` directement. */
+  function setSections(updater: (current: Section[]) => Section[]) {
+    setPage((p) => {
+      const c = (p.content as PageContent) ?? {};
+      return { ...p, content: { ...c, sections: updater(c.sections ?? []) } };
     });
   }
 
@@ -478,45 +592,61 @@ export function PageEditor({
                 ci-dessous.
               </p>
             ) : (
-              <div className="flex flex-col gap-5">
-                {sections.map((s, i) => (
-                  <SectionEditor
-                    key={s.id}
-                    section={s}
-                    index={i}
-                    total={sections.length}
-                    context={context}
-                    onReplace={handleReplaceSection}
-                    onRemove={() => handleRemoveSection(s.id)}
-                    onMove={(d) => handleMoveSection(s.id, d)}
-                    isOpen={openSectionId === s.id}
-                    onToggle={() =>
-                      setOpenSectionId((prev) => (prev === s.id ? null : s.id))
-                    }
-                    onAddChild={
-                      s.type === "container"
-                        ? (t) => handleAddChildSection(s.id, t)
-                        : undefined
-                    }
-                    onReplaceChild={
-                      s.type === "container"
-                        ? (child) =>
-                            handleReplaceSection(child as unknown as Section)
-                        : undefined
-                    }
-                    onRemoveChild={
-                      s.type === "container"
-                        ? (childId) => handleRemoveSection(childId)
-                        : undefined
-                    }
-                    onMoveChild={
-                      s.type === "container"
-                        ? (childId, d) => handleMoveSection(childId, d)
-                        : undefined
-                    }
-                  />
-                ))}
-              </div>
+              <DndContext
+                sensors={sensors}
+                collisionDetection={closestCorners}
+                onDragOver={handleDragOver}
+                onDragEnd={handleDragEnd}
+              >
+                <SortableContext
+                  items={sections.map((s) => s.id)}
+                  strategy={verticalListSortingStrategy}
+                >
+                  <div className="flex flex-col gap-5">
+                    {sections.map((s, i) => (
+                      <SectionEditor
+                        key={s.id}
+                        section={s}
+                        index={i}
+                        total={sections.length}
+                        context={context}
+                        onReplace={handleReplaceSection}
+                        onRemove={() => handleRemoveSection(s.id)}
+                        onMove={(d) => handleMoveSection(s.id, d)}
+                        isOpen={openSectionId === s.id}
+                        onToggle={() =>
+                          setOpenSectionId((prev) =>
+                            prev === s.id ? null : s.id,
+                          )
+                        }
+                        onAddChild={
+                          s.type === "container"
+                            ? (t) => handleAddChildSection(s.id, t)
+                            : undefined
+                        }
+                        onReplaceChild={
+                          s.type === "container"
+                            ? (child) =>
+                                handleReplaceSection(
+                                  child as unknown as Section,
+                                )
+                            : undefined
+                        }
+                        onRemoveChild={
+                          s.type === "container"
+                            ? (childId) => handleRemoveSection(childId)
+                            : undefined
+                        }
+                        onMoveChild={
+                          s.type === "container"
+                            ? (childId, d) => handleMoveSection(childId, d)
+                            : undefined
+                        }
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
             )}
 
             <AddSectionBar onAdd={handleAddSection} disabled={pending} />
@@ -549,6 +679,157 @@ export function PageEditor({
       />
     </div>
   );
+}
+
+// ─── Helpers DnD (pure functions) ─────────────────────────────────────
+
+/**
+ * Localise un bloc par son id : "TOP" s'il est au top-level, l'id du
+ * conteneur parent sinon, null si introuvable.
+ */
+function findContainerOf(
+  itemId: string,
+  secs: Section[],
+): string | "TOP" | null {
+  for (const s of secs) {
+    if (s.id === itemId) return "TOP";
+    if (s.type === "container") {
+      for (const c of s.children ?? []) {
+        if (c.id === itemId) return s.id;
+      }
+    }
+  }
+  return null;
+}
+
+function findBlock(
+  itemId: string,
+  secs: Section[],
+): Section | ChildSection | null {
+  for (const s of secs) {
+    if (s.id === itemId) return s;
+    if (s.type === "container") {
+      for (const c of s.children ?? []) {
+        if (c.id === itemId) return c;
+      }
+    }
+  }
+  return null;
+}
+
+/**
+ * Déplace un bloc d'un conteneur source à un conteneur cible. Si `overId`
+ * désigne un bloc dans le conteneur cible, on insère juste avant lui ;
+ * sinon on append en fin.
+ */
+function moveCrossContainer(
+  secs: Section[],
+  activeId: string,
+  source: string | "TOP",
+  target: string | "TOP",
+  overBlockId: string | null,
+): Section[] {
+  // 1) Retirer du source
+  let next: Section[];
+  let movedBlock: Section | ChildSection | null = null;
+
+  if (source === "TOP") {
+    const idx = secs.findIndex((s) => s.id === activeId);
+    if (idx === -1) return secs;
+    movedBlock = secs[idx];
+    next = secs.filter((_, i) => i !== idx);
+  } else {
+    const cIdx = secs.findIndex((s) => s.id === source);
+    if (cIdx === -1) return secs;
+    const container = secs[cIdx];
+    const chIdx = (container.children ?? []).findIndex(
+      (c) => c.id === activeId,
+    );
+    if (chIdx === -1) return secs;
+    movedBlock = (container.children ?? [])[chIdx];
+    const newChildren = (container.children ?? []).filter(
+      (_, i) => i !== chIdx,
+    );
+    next = [...secs];
+    next[cIdx] = { ...container, children: newChildren };
+  }
+
+  if (!movedBlock) return secs;
+
+  // 2) Insérer dans le target
+  if (target === "TOP") {
+    let insertAt = next.length;
+    if (overBlockId) {
+      const overIdx = next.findIndex((s) => s.id === overBlockId);
+      if (overIdx !== -1) insertAt = overIdx;
+    }
+    return [
+      ...next.slice(0, insertAt),
+      movedBlock as Section,
+      ...next.slice(insertAt),
+    ];
+  }
+
+  const cIdx = next.findIndex((s) => s.id === target);
+  if (cIdx === -1) return secs;
+  const container = next[cIdx];
+  const children = [...(container.children ?? [])];
+  let insertAt = children.length;
+  if (overBlockId) {
+    const overIdx = children.findIndex((c) => c.id === overBlockId);
+    if (overIdx !== -1) insertAt = overIdx;
+  }
+  children.splice(insertAt, 0, movedBlock as ChildSection);
+  next[cIdx] = { ...container, children };
+  return next;
+}
+
+/**
+ * Réordonne deux blocs au sein de la même liste (top-level ou enfants
+ * d'un même conteneur).
+ */
+function reorderWithin(
+  secs: Section[],
+  scope: string | "TOP",
+  activeId: string,
+  overId: string,
+): Section[] {
+  if (scope === "TOP") {
+    const oldIdx = secs.findIndex((s) => s.id === activeId);
+    const newIdx = secs.findIndex((s) => s.id === overId);
+    if (oldIdx === -1 || newIdx === -1) return secs;
+    return arrayMove(secs, oldIdx, newIdx);
+  }
+  const cIdx = secs.findIndex((s) => s.id === scope);
+  if (cIdx === -1) return secs;
+  const container = secs[cIdx];
+  const children = container.children ?? [];
+  const oldIdx = children.findIndex((c) => c.id === activeId);
+  const newIdx = children.findIndex((c) => c.id === overId);
+  if (oldIdx === -1 || newIdx === -1) return secs;
+  const newChildren = arrayMove(children, oldIdx, newIdx);
+  const next = [...secs];
+  next[cIdx] = { ...container, children: newChildren };
+  return next;
+}
+
+/**
+ * Compare deux arbres pour décider si le commit serveur est nécessaire.
+ * On compare uniquement la structure (ids), pas les contenus, puisque
+ * les drags ne modifient pas le contenu des blocs.
+ */
+function sameArrangement(a: Section[], b: Section[]): boolean {
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i++) {
+    if (a[i].id !== b[i].id) return false;
+    const ac = a[i].type === "container" ? a[i].children ?? [] : [];
+    const bc = b[i].type === "container" ? b[i].children ?? [] : [];
+    if (ac.length !== bc.length) return false;
+    for (let j = 0; j < ac.length; j++) {
+      if (ac[j].id !== bc[j].id) return false;
+    }
+  }
+  return true;
 }
 
 function AddSectionBar({
