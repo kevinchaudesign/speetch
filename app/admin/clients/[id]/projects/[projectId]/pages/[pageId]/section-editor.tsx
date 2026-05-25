@@ -5,6 +5,11 @@ import {
   getSectionTypeLabel,
   type Section,
 } from "@/lib/section-types";
+import {
+  CODE_LANGUAGES,
+  CODE_LANGUAGE_LABELS,
+  type CodeLanguage,
+} from "@/lib/code-highlight";
 import { ConfirmDialog } from "@/lib/ds";
 import { AutosaveField, type AutosaveResult } from "./autosave-input";
 import { MediaUploader } from "./media-uploader";
@@ -160,6 +165,59 @@ export function SectionEditor({
           onSectionReplace={onReplace}
         />
       )}
+
+      {section.type === "code" && (
+        <div className="flex flex-col gap-4">
+          <LanguageSelect
+            value={section.language}
+            onChange={(language) => savePatch({ language })}
+            disabled={pending}
+          />
+          <AutosaveField
+            multiline
+            rows={10}
+            initialValue={section.code ?? ""}
+            onSave={(v) => savePatch({ code: v })}
+            placeholder="// Colle ton code ici…"
+            ariaLabel="Code"
+            className="w-full resize-y rounded-md border border-white/10 bg-black/40 p-4 font-mono text-[13px] leading-relaxed text-[#F5F5F7]/90 placeholder:text-white/30 focus:border-white/40 focus:outline-none"
+          />
+        </div>
+      )}
     </article>
+  );
+}
+
+function LanguageSelect({
+  value,
+  onChange,
+  disabled,
+}: {
+  value: string | undefined;
+  onChange: (next: CodeLanguage) => void;
+  disabled?: boolean;
+}) {
+  const current: CodeLanguage =
+    value && (CODE_LANGUAGES as readonly string[]).includes(value)
+      ? (value as CodeLanguage)
+      : "text";
+  return (
+    <label className="flex flex-col gap-2">
+      <span className="text-[10px] uppercase tracking-[0.32em] text-white/45">
+        Langage
+      </span>
+      <select
+        value={current}
+        onChange={(e) => onChange(e.target.value as CodeLanguage)}
+        disabled={disabled}
+        className="w-fit border-b border-white/15 bg-transparent pb-2 font-mono text-sm text-[#F5F5F7] focus:border-white/60 focus:outline-none"
+      >
+        {CODE_LANGUAGES.map((lang) => (
+          <option key={lang} value={lang} className="bg-black text-white/85">
+            {CODE_LANGUAGE_LABELS[lang]}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

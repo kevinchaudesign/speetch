@@ -7,6 +7,7 @@ import type { PageContent } from "@/types/database";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { Eyebrow, Hairline, Sceau } from "@/lib/ds";
 import { PagesDropdown, type PageNavItem } from "./pages-dropdown";
+import { CodeBlock } from "./_code/code-block";
 
 const EASE: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -36,6 +37,7 @@ export function FwaPageView({
   next,
   projectSlug,
   pages,
+  highlightedCode = {},
 }: {
   clientSlug: string;
   clientName: string;
@@ -48,6 +50,7 @@ export function FwaPageView({
   prev: NavTarget;
   next: NavTarget;
   pages: PageNavItem[];
+  highlightedCode?: Record<string, string>;
 }) {
   const sections = content.sections ?? [];
   const intro = content.intro ?? "";
@@ -302,6 +305,7 @@ export function FwaPageView({
           index={i}
           total={sections.length}
           section={section}
+          highlightedHtml={highlightedCode[section.id ?? ""]}
         />
       ))}
 
@@ -402,10 +406,11 @@ type ChapterProps = {
   index: number;
   total: number;
   section: Section;
+  highlightedHtml?: string;
 };
 
 const Chapter = forwardRef<HTMLElement, ChapterProps>(function Chapter(
-  { index, section, total },
+  { index, section, total, highlightedHtml },
   ref,
 ) {
   const { num, title } = parseChapterTitle(section.title, index);
@@ -446,7 +451,7 @@ const Chapter = forwardRef<HTMLElement, ChapterProps>(function Chapter(
         </aside>
 
         <div className="flex max-w-[64ch] flex-col gap-6">
-          <SectionBody section={section} />
+          <SectionBody section={section} highlightedHtml={highlightedHtml} />
         </div>
       </div>
     </motion.section>
@@ -494,9 +499,26 @@ function ChapterTitle({ text }: { text: string }) {
  * Pour `text` : split en paragraphes, et détection légère de blocs
  * pseudo-tableau (lignes "Label : valeur").
  */
-function SectionBody({ section }: { section: Section }) {
+function SectionBody({
+  section,
+  highlightedHtml,
+}: {
+  section: Section;
+  highlightedHtml?: string;
+}) {
   if (section.type === "text" && section.body) {
     return <TextBody body={section.body} />;
+  }
+
+  if (section.type === "code" && section.code) {
+    return (
+      <CodeBlock
+        html={highlightedHtml ?? ""}
+        code={section.code}
+        language={section.language}
+        variant="dark"
+      />
+    );
   }
 
   if (section.type === "image" && section.media?.[0]) {

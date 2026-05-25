@@ -29,6 +29,11 @@ export const SECTION_TYPES: ReadonlyArray<{
     label: "Galerie",
     tagline: "Plusieurs images avec légendes",
   },
+  {
+    value: "code",
+    label: "Code",
+    tagline: "Snippet avec coloration syntaxique",
+  },
 ];
 
 export function isValidSectionType(value: string): value is SectionType {

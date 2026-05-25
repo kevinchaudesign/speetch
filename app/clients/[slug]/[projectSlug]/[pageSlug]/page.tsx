@@ -4,6 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getSessionCookieName, verifySession } from "@/lib/crypto";
 import { isValidSlug } from "@/lib/slug";
+import { highlightCode } from "@/lib/code-highlight";
 import type { PageContent } from "@/types/database";
 import { PublicPageView } from "./public-page-view";
 import { DocumentPageView } from "./document-page-view";
@@ -132,6 +133,26 @@ export default async function PublicPageRoute({ params }: Props) {
       : null;
 
   const style = content.meta?.style;
+
+  // Pré-rendu des sections code via shiki (server-side). Map sectionId → HTML
+  // coloré, passée aux 3 views client (document, fwa, public). Variante de
+  // thème selon le rendu : "light" pour le document éditorial, "dark" sinon.
+  let highlightedCode: Record<string, string> = {};
+  if (!style || style === "document" || style === "fwa") {
+    const variant: "dark" | "light" = style === "document" ? "light" : "dark";
+    const codeSections = (content.sections ?? []).filter(
+      (s) => s.type === "code" && s.code,
+    );
+    if (codeSections.length > 0) {
+      const entries = await Promise.all(
+        codeSections.map(
+          async (s) =>
+            [s.id, await highlightCode(s.code ?? "", s.language, variant)] as const,
+        ),
+      );
+      highlightedCode = Object.fromEntries(entries);
+    }
+  }
 
   const navPages = ordered
     .filter(
@@ -329,6 +350,7 @@ export default async function PublicPageRoute({ params }: Props) {
         prev={prevTarget}
         next={nextTarget}
         pages={navPages}
+        highlightedCode={highlightedCode}
       />
     );
   }
@@ -347,6 +369,7 @@ export default async function PublicPageRoute({ params }: Props) {
         prev={prevTarget}
         next={nextTarget}
         pages={navPages}
+        highlightedCode={highlightedCode}
       />
     );
   }
@@ -364,6 +387,7 @@ export default async function PublicPageRoute({ params }: Props) {
       prev={prevTarget}
       next={nextTarget}
       pages={navPages}
+      highlightedCode={highlightedCode}
     />
   );
 }

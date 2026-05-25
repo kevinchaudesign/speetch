@@ -8,6 +8,7 @@ import type { PageContent } from "@/types/database";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { Hairline } from "@/lib/ds";
 import { PagesDropdown, type PageNavItem } from "./pages-dropdown";
+import { CodeBlock } from "./_code/code-block";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -33,6 +34,7 @@ export function DocumentPageView({
   prev,
   next,
   pages,
+  highlightedCode = {},
 }: {
   clientSlug: string;
   clientName: string;
@@ -45,6 +47,7 @@ export function DocumentPageView({
   prev: { slug: string; name: string } | null;
   next: { slug: string; name: string } | null;
   pages: PageNavItem[];
+  highlightedCode?: Record<string, string>;
 }) {
   useEffect(() => {
     document.body.classList.add("doc-mode-active");
@@ -137,6 +140,7 @@ export function DocumentPageView({
                 key={section.id ?? `${section.type}-${i}`}
                 section={section}
                 index={i}
+                highlightedHtml={highlightedCode[section.id ?? ""]}
               />
             ))}
           </div>
@@ -194,9 +198,11 @@ export function DocumentPageView({
 function DocSection({
   section,
   index,
+  highlightedHtml,
 }: {
   section: Section;
   index: number;
+  highlightedHtml?: string;
 }) {
   return (
     <motion.section
@@ -302,6 +308,15 @@ function DocSection({
             ))}
           </div>
         )}
+
+      {section.type === "code" && section.code && (
+        <CodeBlock
+          html={highlightedHtml ?? ""}
+          code={section.code}
+          language={section.language}
+          variant="light"
+        />
+      )}
     </motion.section>
   );
 }

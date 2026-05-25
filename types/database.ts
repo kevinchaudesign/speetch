@@ -396,7 +396,7 @@ export type ProjectContent = {
   intro?: string;
   sections?: Array<{
     id: string;
-    type: "text" | "image" | "video" | "embed" | "gallery";
+    type: "text" | "image" | "video" | "embed" | "gallery" | "code";
     title?: string;
     body?: string;
     media?: Array<{
@@ -406,6 +406,10 @@ export type ProjectContent = {
       height?: number;
     }>;
     embedUrl?: string;
+    /** Code source brut (type: "code"). Rendu avec coloration syntaxique côté serveur via shiki. */
+    code?: string;
+    /** Langage du bloc code (type: "code"). Voir CODE_LANGUAGES dans lib/code-highlight.ts. */
+    language?: string;
   }>;
   meta?: {
     project_name?: string;

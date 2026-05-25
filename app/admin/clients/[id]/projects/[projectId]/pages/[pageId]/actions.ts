@@ -141,6 +141,8 @@ function makeEmptySection(type: SectionType): Section {
       return { id, type, title: "", embedUrl: "" };
     case "gallery":
       return { id, type, title: "", media: [] };
+    case "code":
+      return { id, type, title: "", code: "", language: "text" };
   }
 }
 

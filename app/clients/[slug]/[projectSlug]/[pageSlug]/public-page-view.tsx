@@ -7,6 +7,7 @@ import type { PageContent } from "@/types/database";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { Hairline } from "@/lib/ds";
 import { PagesDropdown, type PageNavItem } from "./pages-dropdown";
+import { CodeBlock } from "./_code/code-block";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -24,6 +25,7 @@ export function PublicPageView({
   prev,
   next,
   pages,
+  highlightedCode = {},
 }: {
   clientSlug: string;
   clientName: string;
@@ -36,6 +38,7 @@ export function PublicPageView({
   prev: { slug: string; name: string } | null;
   next: { slug: string; name: string } | null;
   pages: PageNavItem[];
+  highlightedCode?: Record<string, string>;
 }) {
   const intro = content.intro ?? null;
   const sections = content.sections ?? [];
@@ -125,6 +128,7 @@ export function PublicPageView({
             <SectionBlock
               key={section.id ?? `${section.type}-${i}`}
               section={section}
+              highlightedHtml={highlightedCode[section.id ?? ""]}
             />
           ))}
         </div>
@@ -196,7 +200,13 @@ function PageNavLink({
   );
 }
 
-function SectionBlock({ section }: { section: Section }) {
+function SectionBlock({
+  section,
+  highlightedHtml,
+}: {
+  section: Section;
+  highlightedHtml?: string;
+}) {
   return (
     <motion.section
       initial={{ opacity: 0, y: 24 }}
@@ -296,6 +306,15 @@ function SectionBlock({ section }: { section: Section }) {
             ))}
           </div>
         )}
+
+      {section.type === "code" && section.code && (
+        <CodeBlock
+          html={highlightedHtml ?? ""}
+          code={section.code}
+          language={section.language}
+          variant="dark"
+        />
+      )}
     </motion.section>
   );
 }
