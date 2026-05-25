@@ -13,6 +13,10 @@ const nextConfig = {
       // Limite par défaut Next = 1 Mo, ce qui bloque dès le 1er PDF.
       bodySizeLimit: "100mb",
     },
+    // Next 15.5+ : limite séparée appliquée AVANT le middleware. Default
+    // = 10mb. Sans surcharge, les uploads > 10mb cassent avec "Unexpected
+    // end of form" même si serverActions.bodySizeLimit est plus grand.
+    middlewareClientMaxBodySize: "100mb",
   },
   images: {
     formats: ["image/avif", "image/webp"],

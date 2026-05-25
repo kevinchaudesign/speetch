@@ -237,6 +237,10 @@ export function MediaLibraryView({
   const [moveMediaState, setMoveMediaState] = useState<MediaItem | null>(null);
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+  // Modale "choisir l'image d'aperçu d'un dossier" — picker sur tous les
+  // médias image du client (pas seulement ceux du dossier).
+  const [coverPickerFolder, setCoverPickerFolder] =
+    useState<MediaFolder | null>(null);
 
   // ── Sélection multiple ────────────────────────────────────────────────────
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -391,7 +395,8 @@ export function MediaLibraryView({
         deleteMediaState ||
         moveMediaState ||
         previewItem ||
-        createFolderOpen
+        createFolderOpen ||
+        coverPickerFolder
       ) {
         return;
       }
@@ -411,6 +416,7 @@ export function MediaLibraryView({
     moveMediaState,
     previewItem,
     createFolderOpen,
+    coverPickerFolder,
   ]);
 
   // Si la sélection courante (filtrage par dossier) change, on purge la
@@ -567,6 +573,7 @@ export function MediaLibraryView({
                       onCreateSub={() =>
                         setCreateFolderState({ parentId: f.id })
                       }
+                      onPickCover={() => setCoverPickerFolder(f)}
                     />
                     {children.map((c) => (
                       <FolderRow
@@ -583,6 +590,7 @@ export function MediaLibraryView({
                         }
                         onRename={() => setRenameFolderState(c)}
                         onDelete={() => setDeleteFolderState(c)}
+                        onPickCover={() => setCoverPickerFolder(c)}
                       />
                     ))}
                   </Fragment>
@@ -660,6 +668,7 @@ export function MediaLibraryView({
                     onClick={() =>
                       setSelection({ kind: "folder", id: sf.id })
                     }
+                    onPickCover={() => setCoverPickerFolder(sf)}
                   />
                 ))}
               </ul>
@@ -928,6 +937,26 @@ export function MediaLibraryView({
         onClose={() => setPreviewItem(null)}
       />
 
+      <CoverPickerModal
+        folder={coverPickerFolder}
+        items={items}
+        onClose={() => setCoverPickerFolder(null)}
+        onPick={async (mediaId) => {
+          if (!coverPickerFolder) return;
+          const res = await setMediaFolderCover({
+            profileId,
+            folderId: coverPickerFolder.id,
+            mediaId,
+          });
+          if (!res.ok) {
+            setError(res.error);
+            return;
+          }
+          setCoverPickerFolder(null);
+          refresh();
+        }}
+      />
+
       <AlertDialog
         open={!!error}
         title="Action impossible"
@@ -1032,6 +1061,8 @@ function FolderRow({
   depth = 0,
   /** Optionnel : callback pour créer un sous-dossier (top-level seulement). */
   onCreateSub,
+  /** Optionnel : callback pour ouvrir le picker d'image d'aperçu. */
+  onPickCover,
 }: {
   label: string;
   count: number;
@@ -1042,6 +1073,7 @@ function FolderRow({
   coverUrl?: string | null;
   depth?: 0 | 1;
   onCreateSub?: () => void;
+  onPickCover?: () => void;
 }) {
   const [hover, setHover] = useState(false);
   return (
@@ -1093,7 +1125,7 @@ function FolderRow({
           {count}
         </span>
       </button>
-      {(onRename || onDelete || onCreateSub) && hover && (
+      {(onRename || onDelete || onCreateSub || onPickCover) && hover && (
         <div className="flex items-center gap-2">
           {onCreateSub && (
             <button
@@ -1104,6 +1136,17 @@ function FolderRow({
               className="text-[10px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white"
             >
               +
+            </button>
+          )}
+          {onPickCover && (
+            <button
+              type="button"
+              onClick={onPickCover}
+              aria-label="Choisir l'image d'aperçu"
+              title="Choisir l'image d'aperçu"
+              className="text-[10px] uppercase tracking-[0.32em] text-white/40 transition-colors hover:text-white"
+            >
+              ✦
             </button>
           )}
           {onRename && (
@@ -1409,17 +1452,19 @@ function FolderTile({
   folder,
   count,
   onClick,
+  onPickCover,
 }: {
   folder: MediaFolder;
   count: number;
   onClick: () => void;
+  onPickCover?: () => void;
 }) {
   return (
-    <li>
+    <li className="group relative">
       <button
         type="button"
         onClick={onClick}
-        className="group relative flex aspect-square w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all hover:border-white/30"
+        className="relative flex aspect-square w-full flex-col overflow-hidden rounded-xl border border-white/10 bg-white/[0.02] transition-all group-hover:border-white/30"
       >
         {folder.cover_url ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -1462,6 +1507,20 @@ function FolderTile({
           {folder.name}
         </span>
       </button>
+      {onPickCover && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation();
+            onPickCover();
+          }}
+          aria-label="Choisir l'image d'aperçu"
+          title="Choisir l'image d'aperçu"
+          className="absolute right-2 top-2 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-[12px] text-white/85 opacity-0 backdrop-blur-sm transition-opacity hover:bg-black/80 hover:text-white group-hover:opacity-100"
+        >
+          ✦
+        </button>
+      )}
     </li>
   );
 }
@@ -1950,6 +2009,171 @@ function PreviewModal({
                   Aperçu non disponible pour ce format.
                 </p>
               )}
+            </div>
+          </motion.div>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ============================================================================
+// Picker d'image d'aperçu pour un dossier
+// ============================================================================
+
+function CoverPickerModal({
+  folder,
+  items,
+  onClose,
+  onPick,
+}: {
+  folder: MediaFolder | null;
+  items: MediaItem[];
+  onClose: () => void;
+  /** mediaId = null pour retirer l'aperçu actuel. */
+  onPick: (mediaId: string | null) => Promise<void> | void;
+}) {
+  const [submitting, setSubmitting] = useState<string | "clear" | null>(null);
+  const open = !!folder;
+
+  useEffect(() => {
+    if (open) setSubmitting(null);
+  }, [open]);
+
+  // Seules les images peuvent servir d'aperçu. Pour un sous-dossier
+  // (parent_id !== null), on restreint le picker aux images qui sont
+  // directement dans ce sous-dossier — l'aperçu doit refléter le contenu.
+  // Pour un dossier top-level, on laisse tout le catalogue image du client.
+  const images = useMemo(() => {
+    const all = items.filter((i) => i.mime_type.startsWith("image/"));
+    if (!folder) return all;
+    if (folder.parent_id !== null) {
+      return all.filter((i) => i.folder_id === folder.id);
+    }
+    return all;
+  }, [items, folder]);
+
+  return (
+    <AnimatePresence>
+      {open && folder && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[88] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm md:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !submitting) onClose();
+          }}
+        >
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
+            className="relative flex w-full max-w-3xl flex-col gap-5 rounded-2xl border border-white/10 bg-[#0a0a0a] px-6 py-8 md:px-8 md:py-10"
+          >
+            <div className="flex flex-col gap-2">
+              <Eyebrow tracking="md" intensity="strong">
+                Image d&apos;aperçu
+              </Eyebrow>
+              <p className="font-mono text-xs text-white/55">
+                Dossier «&nbsp;{folder.name}&nbsp;»
+              </p>
+            </div>
+
+            {images.length === 0 ? (
+              <p className="py-12 text-center font-serif text-base italic text-white/35">
+                {folder.parent_id !== null
+                  ? "Aucune image dans ce sous-dossier. Téléverse ou déplace une image ici pour pouvoir la désigner comme aperçu."
+                  : "Aucune image dans la médiathèque pour le moment."}
+              </p>
+            ) : (
+              <div className="max-h-[60vh] overflow-y-auto pr-1">
+                <ul className="grid grid-cols-3 gap-2 md:grid-cols-4 lg:grid-cols-5">
+                  {/* Tuile "Aucun aperçu" — n'apparaît que si un cover est déjà désigné */}
+                  {folder.cover_media_id && (
+                    <li>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          setSubmitting("clear");
+                          await onPick(null);
+                        }}
+                        disabled={submitting !== null}
+                        className={cn(
+                          "relative flex aspect-square w-full flex-col items-center justify-center gap-2 rounded-md border border-dashed border-white/15 bg-white/[0.02] p-2 text-center text-[10px] uppercase tracking-[0.32em] text-white/50 transition-colors hover:border-white/35 hover:text-white",
+                          submitting === "clear" && "opacity-60",
+                        )}
+                      >
+                        <span className="text-2xl text-white/30">∅</span>
+                        <span>
+                          {submitting === "clear" ? "…" : "Aucun aperçu"}
+                        </span>
+                      </button>
+                    </li>
+                  )}
+                  {images.map((img) => {
+                    const isCurrent = folder.cover_media_id === img.id;
+                    const isPending = submitting === img.id;
+                    return (
+                      <li key={img.id}>
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            if (isCurrent) {
+                              onClose();
+                              return;
+                            }
+                            setSubmitting(img.id);
+                            await onPick(img.id);
+                          }}
+                          disabled={submitting !== null}
+                          title={img.filename}
+                          className={cn(
+                            "relative block aspect-square w-full overflow-hidden rounded-md border bg-white/[0.02] transition-all",
+                            isCurrent
+                              ? "border-white/80 ring-2 ring-white/40"
+                              : "border-white/10 hover:border-white/45",
+                            submitting !== null &&
+                              !isPending &&
+                              !isCurrent &&
+                              "opacity-40",
+                          )}
+                        >
+                          {/* eslint-disable-next-line @next/next/no-img-element */}
+                          <img
+                            src={img.public_url}
+                            alt={img.filename}
+                            className="absolute inset-0 h-full w-full object-cover"
+                            loading="lazy"
+                          />
+                          {isCurrent && (
+                            <span className="absolute inset-x-0 bottom-0 bg-black/70 py-1 text-center text-[9px] uppercase tracking-[0.32em] text-white/90 backdrop-blur-sm">
+                              Actuel
+                            </span>
+                          )}
+                          {isPending && (
+                            <span className="absolute inset-0 flex items-center justify-center bg-black/55 text-[10px] uppercase tracking-[0.32em] text-white">
+                              …
+                            </span>
+                          )}
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
+
+            <div className="mt-2 flex items-center justify-end border-t border-white/10 pt-6">
+              <Button
+                variant="ghost"
+                onClick={onClose}
+                disabled={submitting !== null}
+              >
+                Fermer
+              </Button>
             </div>
           </motion.div>
         </motion.div>
