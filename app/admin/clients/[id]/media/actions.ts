@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import sharp from "sharp";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { MediaFolderRow, MediaRow } from "./_lib/types";
 
@@ -109,6 +110,53 @@ function cleanBaseName(filename: string): string {
       .replace(/^-+|-+$/g, "")
       .slice(0, 60) || "media"
   );
+}
+
+// ============================================================================
+// Conversion AVIF — toutes les images bitmap uploadées sont ré-encodées en
+// AVIF avant stockage. L'original n'est jamais persisté dans le bucket.
+// SVG (vecteur) et GIF (animation) sont préservés tels quels.
+// ============================================================================
+
+const AVIF_QUALITY = 55; // 50–60 = excellent rapport qualité/poids photo
+const AVIF_EFFORT = 4; // 0=rapide / 9=lent. 4 = default sharp, bon compromis.
+
+const AVIF_SKIP_MIMES = new Set<string>(["image/svg+xml", "image/gif"]);
+
+type AvifConversion =
+  | {
+      converted: true;
+      buffer: Buffer;
+      size: number;
+      width: number | null;
+      height: number | null;
+    }
+  | { converted: false };
+
+async function convertImageToAvif(
+  input: ArrayBuffer,
+  sourceMime: string,
+): Promise<AvifConversion> {
+  if (AVIF_SKIP_MIMES.has(sourceMime)) return { converted: false };
+  try {
+    // .rotate() applique l'orientation EXIF avant l'encodage AVIF, sinon
+    // les photos prises au téléphone ressortent tournées.
+    const buffer = await sharp(Buffer.from(input))
+      .rotate()
+      .avif({ quality: AVIF_QUALITY, effort: AVIF_EFFORT })
+      .toBuffer();
+    const meta = await sharp(buffer).metadata();
+    return {
+      converted: true,
+      buffer,
+      size: buffer.byteLength,
+      width: meta.width ?? null,
+      height: meta.height ?? null,
+    };
+  } catch (err) {
+    console.error("[convertImageToAvif] failed:", err);
+    return { converted: false };
+  }
 }
 
 // ============================================================================
@@ -363,16 +411,42 @@ export async function uploadClientMedia(
     return { ok: false, error: "Audio trop volumineux (max 50 MB)." };
   }
 
-  // Path : clients/{profileId}/{timestamp}-{slugified-name}.{ext}
-  const ext = cleanExt(file.name || "media", file.type);
-  const base = cleanBaseName(file.name || "media");
-  const storagePath = `${STORAGE_PREFIX}/${profileId}/${Date.now()}-${base}.${ext}`;
-
   const arrayBuffer = await file.arrayBuffer();
+
+  // Conversion AVIF pour les images bitmap (PNG, JPEG, WEBP, AVIF source).
+  // SVG et GIF passent tel quel (vecteur / animation). L'original n'est
+  // jamais persisté dans le bucket — seul le AVIF résultant est stocké.
+  let storedBuffer: ArrayBuffer | Buffer = arrayBuffer;
+  let storedMime = file.type;
+  let storedSize = file.size;
+  let storedWidth: number | null = null;
+  let storedHeight: number | null = null;
+  let storedExt = cleanExt(file.name || "media", file.type);
+  let storedFilename = file.name || `media.${storedExt}`;
+
+  if (isImage) {
+    const conv = await convertImageToAvif(arrayBuffer, file.type);
+    if (conv.converted) {
+      storedBuffer = conv.buffer;
+      storedMime = "image/avif";
+      storedSize = conv.size;
+      storedWidth = conv.width;
+      storedHeight = conv.height;
+      storedExt = "avif";
+      // Swap d'extension sur le nom affiché : "Photo.HEIC" → "Photo.avif".
+      storedFilename = storedFilename.replace(/\.[a-z0-9]+$/i, ".avif");
+      if (!/\.avif$/i.test(storedFilename)) storedFilename += ".avif";
+    }
+  }
+
+  // Path : clients/{profileId}/{timestamp}-{slugified-name}.{ext}
+  const base = cleanBaseName(file.name || "media");
+  const storagePath = `${STORAGE_PREFIX}/${profileId}/${Date.now()}-${base}.${storedExt}`;
+
   const { error: uploadError } = await auth.admin.storage
     .from(BUCKET)
-    .upload(storagePath, arrayBuffer, {
-      contentType: file.type,
+    .upload(storagePath, storedBuffer, {
+      contentType: storedMime,
       upsert: false,
     });
   if (uploadError) {
@@ -395,10 +469,12 @@ export async function uploadClientMedia(
     .insert({
       profile_id: profileId,
       folder_id: folderId,
-      filename: file.name || `media.${ext}`,
+      filename: storedFilename,
       storage_path: storagePath,
-      mime_type: file.type,
-      size_bytes: file.size,
+      mime_type: storedMime,
+      size_bytes: storedSize,
+      width: storedWidth,
+      height: storedHeight,
       position: nextPosition,
     } as never)
     .select("id")
