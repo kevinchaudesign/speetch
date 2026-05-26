@@ -17,9 +17,28 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
+import { cn } from "@/lib/utils";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
+
+// Préfixes de routes où la nav studio ne doit pas apparaître :
+// pages admin (sidebar dédiée), login, espaces clients protégés et
+// pages publiques de crédits/factures.
+const NAV_HIDDEN_PREFIXES = [
+  "/admin",
+  "/login",
+  "/credits/public",
+];
+
+function shouldHide(pathname: string | null): boolean {
+  if (!pathname) return false;
+  if (NAV_HIDDEN_PREFIXES.some((p) => pathname.startsWith(p))) return true;
+  // /clients (index) garde la nav. /clients/<slug>(/...) = espace privé → cache.
+  if (/^\/clients\/[^/]+/.test(pathname)) return true;
+  return false;
+}
 
 type NavItem = { num: string; label: string; href: string };
 
@@ -38,6 +57,11 @@ function isAnchor(href: string): boolean {
 
 export function NavConstellation() {
   const [open, setOpen] = useState(false);
+  const pathname = usePathname();
+
+  // Sur la home, le ContactAvatar occupe déjà bottom-right (mobile h-14
+  // à bottom-5). On remonte la nav à bottom-24 pour empiler proprement.
+  const onHome = pathname === "/";
 
   // Esc pour fermer
   useEffect(() => {
@@ -79,11 +103,21 @@ export function NavConstellation() {
     });
   }
 
+  // Masque la nav sur les routes où elle n'a pas de sens (admin, login,
+  // espaces clients privés, factures publiques tokenisées).
+  if (shouldHide(pathname)) return null;
+
   return (
     <>
-      {/* Bouton fixed top-right — z-60 > overlay (z-55) pour rester
-          cliquable et permettre le toggle close. */}
-      <div className="fixed right-5 top-5 z-[60] flex flex-col items-center md:right-8 md:top-8">
+      {/* Bouton fixe — mobile : bottom-right (pouce), avec offset bottom-24
+          sur la home pour ne pas chevaucher le ContactAvatar. Desktop :
+          top-right inchangé. z-60 > overlay (z-55) pour permettre le close. */}
+      <div
+        className={cn(
+          "fixed right-5 z-[60] flex flex-col items-center md:right-8 md:top-8 md:bottom-auto",
+          onHome ? "bottom-24" : "bottom-5",
+        )}
+      >
         <motion.button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -213,14 +247,14 @@ export function NavConstellation() {
           `}</style>
         </motion.button>
 
-        {/* Label « Menu » sous l'icône — fade out à l'ouverture
-            (l'overlay plein écran rend le label redondant). */}
+        {/* Label « Menu » sous l'icône — caché sur mobile (icône suffit,
+            espace réduit), fade out à l'ouverture sur desktop. */}
         <motion.span
           initial={{ opacity: 0, y: -4 }}
           animate={{ opacity: open ? 0 : 1, y: 0 }}
           transition={{ duration: 0.5, delay: 0.45, ease: EASE_OUT_EXPO }}
           aria-hidden
-          className="mt-2 select-none font-mono text-[9px] uppercase tracking-[0.4em] text-cyan-200/70"
+          className="mt-2 hidden select-none font-mono text-[9px] uppercase tracking-[0.4em] text-cyan-200/70 md:inline-block"
           style={{
             textShadow:
               "0 0 8px rgba(125, 211, 252, 0.45), 0 0 4px rgba(0, 0, 0, 0.85)",

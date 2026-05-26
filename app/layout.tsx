@@ -7,6 +7,7 @@ import {
   Space_Grotesk,
 } from "next/font/google";
 import "./globals.css";
+import { NavConstellation } from "./_components/landing/nav-constellation";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -135,6 +136,10 @@ export default function RootLayout({
         />
 
         <main className="relative z-10">{children}</main>
+
+        {/* Nav globale — visible sur toutes les pages publiques (logique
+            de masquage par pathname à l'intérieur du composant). */}
+        <NavConstellation />
       </body>
     </html>
   );

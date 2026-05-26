@@ -7,7 +7,6 @@ import { LandingAbout } from "./_components/landing/landing-about";
 import { LandingContact } from "./_components/landing/landing-contact";
 import { LandingFooter } from "./_components/landing/landing-footer";
 import { ContactAvatar } from "./_components/landing/contact-avatar";
-import { NavConstellation } from "./_components/landing/nav-constellation";
 
 const SITE_URL = "https://speetch.com";
 const SITE_TITLE =
@@ -124,12 +123,9 @@ export default function HomePage() {
       <LandingContact />
       <LandingFooter />
 
-      {/* Navigation constellation — bouton orbital top-right qui
-          ouvre un menu holographique vers les 5 sections du site. */}
-      <NavConstellation />
-
       {/* Avatar flottant Speetch — bottom-right, ouvre le chatbot
-          concierge pour mise en relation visiteur ↔ studio. */}
+          concierge pour mise en relation visiteur ↔ studio.
+          (La NavConstellation est désormais dans le root layout.) */}
       <ContactAvatar />
     </main>
   );
