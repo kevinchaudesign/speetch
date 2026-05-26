@@ -71,14 +71,17 @@ async function requireOwnerAndAdmin() {
 async function ensureProfileExists(
   admin: ReturnType<typeof createAdminClient>,
   profileId: string,
-): Promise<{ ok: true } | { ok: false; error: string }> {
+): Promise<
+  | { ok: true; isOwner: boolean }
+  | { ok: false; error: string }
+> {
   const { data: profile } = await admin
     .from("profiles")
-    .select("id")
+    .select("id, is_owner")
     .eq("id", profileId)
-    .maybeSingle();
+    .maybeSingle<{ id: string; is_owner: boolean }>();
   if (!profile) return { ok: false, error: "Client introuvable." };
-  return { ok: true };
+  return { ok: true, isOwner: !!profile.is_owner };
 }
 
 function normalizeName(raw: string | null | undefined): string | null {
@@ -424,7 +427,10 @@ export async function uploadClientMedia(
   let storedExt = cleanExt(file.name || "media", file.type);
   let storedFilename = file.name || `media.${storedExt}`;
 
-  if (isImage) {
+  // Conversion AVIF réservée à la médiathèque studio (profil owner).
+  // Les Holocrons clients gardent les originaux : ils servent de livraison
+  // fidèle, pas de vitrine optimisée.
+  if (isImage && own.isOwner) {
     const conv = await convertImageToAvif(arrayBuffer, file.type);
     if (conv.converted) {
       storedBuffer = conv.buffer;

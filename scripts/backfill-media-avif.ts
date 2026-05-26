@@ -1,19 +1,21 @@
 /**
  * scripts/backfill-media-avif.ts
  *
- * Ré-encode en AVIF toutes les images existantes de la médiathèque
- * (table `client_media`) qui ne le sont pas encore. L'original est
- * supprimé du bucket Storage et la ligne DB est mise à jour
- * (storage_path, filename, mime_type, size_bytes, width, height).
+ * Ré-encode en AVIF les images de la **médiathèque studio** (profil owner)
+ * uniquement. Les Holocrons clients gardent leurs originaux — c'est de la
+ * livraison fidèle, pas une vitrine optimisée.
+ *
+ * Pour chaque image qualifiée : download → AVIF (qualité 55 / effort 4) →
+ * upload → update DB (storage_path, filename, mime_type, size_bytes,
+ * width, height) → suppression de l'original.
  *
  * Ce que le script ne touche pas :
+ *   - Médias appartenant à un profile non-owner (Holocrons clients)
  *   - SVG (vecteur)
  *   - GIF (animation)
  *   - AVIF déjà
  *   - Fichiers nommés comme assets navigateur : favicon*, apple-touch-icon*,
- *     og-image*, icon-192*, icon-512*, manifest*, browserconfig*
- *   - Tout ce qui est dans /public ou /app (favicon root, og:image générée,
- *     etc.) — ces fichiers ne sont pas en base, donc hors scope par nature.
+ *     og-image*, icon-NNN*, manifest*, browserconfig*, mstile*
  *
  * Usage :
  *   npx tsx scripts/backfill-media-avif.ts            # dry-run (par défaut)
@@ -125,11 +127,33 @@ async function main() {
   );
   console.log();
 
+  // Résout les profils owner — seuls leurs médias sont concernés.
+  const { data: owners, error: ownerErr } = await supabase
+    .from("profiles")
+    .select("id, full_name")
+    .eq("is_owner", true);
+  if (ownerErr) {
+    console.error("✘ Lecture profils owner :", ownerErr.message);
+    process.exit(1);
+  }
+  const ownerIds = (owners ?? []).map((o) => o.id as string);
+  if (ownerIds.length === 0) {
+    console.log("Aucun profil marqué is_owner=true — rien à faire.");
+    return;
+  }
+  console.log(
+    `Profil(s) owner : ${(owners ?? [])
+      .map((o) => `${o.full_name ?? "(sans nom)"} [${(o.id as string).slice(0, 8)}]`)
+      .join(", ")}`,
+  );
+  console.log();
+
   const { data: rows, error } = await supabase
     .from("client_media")
     .select(
       "id, profile_id, filename, storage_path, mime_type, size_bytes, width, height",
     )
+    .in("profile_id", ownerIds)
     .like("mime_type", "image/%")
     .order("created_at", { ascending: true });
   if (error) {
