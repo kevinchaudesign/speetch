@@ -73,13 +73,10 @@ async function ensureProfileExists(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, is_owner")
+    .select("id")
     .eq("id", profileId)
     .maybeSingle();
   if (!profile) return { ok: false, error: "Client introuvable." };
-  if (profile.is_owner) {
-    return { ok: false, error: "Pas de médiathèque sur le profil owner." };
-  }
   return { ok: true };
 }
 
