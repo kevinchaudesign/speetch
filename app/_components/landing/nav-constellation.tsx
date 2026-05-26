@@ -16,6 +16,7 @@
  */
 
 import { AnimatePresence, motion } from "framer-motion";
+import Link from "next/link";
 import { useEffect, useState } from "react";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
@@ -26,9 +27,14 @@ const NAV_ITEMS: NavItem[] = [
   { num: "01", label: "Approche", href: "#approche" },
   { num: "02", label: "Disciplines", href: "#disciplines" },
   { num: "03", label: "Clients", href: "#clients" },
-  { num: "04", label: "À propos", href: "#a-propos" },
-  { num: "05", label: "Contact", href: "#contact" },
+  { num: "04", label: "Blog", href: "/blog" },
+  { num: "05", label: "À propos", href: "#a-propos" },
+  { num: "06", label: "Contact", href: "#contact" },
 ];
+
+function isAnchor(href: string): boolean {
+  return href.startsWith("#");
+}
 
 export function NavConstellation() {
   const [open, setOpen] = useState(false);
@@ -273,44 +279,44 @@ export function NavConstellation() {
               onClick={(e) => e.stopPropagation()}
             >
               <ul className="flex flex-col">
-                {NAV_ITEMS.map((item, i) => (
-                  <motion.li
-                    key={item.href}
-                    initial={{ opacity: 0, y: 24, filter: "blur(6px)" }}
-                    animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
-                    exit={{ opacity: 0, y: 12, filter: "blur(4px)" }}
-                    transition={{
-                      duration: 0.6,
-                      delay: 0.15 + i * 0.08,
-                      ease: EASE_OUT_EXPO,
-                    }}
-                    className="border-b border-cyan-200/12 last:border-b-0"
-                  >
-                    <button
-                      type="button"
-                      onClick={() => handleNavigate(item.href)}
-                      className="group flex w-full items-baseline gap-5 py-4 text-left transition-colors duration-300 md:gap-10 md:py-6"
+                {NAV_ITEMS.map((item, i) => {
+                  // Item ancré (#xxx) → smooth scroll côté home. Item de
+                  // route (/blog, /clients…) → next/link, prefetch + transition
+                  // client-side. Le styling est partagé via NavItemInner.
+                  const inner = <NavItemInner num={item.num} label={item.label} />;
+                  return (
+                    <motion.li
+                      key={item.href}
+                      initial={{ opacity: 0, y: 24, filter: "blur(6px)" }}
+                      animate={{ opacity: 1, y: 0, filter: "blur(0px)" }}
+                      exit={{ opacity: 0, y: 12, filter: "blur(4px)" }}
+                      transition={{
+                        duration: 0.6,
+                        delay: 0.15 + i * 0.08,
+                        ease: EASE_OUT_EXPO,
+                      }}
+                      className="border-b border-cyan-200/12 last:border-b-0"
                     >
-                      <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-cyan-200/45 transition-colors duration-300 group-hover:text-cyan-200 md:text-[11px]">
-                        {item.num}
-                      </span>
-                      <span
-                        className="flex-1 font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7] transition-colors duration-500 group-hover:text-cyan-100"
-                        style={{
-                          fontSize: "clamp(2rem, 7vw, 5.5rem)",
-                          textShadow:
-                            "0 0 24px rgba(125, 211, 252, 0.2), 0 0 60px rgba(125, 211, 252, 0.08)",
-                        }}
-                      >
-                        {item.label}
-                      </span>
-                      <span
-                        aria-hidden
-                        className="hidden h-px w-10 bg-cyan-200/40 transition-all duration-700 ease-out group-hover:w-28 group-hover:bg-cyan-100 md:inline-block"
-                      />
-                    </button>
-                  </motion.li>
-                ))}
+                      {isAnchor(item.href) ? (
+                        <button
+                          type="button"
+                          onClick={() => handleNavigate(item.href)}
+                          className="group flex w-full items-baseline gap-5 py-4 text-left transition-colors duration-300 md:gap-10 md:py-6"
+                        >
+                          {inner}
+                        </button>
+                      ) : (
+                        <Link
+                          href={item.href}
+                          onClick={() => setOpen(false)}
+                          className="group flex w-full items-baseline gap-5 py-4 text-left transition-colors duration-300 md:gap-10 md:py-6"
+                        >
+                          {inner}
+                        </Link>
+                      )}
+                    </motion.li>
+                  );
+                })}
               </ul>
 
               {/* Footer overlay : email + signature */}
@@ -336,6 +342,30 @@ export function NavConstellation() {
           </motion.div>
         )}
       </AnimatePresence>
+    </>
+  );
+}
+
+function NavItemInner({ num, label }: { num: string; label: string }) {
+  return (
+    <>
+      <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-cyan-200/45 transition-colors duration-300 group-hover:text-cyan-200 md:text-[11px]">
+        {num}
+      </span>
+      <span
+        className="flex-1 font-sans font-extralight leading-[0.95] tracking-[-0.04em] text-[#F5F5F7] transition-colors duration-500 group-hover:text-cyan-100"
+        style={{
+          fontSize: "clamp(2rem, 7vw, 5.5rem)",
+          textShadow:
+            "0 0 24px rgba(125, 211, 252, 0.2), 0 0 60px rgba(125, 211, 252, 0.08)",
+        }}
+      >
+        {label}
+      </span>
+      <span
+        aria-hidden
+        className="hidden h-px w-10 bg-cyan-200/40 transition-all duration-700 ease-out group-hover:w-28 group-hover:bg-cyan-100 md:inline-block"
+      />
     </>
   );
 }
