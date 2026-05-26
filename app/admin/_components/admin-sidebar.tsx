@@ -74,6 +74,30 @@ function GalerieIcon({ className }: { className?: string }) {
   );
 }
 
+function ChroniquesIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      width="18"
+      height="18"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.3"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      {/* Parchemin déroulé — rouleau holographique de chroniques Jedi.
+          Deux enroulements latéraux + trois lignes de texte. */}
+      <path d="M4 5 a2 2 0 0 1 2 -2 h12 a2 2 0 0 1 2 2 v14 a2 2 0 0 1 -2 2 h-12 a2 2 0 0 1 -2 -2 z" />
+      <path d="M8 8 L16 8" />
+      <path d="M8 12 L16 12" />
+      <path d="M8 16 L13 16" />
+    </svg>
+  );
+}
+
 function PadawansIcon({ className }: { className?: string }) {
   return (
     <svg
@@ -216,6 +240,16 @@ function buildNavItems(ownerProfileId: string | null): NavItem[] {
       href: galleryPath,
       matches: (p) => p.startsWith(galleryPath),
       Icon: GalerieIcon,
+    });
+  }
+
+  // Chroniques (blog studio) — owner-only, comme Galerie.
+  if (ownerProfileId) {
+    base.push({
+      label: "Chroniques",
+      href: "/admin/blog",
+      matches: (p) => p.startsWith("/admin/blog"),
+      Icon: ChroniquesIcon,
     });
   }
 
