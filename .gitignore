@@ -47,3 +47,6 @@ yarn-error.log*
 
 # --- Logs ---
 *.log
+
+# Aperçus locaux des documents client (générés)
+.preview-azul/
