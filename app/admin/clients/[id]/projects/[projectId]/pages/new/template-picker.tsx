@@ -93,6 +93,11 @@ export function TemplatePicker({
                       Upload direct
                     </span>
                   )}
+                  {template.source === "markdown_virtual" && (
+                    <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-300/[0.06] px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-amber-200/85">
+                      Upload .md
+                    </span>
+                  )}
                 </div>
 
                 {/* Nom */}

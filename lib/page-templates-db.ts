@@ -9,6 +9,7 @@ import type { PageContent } from "@/types/database";
 import { createAdminClient } from "@/lib/supabase/server";
 import {
   getPageTemplate as getCodeTemplate,
+  MARKDOWN_VIRTUAL_TEMPLATE,
   PAGE_TEMPLATES,
   RAW_HTML_VIRTUAL_TEMPLATE,
   type PageTemplate,
@@ -56,9 +57,15 @@ export async function listTemplatesForProject(
     defaultContent: (row.default_content as PageContent) ?? {},
   }));
 
-  // La tuile "Reproduction fidèle" apparaît toujours, en premier (universelle,
-  // ne dépend pas du type de projet).
-  return [RAW_HTML_VIRTUAL_TEMPLATE, ...PAGE_TEMPLATES, ...dbTemplates];
+  // Les tuiles d'upload direct ("Reproduction fidèle", "Parchemin Markdown")
+  // apparaissent toujours, en premier : elles sont universelles et ne
+  // dépendent pas du type de projet.
+  return [
+    RAW_HTML_VIRTUAL_TEMPLATE,
+    MARKDOWN_VIRTUAL_TEMPLATE,
+    ...PAGE_TEMPLATES,
+    ...dbTemplates,
+  ];
 }
 
 /**

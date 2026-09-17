@@ -19,6 +19,7 @@ const UUID_REGEX =
 
 const MAX_HTML_SIZE = 3 * 1024 * 1024; // 3 MB
 const MAX_DOCX_SIZE = 8 * 1024 * 1024; // 8 MB
+const MAX_MARKDOWN_SIZE = 2 * 1024 * 1024; // 2 MB (texte brut)
 
 const ALLOWED_DOCX_MIME = new Set([
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -29,6 +30,14 @@ const ALLOWED_HTML_MIME = new Set([
   "text/html",
   "application/xhtml+xml",
   "", // certains navigateurs n'envoient pas de mime pour les .html
+]);
+
+const ALLOWED_MARKDOWN_MIME = new Set([
+  "text/markdown",
+  "text/x-markdown",
+  "text/plain",
+  "application/octet-stream", // macOS/Windows n'ont pas toujours de mime .md
+  "", // certains navigateurs n'envoient rien du tout
 ]);
 
 export async function createPage(
@@ -285,19 +294,22 @@ export async function createRawHtmlPage(
   redirect(`/admin/clients/${profileId}/projects/${projectId}`);
 }
 
-/* ─── Import Business plan : .docx ou HTML artifact Claude ──────────── */
+/* ─── Import de parchemin : .docx, .md ou HTML artifact Claude ──────── */
 
 /**
- * Crée un parchemin business plan en mode raw_html à partir d'un upload.
+ * Crée un parchemin en mode raw_html à partir d'un upload.
  *
  * Sources supportées :
  *  - .docx (Word) : converti en HTML stylé via Mammoth
+ *  - .md (Markdown) : converti en HTML stylé via marked
  *  - .html (artifact Claude ou export Word HTML) : stocké tel quel
  *
  * Le résultat est toujours un parchemin style "raw_html" qui rend le
- * HTML dans une iframe sandbox sur la page publique.
+ * HTML dans une iframe sandbox sur la page publique. Utilisé par les
+ * blueprints à import (business plan, étude de marché, pitch deck) et par
+ * la tuile universelle "Parchemin Markdown".
  */
-export async function createBusinessPlanFromImport(
+export async function createPageFromImport(
   _prev: CreatePageState,
   formData: FormData,
 ): Promise<CreatePageState> {
@@ -339,7 +351,7 @@ export async function createBusinessPlanFromImport(
       error: "Le titre du parchemin doit faire au moins 2 caractères.",
     };
   }
-  if (source !== "docx" && source !== "html") {
+  if (source !== "docx" && source !== "html" && source !== "markdown") {
     return { status: "error", error: "Source d'import inconnue." };
   }
   if (!(file instanceof File) || file.size === 0) {
@@ -368,13 +380,51 @@ export async function createBusinessPlanFromImport(
       const result = await convertDocxToHtml(buffer, name);
       html = result.html;
     } catch (err) {
-      console.error("[createBusinessPlanFromImport] docx convert:", err);
+      console.error("[createPageFromImport] docx convert:", err);
       return {
         status: "error",
         error:
           err instanceof Error
             ? `Conversion .docx échouée : ${err.message}`
             : "Conversion .docx échouée.",
+      };
+    }
+  } else if (source === "markdown") {
+    if (
+      !ALLOWED_MARKDOWN_MIME.has(file.type) &&
+      !/\.(md|markdown|mdx)$/i.test(file.name)
+    ) {
+      return {
+        status: "error",
+        error: `Format attendu : .md (reçu : ${file.type || "inconnu"}).`,
+      };
+    }
+    if (file.size > MAX_MARKDOWN_SIZE) {
+      return {
+        status: "error",
+        error: "Fichier .md trop volumineux (max 2 MB).",
+      };
+    }
+    const markdown = await file.text();
+    if (markdown.trim().length < 2) {
+      return {
+        status: "error",
+        error: "Markdown vide ou trop court pour être exploitable.",
+      };
+    }
+    try {
+      const { convertMarkdownToHtml } = await import(
+        "@/app/admin/clients/[id]/context/_lib/context-conversion"
+      );
+      html = convertMarkdownToHtml(markdown, name);
+    } catch (err) {
+      console.error("[createPageFromImport] markdown convert:", err);
+      return {
+        status: "error",
+        error:
+          err instanceof Error
+            ? `Conversion .md échouée : ${err.message}`
+            : "Conversion .md échouée.",
       };
     }
   } else {
@@ -411,7 +461,7 @@ export async function createBusinessPlanFromImport(
     return { status: "error", error: "Projet introuvable." };
   }
 
-  const baseSlug = slugify(name) || "business-plan";
+  const baseSlug = slugify(name) || "parchemin";
   const slug = await ensureUniqueSlug(baseSlug, async (candidate) => {
     const { data } = await admin
       .from("pages")
@@ -452,7 +502,7 @@ export async function createBusinessPlanFromImport(
   });
 
   if (insertError) {
-    console.error("[createBusinessPlanFromImport] insert error:", insertError);
+    console.error("[createPageFromImport] insert error:", insertError);
     return {
       status: "error",
       error: insertError.message || "Erreur d'insertion en base.",

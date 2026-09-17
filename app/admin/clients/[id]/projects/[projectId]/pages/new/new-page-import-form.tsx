@@ -5,15 +5,12 @@ import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Field } from "@/lib/ds";
-import {
-  createBusinessPlanFromImport,
-  type CreatePageState,
-} from "./actions";
+import { createPageFromImport, type CreatePageState } from "./actions";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: CreatePageState = { status: "idle" };
 
-type ImportSource = "docx" | "html";
+type ImportSource = "docx" | "markdown" | "html";
 
 const SOURCE_LABELS: Record<ImportSource, {
   hint: string;
@@ -30,6 +27,14 @@ const SOURCE_LABELS: Record<ImportSource, {
     description:
       "Le document Word est converti en HTML stylé. Les titres, listes, gras, italiques et tableaux sont préservés. Les images embarquées sont inlinées en base64.",
   },
+  markdown: {
+    hint: "Fichier Markdown .md",
+    accept: ".md,.markdown,.mdx,text/markdown,text/x-markdown",
+    maxLabel: "max 2 MB",
+    badge: "Markdown",
+    description:
+      "Le Markdown est converti en HTML stylé Speetch. Titres, listes, tableaux, blocs de code, citations et liens sont préservés. Idéal pour une note, un README ou un export de conversation Claude.",
+  },
   html: {
     hint: "Fichier HTML d'artifact Claude",
     accept: ".html,.htm,text/html",
@@ -42,26 +47,28 @@ const SOURCE_LABELS: Record<ImportSource, {
 
 function SubmitButton({ source }: { source: ImportSource }) {
   const { pending } = useFormStatus();
-  const label = source === "docx" ? "Convertir & sceller" : "Sceller le parchemin";
+  const converts = source === "docx" || source === "markdown";
+  const label = converts ? "Convertir & sceller" : "Sceller le parchemin";
   return (
     <button
       type="submit"
       disabled={pending}
       className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-100/80 transition-colors duration-300 hover:text-cyan-100 disabled:cursor-wait disabled:opacity-50"
     >
-      <span>{pending ? (source === "docx" ? "Conversion…" : "Scellement…") : label}</span>
+      <span>{pending ? (converts ? "Conversion…" : "Scellement…") : label}</span>
       <span className="inline-block h-px w-6 bg-cyan-200/85 transition-all duration-500 ease-out group-hover:w-12 group-hover:bg-cyan-100" />
     </button>
   );
 }
 
-export function NewBusinessPlanImportForm({
+export function NewPageImportForm({
   clientId,
   projectId,
   projectName,
   source,
   templateId = "business_plan",
   templateLabel = "Business plan",
+  backHref,
 }: {
   clientId: string;
   projectId: string;
@@ -71,12 +78,20 @@ export function NewBusinessPlanImportForm({
   templateId?: string;
   /** Label affiché dans le breadcrumb (ex : "Business plan", "Étude de marché"). */
   templateLabel?: string;
+  /**
+   * Destination du lien "Changer de source". Par défaut l'écran d'options du
+   * blueprint ; la tuile universelle "Parchemin Markdown" n'en a pas et
+   * renvoie directement au picker de blueprints.
+   */
+  backHref?: string;
 }) {
   const [state, formAction] = useActionState(
-    createBusinessPlanFromImport,
+    createPageFromImport,
     INITIAL_STATE,
   );
   const cfg = SOURCE_LABELS[source];
+  const base = `/admin/clients/${clientId}/projects/${projectId}/pages/new`;
+  const changeSourceHref = backHref ?? `${base}?template=${templateId}`;
 
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
@@ -100,7 +115,7 @@ export function NewBusinessPlanImportForm({
         className="flex items-center justify-between md:hidden"
       >
         <Link
-          href={`/admin/clients/${clientId}/projects/${projectId}/pages/new?template=${templateId}`}
+          href={changeSourceHref}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
@@ -125,7 +140,7 @@ export function NewBusinessPlanImportForm({
           </p>
 
           <Link
-            href={`/admin/clients/${clientId}/projects/${projectId}/pages/new?template=${templateId}`}
+            href={changeSourceHref}
             className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
           >
             <span className="inline-block h-px w-3 bg-current transition-all duration-500 ease-out group-hover:w-6 group-hover:bg-cyan-200" />

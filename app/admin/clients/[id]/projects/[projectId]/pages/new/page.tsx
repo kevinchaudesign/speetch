@@ -4,6 +4,7 @@ import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import {
   isValidTemplateId,
+  MARKDOWN_VIRTUAL_TEMPLATE_ID,
   RAW_HTML_VIRTUAL_TEMPLATE_ID,
 } from "@/lib/page-templates";
 import { listTemplatesForProject, loadTemplate } from "@/lib/page-templates-db";
@@ -12,7 +13,7 @@ import { NewRawHtmlPageForm } from "./new-raw-html-page-form";
 import { BusinessPlanPicker } from "./business-plan-picker";
 import { MarketResearchPicker } from "./market-research-picker";
 import { PitchDeckPicker } from "./pitch-deck-picker";
-import { NewBusinessPlanImportForm } from "./new-business-plan-import-form";
+import { NewPageImportForm } from "./new-page-import-form";
 import { TemplatePicker } from "./template-picker";
 
 const BUSINESS_PLAN_TEMPLATE_ID = "business_plan";
@@ -91,14 +92,31 @@ export default async function NewPagePage({
     );
   }
 
-  // Étape 2b — flow spécial "Business plan" : écran 4 options (structure /
-  // vierge / import docx / import HTML artifact Claude). Le param
+  // Étape 2a bis — tuile universelle "Parchemin Markdown" : upload .md
+  // converti en HTML stylé. Pas d'écran d'options intermédiaire, on va
+  // directement au formulaire d'import.
+  if (template === MARKDOWN_VIRTUAL_TEMPLATE_ID) {
+    return (
+      <NewPageImportForm
+        clientId={profile.id}
+        projectId={projectId}
+        projectName={project.name}
+        source="markdown"
+        templateId={MARKDOWN_VIRTUAL_TEMPLATE_ID}
+        templateLabel="Nouveau parchemin"
+        backHref={`/admin/clients/${profile.id}/projects/${projectId}/pages/new`}
+      />
+    );
+  }
+
+  // Étape 2b — flow spécial "Business plan" : écran 5 options (structure /
+  // vierge / import docx / import .md / import HTML artifact Claude). Le param
   // `?mode=create` lève la garde et continue vers le form de création
   // standard avec le template business_plan pré-rempli.
   if (template === BUSINESS_PLAN_TEMPLATE_ID) {
     if (mode === "import-docx") {
       return (
-        <NewBusinessPlanImportForm
+        <NewPageImportForm
           clientId={profile.id}
           projectId={projectId}
           projectName={project.name}
@@ -108,11 +126,21 @@ export default async function NewPagePage({
     }
     if (mode === "import-html") {
       return (
-        <NewBusinessPlanImportForm
+        <NewPageImportForm
           clientId={profile.id}
           projectId={projectId}
           projectName={project.name}
           source="html"
+        />
+      );
+    }
+    if (mode === "import-md") {
+      return (
+        <NewPageImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="markdown"
         />
       );
     }
@@ -133,7 +161,7 @@ export default async function NewPagePage({
   if (template === MARKET_RESEARCH_TEMPLATE_ID) {
     if (mode === "import-docx") {
       return (
-        <NewBusinessPlanImportForm
+        <NewPageImportForm
           clientId={profile.id}
           projectId={projectId}
           projectName={project.name}
@@ -145,11 +173,23 @@ export default async function NewPagePage({
     }
     if (mode === "import-html") {
       return (
-        <NewBusinessPlanImportForm
+        <NewPageImportForm
           clientId={profile.id}
           projectId={projectId}
           projectName={project.name}
           source="html"
+          templateId="market_research"
+          templateLabel="Étude de marché"
+        />
+      );
+    }
+    if (mode === "import-md") {
+      return (
+        <NewPageImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="markdown"
           templateId="market_research"
           templateLabel="Étude de marché"
         />
@@ -168,11 +208,11 @@ export default async function NewPagePage({
   }
 
   // Étape 2d — flow spécial "Pitch deck" : même pattern (10 slides
-  // pré-remplis + import .docx / HTML artifact).
+  // pré-remplis + import .docx / .md / HTML artifact).
   if (template === PITCH_DECK_TEMPLATE_ID) {
     if (mode === "import-docx") {
       return (
-        <NewBusinessPlanImportForm
+        <NewPageImportForm
           clientId={profile.id}
           projectId={projectId}
           projectName={project.name}
@@ -184,11 +224,23 @@ export default async function NewPagePage({
     }
     if (mode === "import-html") {
       return (
-        <NewBusinessPlanImportForm
+        <NewPageImportForm
           clientId={profile.id}
           projectId={projectId}
           projectName={project.name}
           source="html"
+          templateId="pitch_deck"
+          templateLabel="Pitch deck"
+        />
+      );
+    }
+    if (mode === "import-md") {
+      return (
+        <NewPageImportForm
+          clientId={profile.id}
+          projectId={projectId}
+          projectName={project.name}
+          source="markdown"
           templateId="pitch_deck"
           templateLabel="Pitch deck"
         />

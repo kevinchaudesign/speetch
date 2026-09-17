@@ -2,18 +2,19 @@ import Link from "next/link";
 
 /**
  * PitchDeckPicker — écran de choix au moment de créer un parchemin
- * Pitch deck. 4 options présentées sous forme de cards :
+ * Pitch deck. 5 options présentées sous forme de cards :
  *  1. Structure complète (10 slides pré-remplis)
  *  2. Parchemin vierge
  *  3. Importer un fichier .docx
- *  4. Importer un fichier HTML d'artifact Claude
+ *  4. Importer un fichier .md
+ *  5. Importer un fichier HTML d'artifact Claude
  *
  * Mirror du BusinessPlanPicker pour le blueprint `pitch_deck`.
  */
 
 type Option = {
   id: string;
-  kind: "structure" | "blank" | "import-docx" | "import-html";
+  kind: "structure" | "blank" | "import-docx" | "import-md" | "import-html";
   num: string;
   label: string;
   tagline: string;
@@ -53,9 +54,19 @@ const OPTIONS: Option[] = [
     status: "ready",
   },
   {
+    id: "import-md",
+    kind: "import-md",
+    num: "04",
+    label: "Importer un .md",
+    tagline: "Fichier Markdown converti automatiquement",
+    description:
+      "Confie une note, un README ou un export Markdown. Titres, listes, tableaux, blocs de code et citations sont convertis en HTML stylé Speetch.",
+    status: "ready",
+  },
+  {
     id: "import-html",
     kind: "import-html",
-    num: "04",
+    num: "05",
     label: "Importer un artifact Claude",
     tagline: "Fichier HTML généré par Claude",
     description:
@@ -78,6 +89,9 @@ function buildHref(
   }
   if (option.kind === "import-docx") {
     return `${base}?template=pitch_deck&mode=import-docx`;
+  }
+  if (option.kind === "import-md") {
+    return `${base}?template=pitch_deck&mode=import-md`;
   }
   if (option.kind === "import-html") {
     return `${base}?template=pitch_deck&mode=import-html`;
@@ -146,7 +160,7 @@ export function PitchDeckPicker({
           </h1>
 
           <p className="max-w-xl text-balance font-serif text-base italic text-white/55 md:text-lg">
-            Quatre voies pour forger un pitch deck : structure
+            Cinq voies pour forger un pitch deck : structure
             pré-remplie, parchemin vierge, ou import d&apos;un document
             existant.
           </p>
@@ -200,7 +214,7 @@ function OptionCard({
     <>
       <div className="flex items-center justify-between gap-3">
         <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-cyan-200/45">
-          {option.num} / 04
+          {option.num} / {String(OPTIONS.length).padStart(2, "0")}
         </span>
         {disabled && (
           <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-300/[0.06] px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-amber-200/85">

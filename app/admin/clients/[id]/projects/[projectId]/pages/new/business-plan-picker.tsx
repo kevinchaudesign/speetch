@@ -2,19 +2,21 @@ import Link from "next/link";
 
 /**
  * BusinessPlanPicker — écran de choix au moment de créer un parchemin
- * Business plan. 4 options présentées sous forme de cards :
+ * Business plan. 5 options présentées sous forme de cards :
  *  1. Structure complète (10 sections pré-remplies)
  *  2. Parchemin vierge
  *  3. Importer un fichier .docx
- *  4. Importer un fichier HTML d'artifact Claude
+ *  4. Importer un fichier .md
+ *  5. Importer un fichier HTML d'artifact Claude
  *
  * Options 1-2 redirigent vers le flow de création standard avec le
- * template approprié. Options 3-4 sont des stubs Phase 2 (parsing).
+ * template approprié. Options 3-5 passent par le form d'import
+ * (`?mode=import-*`) qui convertit le fichier en parchemin raw_html.
  */
 
 type Option = {
   id: string;
-  kind: "structure" | "blank" | "import-docx" | "import-html";
+  kind: "structure" | "blank" | "import-docx" | "import-md" | "import-html";
   num: string;
   label: string;
   tagline: string;
@@ -54,9 +56,19 @@ const OPTIONS: Option[] = [
     status: "ready",
   },
   {
+    id: "import-md",
+    kind: "import-md",
+    num: "04",
+    label: "Importer un .md",
+    tagline: "Fichier Markdown converti automatiquement",
+    description:
+      "Confie une note, un README ou un export Markdown. Titres, listes, tableaux, blocs de code et citations sont convertis en HTML stylé Speetch.",
+    status: "ready",
+  },
+  {
     id: "import-html",
     kind: "import-html",
-    num: "04",
+    num: "05",
     label: "Importer un artifact Claude",
     tagline: "Fichier HTML généré par Claude",
     description:
@@ -81,6 +93,9 @@ function buildHref(
   }
   if (option.kind === "import-docx") {
     return `${base}?template=business_plan&mode=import-docx`;
+  }
+  if (option.kind === "import-md") {
+    return `${base}?template=business_plan&mode=import-md`;
   }
   if (option.kind === "import-html") {
     return `${base}?template=business_plan&mode=import-html`;
@@ -151,9 +166,9 @@ export function BusinessPlanPicker({
           </h1>
 
           <p className="max-w-xl text-balance font-serif text-base italic text-white/55 md:text-lg">
-            Quatre voies pour forger un business plan : structure
+            Cinq voies pour forger un business plan : structure
             pré-remplie, parchemin vierge, ou import d&apos;un document
-            existant.
+            existant (.docx, .md, HTML).
           </p>
         </div>
 
@@ -207,7 +222,7 @@ function OptionCard({
     <>
       <div className="flex items-center justify-between gap-3">
         <span className="font-mono text-[10px] uppercase tracking-[0.4em] text-cyan-200/45">
-          {option.num} / 04
+          {option.num} / {String(OPTIONS.length).padStart(2, "0")}
         </span>
         {disabled && (
           <span className="inline-flex items-center rounded-full border border-amber-300/30 bg-amber-300/[0.06] px-2 py-0.5 text-[9px] uppercase tracking-[0.32em] text-amber-200/85">

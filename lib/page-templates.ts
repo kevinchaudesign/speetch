@@ -23,7 +23,7 @@ export type PageTemplate = {
   tagline: string;
   description?: string;
   defaultContent: PageContent;
-  source: "code" | "db" | "raw_html_virtual";
+  source: "code" | "db" | "raw_html_virtual" | "markdown_virtual";
   projectType?: string | null;
 };
 
@@ -53,6 +53,26 @@ export const RAW_HTML_VIRTUAL_TEMPLATE: PageTemplate = {
   description:
     "Pas de conversion. Le HTML est stocké tel quel et affiché dans un iframe sandbox sur la page publique. Idéal pour reproduire un document avec sa mise en page d'origine (tables, callouts, signatures…).",
   source: "raw_html_virtual",
+  projectType: null,
+  defaultContent: { intro: "", sections: [] },
+};
+
+/**
+ * Sentinelle pour la tuile "Parchemin Markdown" du picker : comme
+ * `_raw_html`, ce n'est pas un template stocké mais un marqueur qui
+ * déclenche un flow d'upload .md (cf. createPageFromImport, source
+ * "markdown"). La page créée est stockée en `_raw_html` — le markdown est
+ * converti en HTML autonome avant insertion.
+ */
+export const MARKDOWN_VIRTUAL_TEMPLATE_ID = "_markdown";
+
+export const MARKDOWN_VIRTUAL_TEMPLATE: PageTemplate = {
+  id: MARKDOWN_VIRTUAL_TEMPLATE_ID,
+  label: "Parchemin Markdown",
+  tagline: "Uploade un .md, il est converti en page stylée",
+  description:
+    "Note, README, doc technique, export d'une conversation Claude… Le Markdown est converti en HTML stylé Speetch (titres, listes, tableaux, code, citations préservés) et rendu dans un iframe sandbox.",
+  source: "markdown_virtual",
   projectType: null,
   defaultContent: { intro: "", sections: [] },
 };
