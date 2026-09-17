@@ -6,6 +6,7 @@ import { getProjectTypeLabel } from "@/lib/project-types";
 import { Button, Eyebrow, StatusBadge } from "@/lib/ds";
 import { clientLookupColumn } from "@/lib/admin/resolve-client";
 import { DeleteProjectButton } from "./projects/[projectId]/_components/delete-project-button";
+import { RenameProjectButton } from "./projects/[projectId]/_components/rename-project-button";
 import { PasswordEditCard } from "./_components/password-edit-card";
 
 export const metadata: Metadata = {
@@ -303,11 +304,18 @@ export default async function ClientHubPage({
                         <StatusBadge tone="warning">En forge</StatusBadge>
                       )}
                     </Link>
-                    <DeleteProjectButton
-                      profileId={client.id}
-                      projectId={project.id}
-                      projectName={project.name}
-                    />
+                    <div className="flex items-center gap-4">
+                      <RenameProjectButton
+                        profileId={client.id}
+                        projectId={project.id}
+                        projectName={project.name}
+                      />
+                      <DeleteProjectButton
+                        profileId={client.id}
+                        projectId={project.id}
+                        projectName={project.name}
+                      />
+                    </div>
                   </li>
                 );
               })}

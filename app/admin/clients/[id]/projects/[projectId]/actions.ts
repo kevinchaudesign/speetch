@@ -12,6 +12,7 @@ const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const BUCKET = "page-media";
 const MAX_LOT_NAME_LEN = 80;
+const MAX_PROJECT_NAME_LEN = 120;
 
 type DeleteProjectInput = {
   profileId: string;
@@ -140,6 +141,72 @@ export async function deleteProject(
   revalidatePath("/admin/clients");
   revalidatePath(`/admin/clients/${input.profileId}/projects/${input.projectId}`);
   return { ok: true };
+}
+
+export type RenameProjectResult =
+  | { ok: true; name: string }
+  | { ok: false; error: string };
+
+/**
+ * Renomme une mission.
+ *
+ * Seul `name` change : le `slug` reste figé, comme pour le renommage d'un
+ * parchemin (`updatePageName`). C'est délibéré — le slug porte l'URL
+ * publique `/clients/{client}/{mission}/...` déjà partagée avec le client,
+ * et la régénérer casserait les liens en circulation.
+ */
+export async function renameProject(input: {
+  profileId: string;
+  projectId: string;
+  name: string;
+}): Promise<RenameProjectResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  if (!UUID_REGEX.test(input.projectId)) {
+    return { ok: false, error: "Projet invalide." };
+  }
+
+  const name = String(input.name ?? "").trim();
+  if (name.length < 2) {
+    return {
+      ok: false,
+      error: "Le nom de la mission doit faire au moins 2 caractères.",
+    };
+  }
+  if (name.length > MAX_PROJECT_NAME_LEN) {
+    return {
+      ok: false,
+      error: `Le nom ne peut pas dépasser ${MAX_PROJECT_NAME_LEN} caractères.`,
+    };
+  }
+
+  const ownership = await ensureProjectOwnership(
+    auth.admin,
+    input.profileId,
+    input.projectId,
+  );
+  if (!ownership.ok) return { ok: false, error: ownership.error };
+
+  const { error } = await auth.admin
+    .from("projects")
+    .update({ name })
+    .eq("id", input.projectId)
+    .eq("profile_id", input.profileId);
+
+  if (error) {
+    console.error("[renameProject] update error:", error);
+    return { ok: false, error: error.message };
+  }
+
+  revalidatePath("/admin/clients");
+  revalidatePath(`/admin/clients/${input.profileId}`);
+  revalidatePath(
+    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
+  );
+  return { ok: true, name };
 }
 
 export type ReorderProjectPagesResult =
