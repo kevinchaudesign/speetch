@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { Button, Eyebrow, StatusBadge } from "@/lib/ds";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { DeleteProjectButton } from "./projects/[projectId]/_components/delete-project-button";
 import { RenameProjectButton } from "./projects/[projectId]/_components/rename-project-button";
 import { PasswordEditCard } from "./_components/password-edit-card";
@@ -63,14 +63,14 @@ export default async function ClientHubPage({
     .select(
       "id, full_name, slug, client_email, is_published, created_at, projects!profile_id(id, name, is_published, project_type, position, created_at)",
     )
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
 
   if (error || !data) notFound();
 
   const client = data as ClientHub;
-  const clientSlug = clientSegment(client);
+  const clientSlug = routeSegment(client);
   // URL canonique : le segment porte le nom du client, jamais son UUID.
   if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}`);
   const projects = [...(client.projects ?? [])].sort((a, b) => {

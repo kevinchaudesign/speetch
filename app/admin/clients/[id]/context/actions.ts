@@ -1,6 +1,7 @@
 "use server";
 import {
   revalidateClientPath,
+  revalidateContextPath,
   resolveClientSegment,
 } from "@/lib/admin/resolve-client";
 
@@ -542,8 +543,8 @@ export async function createClientContext(
   const { data: inserted, error: insertError } = await auth.admin
     .from("client_contexts" as never)
     .insert(insertPayload as never)
-    .select("id")
-    .single<{ id: string }>();
+    .select("id, slug")
+    .single<{ id: string; slug: string }>();
 
   if (insertError || !inserted) {
     console.error("[createClientContext] insert error:", insertError);
@@ -555,7 +556,7 @@ export async function createClientContext(
 
   await revalidateClientPath(profileId, `/context`);
   redirect(
-    `/admin/clients/${await resolveClientSegment(profileId)}/context/${inserted.id}`,
+    `/admin/clients/${await resolveClientSegment(profileId)}/context/${inserted.slug}`,
   );
 }
 
@@ -627,7 +628,7 @@ export async function updateContextHiddenElements(input: {
     return { ok: false, error: error.message };
   }
 
-  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
+  await revalidateContextPath(input.profileId, input.contextId);
   return { ok: true };
 }
 
@@ -711,7 +712,7 @@ export async function updateContextTextOverrides(input: {
     return { ok: false, error: error.message };
   }
 
-  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
+  await revalidateContextPath(input.profileId, input.contextId);
   return { ok: true };
 }
 
@@ -807,7 +808,7 @@ export async function updateContextRawHtml(input: {
     return { ok: false, error: error.message };
   }
 
-  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
+  await revalidateContextPath(input.profileId, input.contextId);
   return { ok: true };
 }
 
@@ -996,7 +997,7 @@ export async function setContextPublishing(input: {
   }
 
   await revalidateClientPath(input.profileId, `/context`);
-  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
+  await revalidateContextPath(input.profileId, input.contextId);
   if (finalProjectId) {
     await revalidateClientPath(input.profileId, `/projects/${finalProjectId}`);
   }
@@ -1098,7 +1099,7 @@ export async function appendContextBlock(
     return { ok: false, error: error.message };
   }
 
-  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
+  await revalidateContextPath(input.profileId, input.contextId);
   return { ok: true };
 }
 
@@ -1247,7 +1248,7 @@ export async function refreshContextSnapshot(input: {
     return { ok: false, error: updateError.message };
   }
 
-  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
+  await revalidateContextPath(input.profileId, input.contextId);
   return { ok: true };
 }
 
@@ -1310,7 +1311,7 @@ export async function setContextSpeetchStyle(input: {
   }
 
   await revalidateClientPath(input.profileId, `/context`);
-  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
+  await revalidateContextPath(input.profileId, input.contextId);
   return { ok: true, enabled: input.enabled };
 }
 

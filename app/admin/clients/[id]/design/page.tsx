@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { deleteDesignFile } from "./actions";
 import { UploadZone } from "./upload-zone";
 
@@ -61,12 +61,12 @@ export default async function DesignPage({
   const { data: client } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
 
   if (!client) notFound();
-  const clientSlug = clientSegment(client);
+  const clientSlug = routeSegment(client);
   // URL canonique : le segment porte le nom du client, jamais son UUID.
   if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/design`);
 

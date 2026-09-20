@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { isValidProjectType } from "@/lib/project-types";
 import { NewProjectForm } from "./new-project-form";
 import { TypePicker } from "./type-picker";
@@ -41,13 +41,13 @@ export default async function NewProjectPage({
   const { data: client } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
 
   if (!client) notFound();
   // URL canonique : le segment porte le nom du client, jamais son UUID.
-  const clientSlug = clientSegment(client);
+  const clientSlug = routeSegment(client);
   if (clientSlug !== id) {
     const query = type ? `?type=${encodeURIComponent(type)}` : "";
     redirect(`/admin/clients/${clientSlug}/projects/new${query}`);

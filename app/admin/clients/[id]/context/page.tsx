@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { Button, Chip, Hairline } from "@/lib/ds";
 import type { ClientContextSummary } from "./_lib/types";
 import { DeleteContextButton } from "./_components/delete-context-button";
@@ -41,12 +41,12 @@ export default async function ClientContextListPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
 
   if (!profile) notFound();
-  const clientSlug = clientSegment(profile);
+  const clientSlug = routeSegment(profile);
   // URL canonique : le segment porte le nom du client, jamais son UUID.
   if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/context`);
 
@@ -172,7 +172,7 @@ export default async function ClientContextListPage({
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
                       <Link
-                        href={`/admin/clients/${clientSlug}/context/${ctx.id}`}
+                        href={`/admin/clients/${clientSlug}/context/${routeSegment(ctx)}`}
                         className="group text-2xl font-light text-white/85 transition-colors hover:text-cyan-100 md:text-3xl"
                       >
                         {ctx.title}
@@ -221,7 +221,7 @@ export default async function ClientContextListPage({
                       redirectTo={`/admin/clients/${clientSlug}/context`}
                     />
                     <Link
-                      href={`/admin/clients/${clientSlug}/context/${ctx.id}`}
+                      href={`/admin/clients/${clientSlug}/context/${routeSegment(ctx)}`}
                       className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-200/65 transition-colors hover:text-cyan-100"
                     >
                       <span>Ouvrir</span>

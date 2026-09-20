@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import {
   isValidTemplateId,
   MARKDOWN_VIRTUAL_TEMPLATE_ID,
@@ -65,11 +65,11 @@ export default async function NewPagePage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, slug")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
   if (!profile) notFound();
-  const clientSlug = clientSegment(profile);
+  const clientSlug = routeSegment(profile);
 
   const { data: project } = await admin
     .from("projects")

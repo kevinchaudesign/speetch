@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import { PersonasList } from "./_components/personas-list";
 import {
@@ -49,7 +49,7 @@ export default async function ClientPersonasPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, slug, is_owner, personas_published")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .maybeSingle<{
       id: string;
       full_name: string | null;
@@ -58,7 +58,7 @@ export default async function ClientPersonasPage({
       personas_published: boolean | null;
     }>();
   if (!profile || profile.is_owner) notFound();
-  const clientSlug = clientSegment(profile);
+  const clientSlug = routeSegment(profile);
   if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/personas`);
 
   // Projets du client + pins existants — sert au multi-select de

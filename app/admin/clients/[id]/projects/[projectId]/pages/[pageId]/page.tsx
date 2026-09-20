@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import type { Page, PageContent } from "@/types/database";
 import { PageEditor } from "./page-editor";
 import { RawHtmlPageEditor } from "./_raw/raw-html-page-editor";
@@ -49,11 +49,11 @@ export default async function EditPagePage({
   const { data: clientProfile } = await admin
     .from("profiles")
     .select("id, slug")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
   if (!clientProfile) notFound();
-  const clientSlug = clientSegment(clientProfile);
+  const clientSlug = routeSegment(clientProfile);
   // URL canonique : le segment porte le nom du client, jamais son UUID.
   if (clientSlug !== id)
     redirect(

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { isDbTemplateId } from "@/lib/page-templates";
 import { Button, StatusBadge } from "@/lib/ds";
@@ -57,11 +57,11 @@ export default async function ProjectDetailPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, slug")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
   if (!profile) notFound();
-  const clientSlug = clientSegment(profile);
+  const clientSlug = routeSegment(profile);
   // URL canonique : le segment porte le nom du client, jamais son UUID.
   if (clientSlug !== id)
     redirect(`/admin/clients/${clientSlug}/projects/${projectId}`);

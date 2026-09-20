@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import {
   MediaLibraryView,
@@ -46,12 +46,12 @@ export default async function ClientMediaPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, slug, is_owner")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .maybeSingle();
   // L'owner Speetch accède à sa propre médiathèque (Galerie studio) via
   // la même route que les Holocrons clients — pas de notFound sur owner.
   if (!profile) notFound();
-  const clientSlug = clientSegment(profile);
+  const clientSlug = routeSegment(profile);
   // URL canonique : le segment porte le nom du client, jamais son UUID.
   if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/media`);
 

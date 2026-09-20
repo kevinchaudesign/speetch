@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { NewContextForm } from "./new-context-form";
 
 export const metadata: Metadata = {
@@ -36,12 +36,12 @@ export default async function NewClientContextPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
 
   if (!profile) notFound();
-  const clientSlug = clientSegment(profile);
+  const clientSlug = routeSegment(profile);
   // URL canonique : le segment porte le nom du client, jamais son UUID.
   if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/context/new`);
 

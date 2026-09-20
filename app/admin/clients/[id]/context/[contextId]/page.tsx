@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { Button, Chip, Hairline } from "@/lib/ds";
 import type { PageContent } from "@/types/database";
 import { DeleteContextButton } from "../_components/delete-context-button";
@@ -17,16 +17,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function ContextDetailPage({
   params,
 }: {
   params: Promise<{ id: string; contextId: string }>;
 }) {
   const { id, contextId } = await params;
-  if (!UUID_REGEX.test(contextId)) notFound();
 
   const supabase = await createClient();
   const {
@@ -47,11 +43,11 @@ export default async function ContextDetailPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, slug")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
   if (!profile) notFound();
-  const clientSlug = clientSegment(profile);
+  const clientSlug = routeSegment(profile);
   // URL canonique : le segment porte le nom du client, jamais son UUID.
   if (clientSlug !== id)
     redirect(`/admin/clients/${clientSlug}/context/${contextId}`);
@@ -61,10 +57,14 @@ export default async function ContextDetailPage({
     .select(
       "id, profile_id, title, slug, summary, content, source_kind, source_url, source_filename, position, project_id, published_page_id, created_at, updated_at",
     )
-    .eq("id", contextId)
+    .eq(lookupColumn(contextId), contextId)
+    .eq("profile_id", profile.id)
     .maybeSingle<ClientContextRow>();
 
-  if (!ctxData || ctxData.profile_id !== profile.id) notFound();
+  if (!ctxData) notFound();
+  // URL canonique : le segment porte le titre du parchemin, jamais son UUID.
+  if (ctxData.slug && ctxData.slug !== contextId)
+    redirect(`/admin/clients/${clientSlug}/context/${ctxData.slug}`);
 
   const { data: projectsData } = await admin
     .from("projects")
@@ -214,7 +214,7 @@ export default async function ContextDetailPage({
 
             <DeleteContextButton
               profileId={profile.id}
-              contextId={contextId}
+              contextId={ctxData.id}
               contextTitle={ctxData.title}
               redirectTo={`/admin/clients/${clientSlug}/context`}
             />
@@ -224,7 +224,7 @@ export default async function ContextDetailPage({
         <div className="border-t border-white/10 pt-10">
           <PublishingPanel
             profileId={profile.id}
-            contextId={contextId}
+            contextId={ctxData.id}
             clientSlug={profile.slug ?? null}
             initialProjectId={ctxData.project_id}
             initialPublishedPageId={ctxData.published_page_id}
@@ -238,7 +238,7 @@ export default async function ContextDetailPage({
               rawHtml={rawHtml}
               title={ctxData.title}
               profileId={profile.id}
-              contextId={contextId}
+              contextId={ctxData.id}
               initialHiddenElements={hiddenElements}
               initialTextOverrides={textOverrides}
               applySpeetchDs={applySpeetchDs}

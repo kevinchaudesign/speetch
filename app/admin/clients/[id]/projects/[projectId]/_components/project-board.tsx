@@ -892,7 +892,7 @@ function SortableNoteRow({
           <DragDots />
         </button>
         <Link
-          href={`/admin/clients/${clientSlug}/context/${note.id}`}
+          href={`/admin/clients/${clientSlug}/context/${note.slug || note.id}`}
           className="group flex min-w-0 flex-1 flex-col gap-2"
         >
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -920,7 +920,7 @@ function SortableNoteRow({
           onChange={(lotId) => onLotChange(note.id, lotId)}
         />
         <Link
-          href={`/admin/clients/${clientSlug}/context/${note.id}`}
+          href={`/admin/clients/${clientSlug}/context/${note.slug || note.id}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
         >
           <span>Ouvrir</span>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import { PersonaDetailEditor } from "../_components/persona-detail-editor";
 import type {
@@ -49,10 +49,10 @@ export default async function PersonaDetailPage({
   const { data: profile } = await admin
     .from("profiles")
     .select("id, full_name, slug, is_owner")
-    .eq(clientLookupColumn(id), id)
+    .eq(lookupColumn(id), id)
     .maybeSingle();
   if (!profile || profile.is_owner) notFound();
-  const clientSlug = clientSegment(profile);
+  const clientSlug = routeSegment(profile);
   if (clientSlug !== id)
     redirect(`/admin/clients/${clientSlug}/personas/${personaId}`);
 
