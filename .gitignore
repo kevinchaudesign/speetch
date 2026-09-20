@@ -50,3 +50,5 @@ yarn-error.log*
 
 # Aperçus locaux des documents client (générés)
 .preview-azul/
+.env*
+!.env*.example

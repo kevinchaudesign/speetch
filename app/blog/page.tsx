@@ -25,7 +25,7 @@ export const metadata: Metadata = {
   },
 };
 
-// ISR : la page se régénère au max toutes les 60 secondes côté Hostinger.
+// ISR : la page se régénère au max toutes les 60 secondes.
 export const revalidate = 60;
 
 function formatDate(iso: string): string {

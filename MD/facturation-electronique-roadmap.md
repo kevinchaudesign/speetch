@@ -87,7 +87,7 @@ npm install puppeteer pdf-lib
 ```
 - Puppeteer rend `/admin/credits/print/invoice/[id]` en PDF
 - `pdf-lib` post-traite : conversion PDF/A-3, embed du XML comme attachment, ajout XMP `<fx:DocumentType>INVOICE</fx:DocumentType>` etc.
-- ⚠ Puppeteer ajoute ~200 MB à node_modules. Hostinger Node tolère, à vérifier sur l'instance.
+- ⚠ Puppeteer ajoute ~200 MB à node_modules. Sans incidence sur Vercel, dont les fonctions acceptent jusqu'à 5 Go de bundle.
 
 Squelette :
 ```ts
@@ -134,7 +134,7 @@ npm install # rien — juste fetch
 - ✅ Lightest, ~5 MB
 - ❌ Long à coder + maintenir le visuel devient pénible
 
-**Recommandation** : A.1 si Hostinger tolère puppeteer, sinon A.2.
+**Recommandation** : A.1 — le poids de puppeteer ne pose pas de problème sur Vercel.
 
 ### Étape B — Choisir le PDP
 
@@ -235,7 +235,7 @@ Quand le client paye / accepte / refuse côté PDP :
 
 - [ ] Génération XML validée par xmllint sur un exemple réel
 - [ ] PDF/A-3 wrapper en place + embed `factur-x.xml`
-- [ ] Adapter PDP implémenté + secrets dans .env.local et Hostinger
+- [ ] Adapter PDP implémenté + secrets dans .env.local et les variables d'environnement Vercel
 - [ ] Bouton « Transmettre au PDP » fonctionnel sur fiche facture
 - [ ] `lifecycle_status` affiché dans la liste factures (badge)
 - [ ] Webhook ou cron lifecycle en place

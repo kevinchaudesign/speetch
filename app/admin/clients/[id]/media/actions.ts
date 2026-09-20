@@ -17,7 +17,8 @@ const MAX_GENERATION_PROMPT_LEN = 4000;
 const MAX_GENERATION_MODEL_LEN = 120;
 
 // Limites par type. On reste large mais on cap pour éviter qu'un upload
-// pète la requête (Hostinger / Supabase ont leur propre limite côté infra).
+// pète la requête : les fonctions Vercel plafonnent le corps à 100 Mo (et
+// next.config.mjs fixe la même limite), Supabase a la sienne côté storage.
 const MAX_IMAGE_SIZE = 20 * 1024 * 1024; // 20 MB
 const MAX_VIDEO_SIZE = 200 * 1024 * 1024; // 200 MB
 const MAX_AUDIO_SIZE = 50 * 1024 * 1024; // 50 MB
