@@ -1,6 +1,6 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
-import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { PageContent } from "@/types/database";
 import type {
@@ -118,8 +118,9 @@ export async function saveRawHtmlOverrides(input: {
     return { ok: false, error: updateError.message };
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}/pages/${input.pageId}`,
+  await revalidateClientPath(
+    input.profileId,
+    `/projects/${input.projectId}/pages/${input.pageId}`,
   );
   return { ok: true };
 }
@@ -141,7 +142,10 @@ export async function listProjectMedia(
   const prefix = `projects/${projectId}`;
   const { data, error } = await auth.admin.storage
     .from(MEDIA_BUCKET)
-    .list(prefix, { sortBy: { column: "created_at", order: "desc" }, limit: 500 });
+    .list(prefix, {
+      sortBy: { column: "created_at", order: "desc" },
+      limit: 500,
+    });
 
   if (error) {
     console.error("[listProjectMedia] list error:", error);

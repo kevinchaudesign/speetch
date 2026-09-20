@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import type { Page, PageContent } from "@/types/database";
 import { PageEditor } from "./page-editor";
 import { RawHtmlPageEditor } from "./_raw/raw-html-page-editor";
@@ -48,11 +48,17 @@ export default async function EditPagePage({
 
   const { data: clientProfile } = await admin
     .from("profiles")
-    .select("id")
+    .select("id, slug")
     .eq(clientLookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
   if (!clientProfile) notFound();
+  const clientSlug = clientSegment(clientProfile);
+  // URL canonique : le segment porte le nom du client, jamais son UUID.
+  if (clientSlug !== id)
+    redirect(
+      `/admin/clients/${clientSlug}/projects/${projectId}/pages/${pageId}`,
+    );
 
   const { data: pageData } = await admin
     .from("pages")
@@ -169,20 +175,22 @@ export default async function EditPagePage({
   // les extrait ici dans une prop dédiée pour bypasser le useState(initialPage)
   // côté PageEditor : router.refresh() depuis l'éditeur enfant doit pouvoir
   // remettre la liste à jour sans démonter le parent.
-  let initialDeliverables: import("./deliverables-admin-editor").AdminDeliverable[] | null = null;
-  let availableMedia: import("./deliverables-admin-editor").AdminMediaOption[] = [];
-  let availableFolders: import("./deliverables-admin-editor").AdminFolderOption[] = [];
+  let initialDeliverables:
+    | import("./deliverables-admin-editor").AdminDeliverable[]
+    | null = null;
+  let availableMedia: import("./deliverables-admin-editor").AdminMediaOption[] =
+    [];
+  let availableFolders: import("./deliverables-admin-editor").AdminFolderOption[] =
+    [];
   const initialMetaAdsMockups: MetaAdMockup[] = isMetaAds
-    ? (Array.isArray(((page.content as PageContent) ?? {}).meta?.meta_ads)
-        ? (((page.content as PageContent).meta!.meta_ads) as MetaAdMockup[])
-        : [])
+    ? Array.isArray(((page.content as PageContent) ?? {}).meta?.meta_ads)
+      ? ((page.content as PageContent).meta!.meta_ads as MetaAdMockup[])
+      : []
     : [];
   if (isDeliverables) {
     const { data: delivRows } = await admin
       .from("client_page_deliverables" as never)
-      .select(
-        "id, media_id, format, title, description, status, position",
-      )
+      .select("id, media_id, format, title, description, status, position")
       .eq("page_id", page.id)
       .order("position", { ascending: true })
       .order("created_at", { ascending: true })
@@ -281,7 +289,7 @@ export default async function EditPagePage({
       description: d.description,
       status: d.status,
       position: d.position,
-      media: d.media_id ? mediaById.get(d.media_id) ?? null : null,
+      media: d.media_id ? (mediaById.get(d.media_id) ?? null) : null,
       feedbacks: feedbacksByDeliv.get(d.id) ?? [],
     }));
   }

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import {
   MediaLibraryView,
@@ -45,12 +45,15 @@ export default async function ClientMediaPage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, full_name, is_owner")
+    .select("id, full_name, slug, is_owner")
     .eq(clientLookupColumn(id), id)
     .maybeSingle();
   // L'owner Speetch accède à sa propre médiathèque (Galerie studio) via
   // la même route que les Holocrons clients — pas de notFound sur owner.
   if (!profile) notFound();
+  const clientSlug = clientSegment(profile);
+  // URL canonique : le segment porte le nom du client, jamais son UUID.
+  if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/media`);
 
   const { data: foldersData } = await admin
     .from("client_media_folders" as never)
@@ -197,7 +200,7 @@ export default async function ClientMediaPage({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${id}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
@@ -210,7 +213,7 @@ export default async function ClientMediaPage({
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Médiathèque{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               {clientName}
             </span>
           </h1>
@@ -233,7 +236,7 @@ export default async function ClientMediaPage({
         />
 
         <div className="flex items-center gap-6 pt-4">
-          <Button href={`/admin/clients/${id}`} variant="ghost">
+          <Button href={`/admin/clients/${clientSlug}`} variant="ghost">
             ← Retour {clientName}
           </Button>
           <Button href="/admin/clients" variant="ghost">

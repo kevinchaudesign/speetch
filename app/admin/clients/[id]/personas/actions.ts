@@ -1,6 +1,6 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
-import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   PERSONA_PATCHABLE_FIELDS,
@@ -134,7 +134,7 @@ export async function createPersona(input: {
     console.error("[createPersona] insert error:", error);
     return { ok: false, error: error?.message ?? "Création impossible." };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  await revalidateClientPath(input.profileId, `/personas`);
   return { ok: true, personaId: inserted.id };
 }
 
@@ -201,7 +201,7 @@ export async function updatePersona(input: {
     console.error("[updatePersona] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  await revalidateClientPath(input.profileId, `/personas`);
   return { ok: true };
 }
 
@@ -229,7 +229,7 @@ export async function deletePersona(input: {
     console.error("[deletePersona] delete error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  await revalidateClientPath(input.profileId, `/personas`);
   return { ok: true };
 }
 
@@ -261,7 +261,7 @@ export async function setPersonasPublished(input: {
     console.error("[setPersonasPublished] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  await revalidateClientPath(input.profileId, `/personas`);
   return { ok: true };
 }
 
@@ -322,7 +322,7 @@ export async function addPersonasProjectPin(input: {
     console.error("[addPersonasProjectPin] upsert error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  await revalidateClientPath(input.profileId, `/personas`);
   return { ok: true };
 }
 
@@ -350,13 +350,11 @@ export async function removePersonasProjectPin(input: {
     console.error("[removePersonasProjectPin] delete error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  await revalidateClientPath(input.profileId, `/personas`);
   return { ok: true };
 }
 
-export type SetPersonaCoverResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type SetPersonaCoverResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Définit (ou retire si mediaId = null) le visuel affiché en card preview
@@ -414,16 +412,12 @@ export async function setPersonaCover(input: {
     console.error("[setPersonaCover] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/personas`);
-  revalidatePath(
-    `/admin/clients/${input.profileId}/personas/${input.personaId}`,
-  );
+  await revalidateClientPath(input.profileId, `/personas`);
+  await revalidateClientPath(input.profileId, `/personas/${input.personaId}`);
   return { ok: true };
 }
 
-export type ReorderPersonasResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type ReorderPersonasResult = { ok: true } | { ok: false; error: string };
 
 export async function reorderPersonas(input: {
   profileId: string;
@@ -461,6 +455,6 @@ export async function reorderPersonas(input: {
       return { ok: false, error: error.message };
     }
   }
-  revalidatePath(`/admin/clients/${input.profileId}/personas`);
+  await revalidateClientPath(input.profileId, `/personas`);
   return { ok: true };
 }

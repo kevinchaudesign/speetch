@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import { PersonasList } from "./_components/personas-list";
 import {
@@ -48,15 +48,18 @@ export default async function ClientPersonasPage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, full_name, is_owner, personas_published")
+    .select("id, full_name, slug, is_owner, personas_published")
     .eq(clientLookupColumn(id), id)
     .maybeSingle<{
       id: string;
       full_name: string | null;
+      slug: string | null;
       is_owner: boolean;
       personas_published: boolean | null;
     }>();
   if (!profile || profile.is_owner) notFound();
+  const clientSlug = clientSegment(profile);
+  if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/personas`);
 
   // Projets du client + pins existants — sert au multi-select de
   // PersonasSettingsPanel.
@@ -200,7 +203,7 @@ export default async function ClientPersonasPage({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${id}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
@@ -213,7 +216,7 @@ export default async function ClientPersonasPage({
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Audiences{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               {clientName}
             </span>
           </h1>
@@ -234,7 +237,7 @@ export default async function ClientPersonasPage({
         <PersonasList profileId={profile.id} initialPersonas={personas} />
 
         <div className="flex items-center gap-6 pt-4">
-          <Button href={`/admin/clients/${id}`} variant="ghost">
+          <Button href={`/admin/clients/${clientSlug}`} variant="ghost">
             ← Retour {clientName}
           </Button>
           <Button href="/admin/clients" variant="ghost">

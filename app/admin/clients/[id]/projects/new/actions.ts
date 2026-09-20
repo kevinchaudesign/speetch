@@ -1,4 +1,5 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
@@ -11,7 +12,8 @@ export type CreateProjectState = {
   error?: string;
 };
 
-const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function createProject(
   _prev: CreateProjectState,
@@ -107,6 +109,6 @@ export async function createProject(
   }
 
   revalidatePath("/admin/clients");
-  revalidatePath(`/admin/clients/${profileId}`);
+  await revalidateClientPath(profileId);
   redirect("/admin/clients");
 }

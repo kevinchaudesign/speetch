@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import { getProjectType } from "@/lib/project-types";
 import { Button, Eyebrow, Field } from "@/lib/ds";
 import { createProject, type CreateProjectState } from "./actions";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: CreateProjectState = { status: "idle" };
@@ -35,6 +36,7 @@ export function NewProjectForm({
   clientSlug: string;
   initialType: string;
 }) {
+  const adminSegment = useClientSegment();
   const [state, formAction] = useActionState(createProject, INITIAL_STATE);
   const selectedType = getProjectType(initialType);
 
@@ -62,7 +64,7 @@ export function NewProjectForm({
         className="flex items-center justify-between md:hidden"
       >
         <Button
-          href={`/admin/clients/${clientId}/projects/new`}
+          href={`/admin/clients/${adminSegment}/projects/new`}
           variant="return"
         >
           Changer de type
@@ -89,7 +91,7 @@ export function NewProjectForm({
           </p>
 
           <Button
-            href={`/admin/clients/${clientId}/projects/new`}
+            href={`/admin/clients/${adminSegment}/projects/new`}
             variant="return"
             className="text-cyan-200/55"
           >

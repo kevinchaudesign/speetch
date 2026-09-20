@@ -35,6 +35,7 @@ import {
   setPageLot,
 } from "../actions";
 import { DetachPageButton } from "./detach-page-button";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -186,10 +187,7 @@ export function ProjectBoard({
     });
   }
 
-  function handleLotItemsDragEnd(
-    lotId: string | null,
-    event: DragEndEvent,
-  ) {
+  function handleLotItemsDragEnd(lotId: string | null, event: DragEndEvent) {
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const sectionItems = buildLotItems(lotId);
@@ -279,8 +277,12 @@ export function ProjectBoard({
     const previousPages = pages;
     const previousNotes = notes;
     setLots(previous.filter((l) => l.id !== lotId));
-    setPages(pages.map((p) => (p.lot_id === lotId ? { ...p, lot_id: null } : p)));
-    setNotes(notes.map((n) => (n.lot_id === lotId ? { ...n, lot_id: null } : n)));
+    setPages(
+      pages.map((p) => (p.lot_id === lotId ? { ...p, lot_id: null } : p)),
+    );
+    setNotes(
+      notes.map((n) => (n.lot_id === lotId ? { ...n, lot_id: null } : n)),
+    );
     setError(null);
     startTransition(async () => {
       const res = await deleteProjectLot({ profileId, projectId, lotId });
@@ -310,9 +312,7 @@ export function ProjectBoard({
 
   function handleNoteLotChange(noteId: string, lotId: string | null) {
     const previous = notes;
-    setNotes(
-      notes.map((n) => (n.id === noteId ? { ...n, lot_id: lotId } : n)),
-    );
+    setNotes(notes.map((n) => (n.id === noteId ? { ...n, lot_id: lotId } : n)));
     setError(null);
     startTransition(async () => {
       const res = await setContextLot({
@@ -504,11 +504,7 @@ function SortableLotSection({
               <span className="font-mono text-[11px] uppercase tracking-[0.32em] text-white/40">
                 Lot {String(index + 1).padStart(2, "0")}
               </span>
-              {lot.name && (
-                <span className="ml-3 font-sans">
-                  · {lot.name}
-                </span>
-              )}
+              {lot.name && <span className="ml-3 font-sans">· {lot.name}</span>}
               {!lot.name && (
                 <span className="ml-3 font-serif italic text-white/30">
                   + ajouter un nom
@@ -698,7 +694,6 @@ function UnifiedItemList({
                   <SortableNoteRow
                     note={it.data}
                     lots={lots}
-                    profileId={profileId}
                     onLotChange={onNoteLotChange}
                     sortable={sortable}
                   />
@@ -767,6 +762,7 @@ function SortablePageRow({
   onLotChange: (pageId: string, lotId: string | null) => void;
   sortable: SortableRenderArg;
 }) {
+  const clientSlug = useClientSegment();
   const codeTemplate = getPageTemplate(page.template_id);
   const isDetached = page.template_id === CUSTOM_TEMPLATE_ID;
   const isRawHtmlDirect = page.template_id === RAW_HTML_VIRTUAL_TEMPLATE_ID;
@@ -795,7 +791,7 @@ function SortablePageRow({
           <DragDots />
         </button>
         <Link
-          href={`/admin/clients/${profileId}/projects/${projectId}/pages/${page.id}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/${page.id}`}
           className="group flex min-w-0 flex-1 flex-col gap-2"
         >
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -811,11 +807,7 @@ function SortablePageRow({
           {templateLabel && (
             <Chip
               tone={
-                isDetached
-                  ? "muted"
-                  : isRawHtmlDirect
-                    ? "warning"
-                    : "default"
+                isDetached ? "muted" : isRawHtmlDirect ? "warning" : "default"
               }
               className="w-fit"
             >
@@ -848,7 +840,7 @@ function SortablePageRow({
           />
         )}
         <Link
-          href={`/admin/clients/${profileId}/projects/${projectId}/pages/${page.id}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/${page.id}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
         >
           <span>Affûter</span>
@@ -866,16 +858,15 @@ function SortablePageRow({
 function SortableNoteRow({
   note,
   lots,
-  profileId,
   onLotChange,
   sortable,
 }: {
   note: BoardNote;
   lots: BoardLot[];
-  profileId: string;
   onLotChange: (noteId: string, lotId: string | null) => void;
   sortable: SortableRenderArg;
 }) {
+  const clientSlug = useClientSegment();
   const sourceLabel =
     note.source_kind === "url"
       ? "URL"
@@ -901,7 +892,7 @@ function SortableNoteRow({
           <DragDots />
         </button>
         <Link
-          href={`/admin/clients/${profileId}/context/${note.id}`}
+          href={`/admin/clients/${clientSlug}/context/${note.id}`}
           className="group flex min-w-0 flex-1 flex-col gap-2"
         >
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -929,7 +920,7 @@ function SortableNoteRow({
           onChange={(lotId) => onLotChange(note.id, lotId)}
         />
         <Link
-          href={`/admin/clients/${profileId}/context/${note.id}`}
+          href={`/admin/clients/${clientSlug}/context/${note.id}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
         >
           <span>Ouvrir</span>
@@ -958,7 +949,9 @@ function LotSelect({
       <span>Lot</span>
       <select
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value === "" ? null : e.target.value)}
+        onChange={(e) =>
+          onChange(e.target.value === "" ? null : e.target.value)
+        }
         className="rounded-md border border-white/15 bg-black/40 px-2 py-1 text-[11px] font-light tracking-normal text-white/80 transition-colors hover:border-white/30 focus:border-white/60 focus:outline-none"
       >
         <option value="">Aucun</option>

@@ -1,4 +1,5 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -171,7 +172,7 @@ export async function createClientSpace(
     "http://localhost:3000";
 
   revalidatePath("/admin/clients");
-  revalidatePath(`/admin/clients/${insertedProfile.id}`);
+  await revalidateClientPath(insertedProfile.id);
 
   return {
     status: "success",

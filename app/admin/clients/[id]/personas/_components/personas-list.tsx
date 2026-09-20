@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/lib/ds";
 import { createPersona, reorderPersonas } from "../actions";
 import type { PersonaItem } from "../_lib/persona-types";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 export function PersonasList({
   profileId,
@@ -15,6 +16,7 @@ export function PersonasList({
   initialPersonas: PersonaItem[];
 }) {
   const router = useRouter();
+  const clientSlug = useClientSegment();
   const [pending, startTransition] = useTransition();
   const [topError, setTopError] = useState<string | null>(null);
 
@@ -26,7 +28,7 @@ export function PersonasList({
         setTopError(res.error);
         return;
       }
-      router.push(`/admin/clients/${profileId}/personas/${res.personaId}`);
+      router.push(`/admin/clients/${clientSlug}/personas/${res.personaId}`);
     });
   }
 
@@ -83,8 +85,8 @@ export function PersonasList({
             className="sw-hologram-line absolute inset-x-0 top-0"
           />
           <p className="font-serif text-base italic text-white/55">
-            Aucune audience pour cet holocron. Clique sur «&nbsp;+ Audience&nbsp;»
-            pour en forger une.
+            Aucune audience pour cet holocron. Clique sur «&nbsp;+
+            Audience&nbsp;» pour en forger une.
           </p>
         </div>
       ) : (
@@ -92,7 +94,6 @@ export function PersonasList({
           {initialPersonas.map((persona, index) => (
             <PersonaPreviewCard
               key={persona.id}
-              profileId={profileId}
               persona={persona}
               index={index}
               total={initialPersonas.length}
@@ -109,14 +110,12 @@ export function PersonasList({
 // ─── Card d'aperçu ──────────────────────────────────────────────────────────
 
 function PersonaPreviewCard({
-  profileId,
   persona,
   index,
   total,
   pending,
   onMove,
 }: {
-  profileId: string;
   persona: PersonaItem;
   index: number;
   total: number;
@@ -127,7 +126,7 @@ function PersonaPreviewCard({
   // qu'il est toujours dans la liste des médias taggés (sinon orphelin →
   // fallback heuristique).
   const explicitCover = persona.cover_media_id
-    ? persona.media.find((m) => m.id === persona.cover_media_id) ?? null
+    ? (persona.media.find((m) => m.id === persona.cover_media_id) ?? null)
     : null;
   const hero =
     explicitCover ??
@@ -135,11 +134,12 @@ function PersonaPreviewCard({
     persona.media[0] ??
     null;
   const initials = computeInitials(persona.name);
+  const clientSlug = useClientSegment();
 
   return (
     <li className="group relative">
       <Link
-        href={`/admin/clients/${profileId}/personas/${persona.id}`}
+        href={`/admin/clients/${clientSlug}/personas/${persona.id}`}
         className="flex flex-col overflow-hidden rounded-2xl border border-cyan-200/15 bg-cyan-200/[0.015] transition-all hover:border-cyan-200/40 hover:bg-cyan-200/[0.04]"
       >
         <div className="relative aspect-[4/3] w-full overflow-hidden bg-cyan-200/[0.02]">
@@ -184,9 +184,7 @@ function PersonaPreviewCard({
           </p>
           <h3 className="font-sans text-2xl font-extralight tracking-[-0.02em] text-[#F5F5F7] transition-colors group-hover:text-cyan-100">
             {persona.name || (
-              <span className="font-serif italic text-white/45">
-                Sans nom
-              </span>
+              <span className="font-serif italic text-white/45">Sans nom</span>
             )}
           </h3>
           <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55">
@@ -207,7 +205,7 @@ function PersonaPreviewCard({
       </Link>
 
       {/* Boutons réordonner, en absolute pour ne pas être dans le <Link> */}
-      <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 opacity-0 backdrop-blur-sm transition-opacity duration-200 ease-out group-hover:opacity-100 focus-within:opacity-100">
+      <div className="absolute right-3 top-3 z-10 flex items-center gap-1 rounded-full bg-black/55 px-2 py-1 opacity-0 backdrop-blur-sm transition-opacity duration-200 ease-out focus-within:opacity-100 group-hover:opacity-100">
         <button
           type="button"
           onClick={(e) => {

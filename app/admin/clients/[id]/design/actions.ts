@@ -1,6 +1,6 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
-import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 export type UploadState = {
@@ -106,7 +106,7 @@ export async function uploadDesignFiles(
     uploaded++;
   }
 
-  revalidatePath(`/admin/clients/${clientId}/design`);
+  await revalidateClientPath(clientId, `/design`);
   return { status: "success", uploaded };
 }
 
@@ -123,5 +123,5 @@ export async function deleteDesignFile(formData: FormData): Promise<void> {
   }
 
   await auth.admin.storage.from(DESIGN_BUCKET).remove([path]);
-  revalidatePath(`/admin/clients/${clientId}/design`);
+  await revalidateClientPath(clientId, `/design`);
 }

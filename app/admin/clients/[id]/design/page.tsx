@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { deleteDesignFile } from "./actions";
 import { UploadZone } from "./upload-zone";
 
@@ -66,6 +66,9 @@ export default async function DesignPage({
     .maybeSingle();
 
   if (!client) notFound();
+  const clientSlug = clientSegment(client);
+  // URL canonique : le segment porte le nom du client, jamais son UUID.
+  if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/design`);
 
   // Liste les fichiers du bucket dans le dossier <client-id>/
   const { data: storageFiles, error: storageError } = await admin.storage
@@ -115,7 +118,7 @@ export default async function DesignPage({
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${id}`}
+          href={`/admin/clients/${clientSlug}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
@@ -131,7 +134,7 @@ export default async function DesignPage({
         <div className="flex flex-col gap-6">
           <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
             <Link
-              href={`/admin/clients/${id}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               Holocron : {clientName}
@@ -145,16 +148,16 @@ export default async function DesignPage({
             style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
           >
             Charte{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               visuelle
             </span>
           </h1>
 
           <p className="max-w-xl text-balance font-serif text-base italic text-white/55 md:text-lg">
-            Téléverse les parchemins qui définissent le design de cet
-            holocron : charte graphique, logos, palette, typographie,
-            références. Tu pourras ensuite me les partager dans la
-            conversation pour qu&apos;on adapte l&apos;espace public.
+            Téléverse les parchemins qui définissent le design de cet holocron :
+            charte graphique, logos, palette, typographie, références. Tu
+            pourras ensuite me les partager dans la conversation pour qu&apos;on
+            adapte l&apos;espace public.
           </p>
         </div>
 

@@ -1,6 +1,6 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
-import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
 const UUID_REGEX =
@@ -51,16 +51,14 @@ async function ensurePageBelongsToClient(
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const { data: page } = await admin
     .from("pages")
-    .select(
-      "id, project_id, projects!inner(id, profile_id)",
-    )
+    .select("id, project_id, projects!inner(id, profile_id)")
     .eq("id", ctx.pageId)
     .eq("project_id", ctx.projectId)
     .maybeSingle();
   if (!page) return { ok: false, error: "Page introuvable." };
-  const project = (Array.isArray(page.projects) ? page.projects[0] : page.projects) as
-    | { id: string; profile_id: string }
-    | null;
+  const project = (
+    Array.isArray(page.projects) ? page.projects[0] : page.projects
+  ) as { id: string; profile_id: string } | null;
   if (!project || project.profile_id !== ctx.profileId) {
     return { ok: false, error: "Page introuvable pour ce client." };
   }
@@ -82,9 +80,10 @@ function cleanText(raw: unknown, maxLen: number): string | null {
   return trimmed;
 }
 
-function revalidateBoth(ctx: DeliverableActionContext) {
-  revalidatePath(
-    `/admin/clients/${ctx.profileId}/projects/${ctx.projectId}/pages/${ctx.pageId}`,
+async function revalidateBoth(ctx: DeliverableActionContext) {
+  await revalidateClientPath(
+    ctx.profileId,
+    `/projects/${ctx.projectId}/pages/${ctx.pageId}`,
   );
   // La page publique pourrait être revalidée si on connait son slug — mais on
   // ne le fetch pas ici. Le dynamic = "force-dynamic" côté route publique
@@ -165,7 +164,7 @@ export async function createDeliverable(input: {
     return { ok: false, error: error?.message ?? "Création impossible." };
   }
 
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true, deliverableId: inserted.id };
 }
 
@@ -210,7 +209,8 @@ export async function updateDeliverable(input: {
   }
 
   const update: Record<string, unknown> = {};
-  if (input.patch.media_id !== undefined) update.media_id = input.patch.media_id;
+  if (input.patch.media_id !== undefined)
+    update.media_id = input.patch.media_id;
   if (input.patch.format !== undefined) {
     update.format = cleanText(input.patch.format, MAX_FORMAT_LEN);
   }
@@ -218,7 +218,10 @@ export async function updateDeliverable(input: {
     update.title = cleanText(input.patch.title, MAX_TITLE_LEN);
   }
   if (input.patch.description !== undefined) {
-    update.description = cleanText(input.patch.description, MAX_DESCRIPTION_LEN);
+    update.description = cleanText(
+      input.patch.description,
+      MAX_DESCRIPTION_LEN,
+    );
   }
   if (Object.keys(update).length === 0) {
     return { ok: false, error: "Rien à mettre à jour." };
@@ -233,7 +236,7 @@ export async function updateDeliverable(input: {
     console.error("[updateDeliverable] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true };
 }
 
@@ -264,7 +267,7 @@ export async function deleteDeliverable(input: {
     console.error("[deleteDeliverable] delete error:", error);
     return { ok: false, error: error.message };
   }
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true };
 }
 
@@ -281,7 +284,10 @@ export async function reorderDeliverables(input: {
   const err = validateCtx(input.ctx);
   if (err) return { ok: false, error: err };
 
-  if (!Array.isArray(input.deliverableIds) || input.deliverableIds.length === 0) {
+  if (
+    !Array.isArray(input.deliverableIds) ||
+    input.deliverableIds.length === 0
+  ) {
     return { ok: false, error: "Liste vide." };
   }
   if (input.deliverableIds.length > MAX_DELIVERABLES_PER_PAGE) {
@@ -308,7 +314,7 @@ export async function reorderDeliverables(input: {
       return { ok: false, error: error.message };
     }
   }
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true };
 }
 
@@ -359,6 +365,6 @@ export async function postOwnerReply(input: {
     console.error("[postOwnerReply] insert error:", error);
     return { ok: false, error: error?.message ?? "Envoi impossible." };
   }
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true, feedbackId: inserted.id };
 }

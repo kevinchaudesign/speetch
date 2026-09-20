@@ -6,6 +6,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Field } from "@/lib/ds";
 import { createClientContext, type CreateContextState } from "../actions";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: CreateContextState = { status: "idle" };
@@ -273,6 +274,7 @@ export function NewContextForm({
   profileId: string;
   clientName: string;
 }) {
+  const clientSlug = useClientSegment();
   const [state, formAction] = useActionState(
     createClientContext,
     INITIAL_STATE,
@@ -303,7 +305,7 @@ export function NewContextForm({
         className="flex items-center justify-between md:hidden"
       >
         <Link
-          href={`/admin/clients/${profileId}/context`}
+          href={`/admin/clients/${clientSlug}/context`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
@@ -323,14 +325,14 @@ export function NewContextForm({
         >
           <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/65">
             <Link
-              href={`/admin/clients/${profileId}/context`}
+              href={`/admin/clients/${clientSlug}/context`}
               className="transition-colors hover:text-cyan-100"
             >
               Archives
             </Link>
             <span className="mx-3 text-cyan-200/20">·</span>
             <Link
-              href={`/admin/clients/${profileId}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
@@ -341,7 +343,7 @@ export function NewContextForm({
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Nouveau{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               parchemin
             </span>
           </h1>
@@ -508,7 +510,7 @@ export function NewContextForm({
 
           <div className="flex items-center justify-between border-t border-cyan-200/15 pt-6">
             <Link
-              href={`/admin/clients/${profileId}/context`}
+              href={`/admin/clients/${clientSlug}/context`}
               className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55 hover:text-cyan-100"
             >
               Annuler

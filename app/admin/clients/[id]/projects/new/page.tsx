@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { isValidProjectType } from "@/lib/project-types";
 import { NewProjectForm } from "./new-project-form";
 import { TypePicker } from "./type-picker";
@@ -46,6 +46,12 @@ export default async function NewProjectPage({
     .maybeSingle();
 
   if (!client) notFound();
+  // URL canonique : le segment porte le nom du client, jamais son UUID.
+  const clientSlug = clientSegment(client);
+  if (clientSlug !== id) {
+    const query = type ? `?type=${encodeURIComponent(type)}` : "";
+    redirect(`/admin/clients/${clientSlug}/projects/new${query}`);
+  }
 
   // Étape 2 — formulaire pré-rempli avec le type choisi
   if (type && isValidProjectType(type)) {
@@ -60,10 +66,5 @@ export default async function NewProjectPage({
   }
 
   // Étape 1 — sélecteur visuel de type
-  return (
-    <TypePicker
-      clientId={client.id}
-      clientName={client.full_name ?? "Sans nom"}
-    />
-  );
+  return <TypePicker clientName={client.full_name ?? "Sans nom"} />;
 }

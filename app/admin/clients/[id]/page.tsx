@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { Button, Eyebrow, StatusBadge } from "@/lib/ds";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { DeleteProjectButton } from "./projects/[projectId]/_components/delete-project-button";
 import { RenameProjectButton } from "./projects/[projectId]/_components/rename-project-button";
 import { PasswordEditCard } from "./_components/password-edit-card";
@@ -70,6 +70,9 @@ export default async function ClientHubPage({
   if (error || !data) notFound();
 
   const client = data as ClientHub;
+  const clientSlug = clientSegment(client);
+  // URL canonique : le segment porte le nom du client, jamais son UUID.
+  if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}`);
   const projects = [...(client.projects ?? [])].sort((a, b) => {
     if (a.position !== b.position) return a.position - b.position;
     return (a.created_at ?? "").localeCompare(b.created_at ?? "");
@@ -86,22 +89,22 @@ export default async function ClientHubPage({
   const sections: { label: string; href: string; hint: string }[] = [
     {
       label: "Design",
-      href: `/admin/clients/${id}/design`,
+      href: `/admin/clients/${clientSlug}/design`,
       hint: "Charte, logos, références",
     },
     {
       label: "Archives",
-      href: `/admin/clients/${id}/context`,
+      href: `/admin/clients/${clientSlug}/context`,
       hint: "Briefs, parchemins, sources",
     },
     {
       label: "Audiences",
-      href: `/admin/clients/${id}/personas`,
+      href: `/admin/clients/${clientSlug}/personas`,
       hint: "Profils & cibles",
     },
     {
       label: "Médiathèque",
-      href: `/admin/clients/${id}/media`,
+      href: `/admin/clients/${clientSlug}/media`,
       hint: "Images, vidéos, fichiers",
     },
   ];
@@ -173,7 +176,7 @@ export default async function ClientHubPage({
                 </Button>
               )}
               <Button
-                href={`/admin/clients/${id}/projects/new`}
+                href={`/admin/clients/${clientSlug}/projects/new`}
                 variant="return"
               >
                 Nouvelle mission
@@ -249,7 +252,7 @@ export default async function ClientHubPage({
               Missions
             </h2>
             <Button
-              href={`/admin/clients/${id}/projects/new`}
+              href={`/admin/clients/${clientSlug}/projects/new`}
               variant="primary"
               className="text-cyan-200/65"
             >
@@ -287,7 +290,7 @@ export default async function ClientHubPage({
                       />
                     )}
                     <Link
-                      href={`/admin/clients/${id}/projects/${project.id}`}
+                      href={`/admin/clients/${clientSlug}/projects/${project.id}`}
                       className="inline-flex flex-1 items-baseline gap-x-4 transition-colors"
                     >
                       <span className="text-base font-light text-white/85 transition-colors group-hover:text-cyan-100 md:text-lg">

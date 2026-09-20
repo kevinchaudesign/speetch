@@ -1,14 +1,10 @@
 import Link from "next/link";
 import { PROJECT_TYPES } from "@/lib/project-types";
 import { Button, Eyebrow, Hairline } from "@/lib/ds";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
-export function TypePicker({
-  clientId,
-  clientName,
-}: {
-  clientId: string;
-  clientName: string;
-}) {
+export function TypePicker({ clientName }: { clientName: string }) {
+  const clientSlug = useClientSegment();
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
       {/* Star field + scanlines + sabre — thème Conseil Jedi */}
@@ -27,7 +23,7 @@ export function TypePicker({
 
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
-        <Button href={`/admin/clients/${clientId}`} variant="return">
+        <Button href={`/admin/clients/${clientSlug}`} variant="return">
           Retour {clientName}
         </Button>
         <Eyebrow tracking="sm" className="text-cyan-200/55">
@@ -42,7 +38,7 @@ export function TypePicker({
             Nouvelle mission
             <span className="mx-3 text-cyan-200/20">·</span>
             <Link
-              href={`/admin/clients/${clientId}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               Holocron : {clientName}
@@ -54,7 +50,7 @@ export function TypePicker({
             style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
           >
             Quel{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               type
             </span>{" "}
             de mission ?
@@ -71,7 +67,7 @@ export function TypePicker({
           {PROJECT_TYPES.map((type, idx) => (
             <li key={type.value}>
               <Link
-                href={`/admin/clients/${clientId}/projects/new?type=${type.value}`}
+                href={`/admin/clients/${clientSlug}/projects/new?type=${type.value}`}
                 className="group relative flex h-full flex-col gap-6 bg-black p-7 transition-colors duration-500 ease-out hover:bg-cyan-200/[0.04] md:p-9"
               >
                 {/* Numéro */}

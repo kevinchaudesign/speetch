@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { Button, Chip, Hairline } from "@/lib/ds";
 import type { ClientContextSummary } from "./_lib/types";
 import { DeleteContextButton } from "./_components/delete-context-button";
@@ -46,6 +46,9 @@ export default async function ClientContextListPage({
     .maybeSingle();
 
   if (!profile) notFound();
+  const clientSlug = clientSegment(profile);
+  // URL canonique : le segment porte le nom du client, jamais son UUID.
+  if (clientSlug !== id) redirect(`/admin/clients/${clientSlug}/context`);
 
   const { data: contextsData } = await admin
     .from("client_contexts" as never)
@@ -101,7 +104,7 @@ export default async function ClientContextListPage({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${id}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
@@ -117,7 +120,7 @@ export default async function ClientContextListPage({
                 style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
               >
                 Archives{" "}
-                <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+                <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
                   internes
                 </span>
               </h1>
@@ -128,7 +131,7 @@ export default async function ClientContextListPage({
             </div>
 
             <Button
-              href={`/admin/clients/${id}/context/new`}
+              href={`/admin/clients/${clientSlug}/context/new`}
               variant="primary"
             >
               + Nouveau parchemin
@@ -169,7 +172,7 @@ export default async function ClientContextListPage({
                   <div className="flex min-w-0 flex-1 flex-col gap-2">
                     <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1">
                       <Link
-                        href={`/admin/clients/${id}/context/${ctx.id}`}
+                        href={`/admin/clients/${clientSlug}/context/${ctx.id}`}
                         className="group text-2xl font-light text-white/85 transition-colors hover:text-cyan-100 md:text-3xl"
                       >
                         {ctx.title}
@@ -215,10 +218,10 @@ export default async function ClientContextListPage({
                       profileId={profile.id}
                       contextId={ctx.id}
                       contextTitle={ctx.title}
-                      redirectTo={`/admin/clients/${id}/context`}
+                      redirectTo={`/admin/clients/${clientSlug}/context`}
                     />
                     <Link
-                      href={`/admin/clients/${id}/context/${ctx.id}`}
+                      href={`/admin/clients/${clientSlug}/context/${ctx.id}`}
                       className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-200/65 transition-colors hover:text-cyan-100"
                     >
                       <span>Ouvrir</span>
@@ -232,7 +235,7 @@ export default async function ClientContextListPage({
         )}
 
         <div className="flex items-center gap-6 pt-4">
-          <Button href={`/admin/clients/${id}`} variant="ghost">
+          <Button href={`/admin/clients/${clientSlug}`} variant="ghost">
             ← Retour {clientName}
           </Button>
           <Button href="/admin/clients" variant="ghost">
@@ -247,14 +250,11 @@ export default async function ClientContextListPage({
 function EmptyState({ clientId }: { clientId: string }) {
   return (
     <div className="relative flex flex-col items-start gap-8 pt-16">
-      <div
-        aria-hidden
-        className="sw-hologram-line absolute inset-x-0 top-0"
-      />
+      <div aria-hidden className="sw-hologram-line absolute inset-x-0 top-0" />
       <p className="max-w-md text-balance font-serif text-base italic text-white/55 md:text-lg">
-        Aucun parchemin d&apos;archive pour cet holocron. Confie un fichier
-        HTML ou colle une URL — la Force analyse et structure le parchemin
-        dans le Codex Speetch.
+        Aucun parchemin d&apos;archive pour cet holocron. Confie un fichier HTML
+        ou colle une URL — la Force analyse et structure le parchemin dans le
+        Codex Speetch.
       </p>
       <Button href={`/admin/clients/${clientId}/context/new`} variant="large">
         Forger le premier parchemin

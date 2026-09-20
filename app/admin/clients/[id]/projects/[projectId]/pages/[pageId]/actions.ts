@@ -1,8 +1,11 @@
 "use server";
+import {
+  revalidateClientPath,
+  resolveClientSegment,
+} from "@/lib/admin/resolve-client";
 
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { PageContent } from "@/types/database";
 import { CUSTOM_TEMPLATE_ID } from "@/lib/page-templates";
@@ -83,10 +86,7 @@ function validateContext(ctx: ActionContext): string | null {
 async function fetchOwnedPage(
   admin: ReturnType<typeof createAdminClient>,
   ctx: ActionContext,
-): Promise<
-  | { ok: true; content: PageContent }
-  | { ok: false; error: string }
-> {
+): Promise<{ ok: true; content: PageContent } | { ok: false; error: string }> {
   const { data, error } = await admin
     .from("pages")
     .select("content, project_id, projects!inner(id, profile_id)")
@@ -124,11 +124,12 @@ async function saveContent(
   return { ok: true };
 }
 
-function revalidateEditor(ctx: ActionContext) {
-  revalidatePath(
-    `/admin/clients/${ctx.profileId}/projects/${ctx.projectId}/pages/${ctx.pageId}`,
+async function revalidateEditor(ctx: ActionContext) {
+  await revalidateClientPath(
+    ctx.profileId,
+    `/projects/${ctx.projectId}/pages/${ctx.pageId}`,
   );
-  revalidatePath(`/admin/clients/${ctx.profileId}/projects/${ctx.projectId}`);
+  await revalidateClientPath(ctx.profileId, `/projects/${ctx.projectId}`);
 }
 
 function makeEmptySection(type: SectionType): Section {
@@ -271,9 +272,7 @@ export async function updatePagePublished(
  * `_custom`. Permet ensuite de retravailler librement la page sans lien
  * avec le template (qui peut même être supprimé sans impact).
  */
-export async function detachPage(
-  input: ActionContext,
-): Promise<ActionResult> {
+export async function detachPage(input: ActionContext): Promise<ActionResult> {
   const auth = await requireOwnerAndAdmin();
   if (!auth.ok) return { ok: false, error: auth.error };
 
@@ -290,9 +289,7 @@ export async function detachPage(
   if (error) return { ok: false, error: error.message };
 
   revalidateEditor(input);
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
@@ -847,6 +844,8 @@ export async function deletePage(input: ActionContext): Promise<ActionResult> {
     .eq("id", input.pageId);
   if (error) return { ok: false, error: error.message };
 
-  revalidatePath(`/admin/clients/${input.profileId}/projects/${input.projectId}`);
-  redirect(`/admin/clients/${input.profileId}/projects/${input.projectId}`);
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  redirect(
+    `/admin/clients/${await resolveClientSegment(input.profileId)}/projects/${input.projectId}`,
+  );
 }

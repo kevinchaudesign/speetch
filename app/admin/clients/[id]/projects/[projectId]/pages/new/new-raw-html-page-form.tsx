@@ -6,6 +6,7 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { createRawHtmlPage, type CreatePageState } from "./actions";
 import { Field } from "@/lib/ds";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: CreatePageState = { status: "idle" };
@@ -33,6 +34,7 @@ export function NewRawHtmlPageForm({
   projectId: string;
   projectName: string;
 }) {
+  const clientSlug = useClientSegment();
   const [state, formAction] = useActionState(createRawHtmlPage, INITIAL_STATE);
 
   return (
@@ -58,7 +60,7 @@ export function NewRawHtmlPageForm({
         className="flex items-center justify-between md:hidden"
       >
         <Link
-          href={`/admin/clients/${clientId}/projects/${projectId}/pages/new`}
+          href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
@@ -83,7 +85,7 @@ export function NewRawHtmlPageForm({
           </p>
 
           <Link
-            href={`/admin/clients/${clientId}/projects/${projectId}/pages/new`}
+            href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new`}
             className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
           >
             <span className="inline-block h-px w-3 bg-current transition-all duration-500 ease-out group-hover:w-6 group-hover:bg-cyan-200" />
@@ -105,14 +107,14 @@ export function NewRawHtmlPageForm({
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Réplique{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               fidèle
             </span>
           </h1>
           <p className="max-w-lg font-serif text-base italic text-white/55 md:text-lg">
-            Confie un parchemin HTML. La page publique l&apos;affichera tel
-            quel dans un iframe sandbox, mise en page d&apos;origine
-            préservée à l&apos;identique.
+            Confie un parchemin HTML. La page publique l&apos;affichera tel quel
+            dans un iframe sandbox, mise en page d&apos;origine préservée à
+            l&apos;identique.
           </p>
         </motion.div>
 
@@ -184,7 +186,7 @@ export function NewRawHtmlPageForm({
 
           <div className="flex items-center justify-between border-t border-cyan-200/15 pt-6">
             <Link
-              href={`/admin/clients/${clientId}/projects/${projectId}`}
+              href={`/admin/clients/${clientSlug}/projects/${projectId}`}
               className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55 hover:text-cyan-100"
             >
               Annuler

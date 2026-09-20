@@ -6,22 +6,27 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Field } from "@/lib/ds";
 import { createPageFromImport, type CreatePageState } from "./actions";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: CreatePageState = { status: "idle" };
 
 type ImportSource = "docx" | "markdown" | "html";
 
-const SOURCE_LABELS: Record<ImportSource, {
-  hint: string;
-  accept: string;
-  maxLabel: string;
-  badge: string;
-  description: string;
-}> = {
+const SOURCE_LABELS: Record<
+  ImportSource,
+  {
+    hint: string;
+    accept: string;
+    maxLabel: string;
+    badge: string;
+    description: string;
+  }
+> = {
   docx: {
     hint: "Fichier Word .docx",
-    accept: ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    accept:
+      ".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     maxLabel: "max 8 MB",
     badge: "Word",
     description:
@@ -55,7 +60,9 @@ function SubmitButton({ source }: { source: ImportSource }) {
       disabled={pending}
       className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-cyan-100/80 transition-colors duration-300 hover:text-cyan-100 disabled:cursor-wait disabled:opacity-50"
     >
-      <span>{pending ? (converts ? "Conversion…" : "Scellement…") : label}</span>
+      <span>
+        {pending ? (converts ? "Conversion…" : "Scellement…") : label}
+      </span>
       <span className="inline-block h-px w-6 bg-cyan-200/85 transition-all duration-500 ease-out group-hover:w-12 group-hover:bg-cyan-100" />
     </button>
   );
@@ -85,12 +92,13 @@ export function NewPageImportForm({
    */
   backHref?: string;
 }) {
+  const clientSlug = useClientSegment();
   const [state, formAction] = useActionState(
     createPageFromImport,
     INITIAL_STATE,
   );
   const cfg = SOURCE_LABELS[source];
-  const base = `/admin/clients/${clientId}/projects/${projectId}/pages/new`;
+  const base = `/admin/clients/${clientSlug}/projects/${projectId}/pages/new`;
   const changeSourceHref = backHref ?? `${base}?template=${templateId}`;
 
   return (
@@ -162,7 +170,7 @@ export function NewPageImportForm({
             style={{ fontSize: "clamp(2.25rem, 6vw, 4.5rem)" }}
           >
             Import{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               {cfg.badge}
             </span>
           </h1>
@@ -233,15 +241,15 @@ export function NewPageImportForm({
           </AnimatePresence>
 
           <p className="text-[10px] uppercase tracking-[0.32em] text-cyan-200/40">
-            Le parchemin est stocké en mode «&nbsp;Réplique fidèle&nbsp;».
-            Pour le mettre à jour plus tard, ré-importer un nouveau fichier
-            créera un nouveau parchemin (l&apos;ancien reste accessible
-            jusqu&apos;à effacement).
+            Le parchemin est stocké en mode «&nbsp;Réplique fidèle&nbsp;». Pour
+            le mettre à jour plus tard, ré-importer un nouveau fichier créera un
+            nouveau parchemin (l&apos;ancien reste accessible jusqu&apos;à
+            effacement).
           </p>
 
           <div className="flex items-center justify-between border-t border-cyan-200/15 pt-6">
             <Link
-              href={`/admin/clients/${clientId}/projects/${projectId}`}
+              href={`/admin/clients/${clientSlug}/projects/${projectId}`}
               className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55 hover:text-cyan-100"
             >
               Annuler

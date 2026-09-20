@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { Button, Chip, Hairline } from "@/lib/ds";
 import type { PageContent } from "@/types/database";
 import { DeleteContextButton } from "../_components/delete-context-button";
@@ -51,6 +51,10 @@ export default async function ContextDetailPage({
     .eq("is_owner", false)
     .maybeSingle();
   if (!profile) notFound();
+  const clientSlug = clientSegment(profile);
+  // URL canonique : le segment porte le nom du client, jamais son UUID.
+  if (clientSlug !== id)
+    redirect(`/admin/clients/${clientSlug}/context/${contextId}`);
 
   const { data: ctxData } = await admin
     .from("client_contexts" as never)
@@ -84,10 +88,8 @@ export default async function ContextDetailPage({
     (content.meta as { hidden_elements?: unknown } | undefined)
       ?.hidden_elements,
   )
-    ? (
-        (content.meta as { hidden_elements: unknown[] }).hidden_elements.filter(
-          (s): s is string => typeof s === "string",
-        )
+    ? (content.meta as { hidden_elements: unknown[] }).hidden_elements.filter(
+        (s): s is string => typeof s === "string",
       )
     : [];
   const rawTextOverrides = content.meta?.text_overrides;
@@ -127,7 +129,7 @@ export default async function ContextDetailPage({
 
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${id}/context`}
+          href={`/admin/clients/${clientSlug}/context`}
           className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
           ← Archives
@@ -148,7 +150,7 @@ export default async function ContextDetailPage({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${id}/context`}
+              href={`/admin/clients/${clientSlug}/context`}
               className="transition-colors hover:text-cyan-100"
             >
               {clientName}
@@ -198,12 +200,15 @@ export default async function ContextDetailPage({
                     </a>
                   </>
                 )}
-                {ctxData.source_kind === "upload" && ctxData.source_filename && (
-                  <>
-                    <span className="text-white/20"> · </span>
-                    <span className="break-all">{ctxData.source_filename}</span>
-                  </>
-                )}
+                {ctxData.source_kind === "upload" &&
+                  ctxData.source_filename && (
+                    <>
+                      <span className="text-white/20"> · </span>
+                      <span className="break-all">
+                        {ctxData.source_filename}
+                      </span>
+                    </>
+                  )}
               </p>
             </div>
 
@@ -211,7 +216,7 @@ export default async function ContextDetailPage({
               profileId={profile.id}
               contextId={contextId}
               contextTitle={ctxData.title}
-              redirectTo={`/admin/clients/${id}/context`}
+              redirectTo={`/admin/clients/${clientSlug}/context`}
             />
           </div>
         </div>
@@ -250,7 +255,7 @@ export default async function ContextDetailPage({
             )}
 
             {sections.length === 0 ? (
-              <p className="border-t border-white/10 pt-10 text-balance font-serif text-base italic text-white/40">
+              <p className="text-balance border-t border-white/10 pt-10 font-serif text-base italic text-white/40">
                 Cette note n&apos;a pas de contenu structuré (HTML source vide
                 ou non-exploitable).
               </p>
@@ -271,13 +276,16 @@ export default async function ContextDetailPage({
 
         <div className="flex items-center justify-between border-t border-white/10 pt-8">
           <Link
-            href={`/admin/clients/${id}/context`}
+            href={`/admin/clients/${clientSlug}/context`}
             className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
           >
             <Hairline width="md" hover="lg" />
             <span>Toutes les notes</span>
           </Link>
-          <Button href={`/admin/clients/${id}/context/new`} variant="ghost">
+          <Button
+            href={`/admin/clients/${clientSlug}/context/new`}
+            variant="ghost"
+          >
             + Nouvelle note
           </Button>
         </div>

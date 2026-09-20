@@ -1,7 +1,10 @@
 "use server";
+import {
+  revalidateClientPath,
+  resolveClientSegment,
+} from "@/lib/admin/resolve-client";
 
 import { redirect } from "next/navigation";
-import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { CUSTOM_TEMPLATE_ID } from "@/lib/page-templates";
 import { ensureUniqueSlug, slugify } from "@/lib/slug";
@@ -20,16 +23,10 @@ import {
   extractMarkdownTitle,
   fetchHtmlFromUrl,
 } from "./_lib/context-conversion";
-import type {
-  ClientContextInsert,
-  ClientContextRow,
-} from "./_lib/types";
+import type { ClientContextInsert, ClientContextRow } from "./_lib/types";
 
 function escapeHtmlText(s: string): string {
-  return s
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 function escapeAttr(s: string): string {
@@ -60,10 +57,9 @@ function buildBlockHtml(block: AppendContextBlockInput["block"]): string {
         .filter(Boolean)
         .map(
           (p) =>
-            `<p style="margin: 0 0 1rem; line-height: 1.7;">${escapeHtmlText(p).replace(
-              /\n/g,
-              "<br>",
-            )}</p>`,
+            `<p style="margin: 0 0 1rem; line-height: 1.7;">${escapeHtmlText(
+              p,
+            ).replace(/\n/g, "<br>")}</p>`,
         )
         .join("\n");
       return paragraphs;
@@ -250,7 +246,10 @@ export async function createClientContext(
 
   const modeRaw = String(formData.get("mode") ?? "analyze").trim();
   if (modeRaw !== "analyze" && modeRaw !== "raw") {
-    return { status: "error", error: "Mode invalide (analyze ou raw attendu)." };
+    return {
+      status: "error",
+      error: "Mode invalide (analyze ou raw attendu).",
+    };
   }
   // Markdown, docx, pdf, xlsx et empty forcent "raw" : rien à analyser via
   // Claude (déjà structuré côté source) ou rien à analyser (note vide).
@@ -375,9 +374,7 @@ export async function createClientContext(
       ? sourceFilename.replace(/\.pdf$/i, "").trim() || null
       : null;
     const fallbackTitle =
-      overrideTitle.length >= 2
-        ? overrideTitle
-        : (filenameTitle ?? "Note PDF");
+      overrideTitle.length >= 2 ? overrideTitle : (filenameTitle ?? "Note PDF");
     try {
       const buffer = await file.arrayBuffer();
       const result = await convertPdfToHtml(buffer, fallbackTitle);
@@ -556,8 +553,10 @@ export async function createClientContext(
     };
   }
 
-  revalidatePath(`/admin/clients/${profileId}/context`);
-  redirect(`/admin/clients/${profileId}/context/${inserted.id}`);
+  await revalidateClientPath(profileId, `/context`);
+  redirect(
+    `/admin/clients/${await resolveClientSegment(profileId)}/context/${inserted.id}`,
+  );
 }
 
 export type UpdateHiddenElementsResult =
@@ -628,7 +627,7 @@ export async function updateContextHiddenElements(input: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/context/${input.contextId}`);
+  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
   return { ok: true };
 }
 
@@ -712,13 +711,11 @@ export async function updateContextTextOverrides(input: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/context/${input.contextId}`);
+  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
   return { ok: true };
 }
 
-export type UpdateRawHtmlResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type UpdateRawHtmlResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Met à jour le HTML brut d'une note de contexte raw_html ET la liste
@@ -810,7 +807,7 @@ export async function updateContextRawHtml(input: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/context/${input.contextId}`);
+  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
   return { ok: true };
 }
 
@@ -893,7 +890,10 @@ export async function setContextPublishing(input: {
       .delete()
       .eq("id", ctx.published_page_id);
     if (delErr) {
-      console.error("[setContextPublishing] delete previous page error:", delErr);
+      console.error(
+        "[setContextPublishing] delete previous page error:",
+        delErr,
+      );
       return {
         ok: false,
         error: `Impossible de supprimer la page précédente : ${delErr.message}`,
@@ -995,12 +995,10 @@ export async function setContextPublishing(input: {
     return { ok: false, error: updateError.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/context`);
-  revalidatePath(`/admin/clients/${input.profileId}/context/${input.contextId}`);
+  await revalidateClientPath(input.profileId, `/context`);
+  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
   if (finalProjectId) {
-    revalidatePath(
-      `/admin/clients/${input.profileId}/projects/${finalProjectId}`,
-    );
+    await revalidateClientPath(input.profileId, `/projects/${finalProjectId}`);
   }
   return { ok: true, publishedPageId: newPageId };
 }
@@ -1100,7 +1098,7 @@ export async function appendContextBlock(
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/context/${input.contextId}`);
+  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
   return { ok: true };
 }
 
@@ -1249,7 +1247,7 @@ export async function refreshContextSnapshot(input: {
     return { ok: false, error: updateError.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/context/${input.contextId}`);
+  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
   return { ok: true };
 }
 
@@ -1311,8 +1309,8 @@ export async function setContextSpeetchStyle(input: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/context`);
-  revalidatePath(`/admin/clients/${input.profileId}/context/${input.contextId}`);
+  await revalidateClientPath(input.profileId, `/context`);
+  await revalidateClientPath(input.profileId, `/context/${input.contextId}`);
   return { ok: true, enabled: input.enabled };
 }
 
@@ -1355,7 +1353,7 @@ export async function deleteClientContext(input: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/context`);
+  await revalidateClientPath(input.profileId, `/context`);
   return { ok: true };
 }
 
@@ -1369,7 +1367,9 @@ function stabilizeSectionIds(content: PageContent): PageContent {
     ...content,
     sections: content.sections.map((s) => ({
       ...s,
-      id: s.id?.startsWith("__SECTION_") ? crypto.randomUUID() : (s.id ?? crypto.randomUUID()),
+      id: s.id?.startsWith("__SECTION_")
+        ? crypto.randomUUID()
+        : (s.id ?? crypto.randomUUID()),
     })),
   };
 }

@@ -4,12 +4,9 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Button, ConfirmDialog } from "@/lib/ds";
 import { cn } from "@/lib/utils";
-import {
-  deletePersona,
-  setPersonaCover,
-  updatePersona,
-} from "../actions";
+import { deletePersona, setPersonaCover, updatePersona } from "../actions";
 import type { PersonaItem, PersonaMedia } from "../_lib/persona-types";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 type PatchableField = Exclude<keyof PersonaItem, "id" | "media">;
 
@@ -24,8 +21,7 @@ const NAME_INPUT_CLASS =
 const FIELD_LABEL_CLASS =
   "text-[10px] uppercase tracking-[0.32em] text-cyan-200/55";
 
-const ERROR_CLASS =
-  "text-[10px] uppercase tracking-[0.32em] text-red-300/85";
+const ERROR_CLASS = "text-[10px] uppercase tracking-[0.32em] text-red-300/85";
 
 export function PersonaDetailEditor({
   profileId,
@@ -35,6 +31,7 @@ export function PersonaDetailEditor({
   persona: PersonaItem;
 }) {
   const router = useRouter();
+  const clientSlug = useClientSegment();
   const [pending, startTransition] = useTransition();
   const [topError, setTopError] = useState<string | null>(null);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -49,7 +46,7 @@ export function PersonaDetailEditor({
         return;
       }
       // Retour à la liste après suppression.
-      router.push(`/admin/clients/${profileId}/personas`);
+      router.push(`/admin/clients/${clientSlug}/personas`);
       router.refresh();
     });
   }
@@ -290,8 +287,9 @@ function PersonaMediaStrip({
       <p className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/45">
         Aucun visuel taggé
         <span className="mx-2 text-cyan-200/20">·</span>
-        <span className="font-serif italic normal-case tracking-normal text-white/55">
-          assigne des images depuis la médiathèque, dossier «&nbsp;Audiences&nbsp;»
+        <span className="font-serif normal-case italic tracking-normal text-white/55">
+          assigne des images depuis la médiathèque, dossier
+          «&nbsp;Audiences&nbsp;»
         </span>
       </p>
     );
@@ -300,15 +298,15 @@ function PersonaMediaStrip({
   // Cover orphelin = cover_media_id pointe vers un média plus taggé sur ce
   // persona (peut arriver si on a re-tagué le média ailleurs). On l'ignore
   // côté affichage pour rester cohérent avec la liste.
-  const activeCoverId = coverMediaId && media.some((m) => m.id === coverMediaId)
-    ? coverMediaId
-    : null;
+  const activeCoverId =
+    coverMediaId && media.some((m) => m.id === coverMediaId)
+      ? coverMediaId
+      : null;
 
   return (
     <div className="flex flex-col gap-3">
       <span className={FIELD_LABEL_CLASS}>
-        Visuels ({media.length})
-        <span className="mx-2 text-cyan-200/20">·</span>
+        Visuels ({media.length})<span className="mx-2 text-cyan-200/20">·</span>
         <span className="normal-case tracking-normal text-cyan-200/45">
           {activeCoverId
             ? "click ★ pour retirer la vignette"
@@ -365,9 +363,7 @@ function PersonaMediaStrip({
                 onClick={() => onToggleCover(m.id)}
                 disabled={pending}
                 aria-label={
-                  isCover
-                    ? "Retirer comme vignette"
-                    : "Définir comme vignette"
+                  isCover ? "Retirer comme vignette" : "Définir comme vignette"
                 }
                 aria-pressed={isCover}
                 title={
@@ -379,7 +375,7 @@ function PersonaMediaStrip({
                   "absolute right-1.5 top-1.5 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full border bg-black/60 text-[14px] backdrop-blur-sm transition-all duration-200 ease-out disabled:cursor-not-allowed disabled:opacity-50",
                   isCover
                     ? "border-cyan-200/75 text-amber-200 opacity-100 hover:border-cyan-200"
-                    : "border-cyan-200/40 text-cyan-200/65 opacity-0 hover:border-cyan-200/80 hover:text-cyan-100 group-hover:opacity-100 focus-visible:opacity-100",
+                    : "border-cyan-200/40 text-cyan-200/65 opacity-0 hover:border-cyan-200/80 hover:text-cyan-100 focus-visible:opacity-100 group-hover:opacity-100",
                 )}
               >
                 {isCover ? "★" : "☆"}

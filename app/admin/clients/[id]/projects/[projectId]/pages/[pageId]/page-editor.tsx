@@ -49,6 +49,7 @@ import {
 } from "./deliverables-admin-editor";
 import { MetaAdsAdminEditor } from "./meta-ads-admin-editor";
 import type { MetaAdMockup } from "@/types/database";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 export function PageEditor({
   initialPage,
@@ -91,6 +92,7 @@ export function PageEditor({
   const [openSectionId, setOpenSectionId] = useState<string | null>(null);
 
   const content: PageContent = (page.content as PageContent) ?? {};
+  const clientSlug = useClientSegment();
   const sections: Section[] = content.sections ?? [];
   const isRawHtml = content.meta?.style === "raw_html";
   const isDeliverables = content.meta?.style === "deliverables";
@@ -159,7 +161,10 @@ export function PageEditor({
       const c = (p.content as PageContent) ?? {};
       const next = (c.sections ?? []).map((s) => {
         if (s.id === updated.id) return updated;
-        if (s.type === "container" && s.children?.some((ch) => ch.id === updated.id)) {
+        if (
+          s.type === "container" &&
+          s.children?.some((ch) => ch.id === updated.id)
+        ) {
           return {
             ...s,
             children: s.children.map((ch) =>
@@ -268,7 +273,9 @@ export function PageEditor({
   // ─── Drag & Drop ─────────────────────────────────────────────────────
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    }),
   );
 
   function handleDragOver(event: DragOverEvent) {
@@ -299,7 +306,13 @@ export function PageEditor({
     if (activeBlock.type === "container" && targetContainer !== "TOP") return;
 
     setSections((current) =>
-      moveCrossContainer(current, activeId, source, targetContainer!, overBlockId),
+      moveCrossContainer(
+        current,
+        activeId,
+        source,
+        targetContainer!,
+        overBlockId,
+      ),
     );
   }
 
@@ -326,13 +339,16 @@ export function PageEditor({
     }
 
     // Si rien n'a changé (vs page.content actuel), pas de commit serveur.
-    const initialSections = ((page.content as PageContent) ?? {}).sections ?? [];
+    const initialSections =
+      ((page.content as PageContent) ?? {}).sections ?? [];
     if (sameArrangement(initialSections, next)) return;
 
     const plan = next.map((s) => ({
       id: s.id,
       childIds:
-        s.type === "container" ? (s.children ?? []).map((c) => c.id) : undefined,
+        s.type === "container"
+          ? (s.children ?? []).map((c) => c.id)
+          : undefined,
     }));
 
     // Optimistic apply + snapshot pour rollback
@@ -348,7 +364,10 @@ export function PageEditor({
         setError(result.error);
         setPage((p) => ({
           ...p,
-          content: { ...((p.content as PageContent) ?? {}), sections: snapshot },
+          content: {
+            ...((p.content as PageContent) ?? {}),
+            sections: snapshot,
+          },
         }));
       }
     });
@@ -381,7 +400,7 @@ export function PageEditor({
       {/* Header mobile */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${clientId}/projects/${projectId}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectId}`}
           className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
           ← Mission
@@ -403,14 +422,14 @@ export function PageEditor({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${clientId}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${clientId}/projects/${projectId}`}
+              href={`/admin/clients/${clientSlug}/projects/${projectId}`}
               className="transition-colors hover:text-cyan-100"
             >
               {projectName}
@@ -511,11 +530,11 @@ export function PageEditor({
               </Eyebrow>
               <p className="mt-2 font-serif text-sm italic text-white/65 md:text-base">
                 Ce parchemin affiche une galerie de livrables piochés dans la
-                médiathèque de l&apos;holocron. Pour chaque livrable, le
-                Padawan pourra laisser un retour et changer le statut
-                (approuvé / modif demandée). L&apos;intro ci-dessous est
-                rendue en tête de parchemin, les livrables se gèrent dans le
-                bloc «&nbsp;Livrables&nbsp;» plus bas.
+                médiathèque de l&apos;holocron. Pour chaque livrable, le Padawan
+                pourra laisser un retour et changer le statut (approuvé / modif
+                demandée). L&apos;intro ci-dessous est rendue en tête de
+                parchemin, les livrables se gèrent dans le bloc
+                «&nbsp;Livrables&nbsp;» plus bas.
               </p>
             </div>
           )}
@@ -527,11 +546,10 @@ export function PageEditor({
               </Eyebrow>
               <p className="mt-2 font-serif text-sm italic text-white/65 md:text-base">
                 Ce parchemin présente une galerie de mockups publicitaires
-                Facebook & Instagram. Chaque mockup combine un format Meta,
-                une copy et un média de la médiathèque. L&apos;intro est
-                rendue en tête de parchemin ; les mockups se gèrent dans le
-                bloc «&nbsp;Mockups&nbsp;» plus bas. Lecture seule côté
-                public.
+                Facebook & Instagram. Chaque mockup combine un format Meta, une
+                copy et un média de la médiathèque. L&apos;intro est rendue en
+                tête de parchemin ; les mockups se gèrent dans le bloc
+                «&nbsp;Mockups&nbsp;» plus bas. Lecture seule côté public.
               </p>
             </div>
           )}
@@ -549,7 +567,7 @@ export function PageEditor({
             onSave={saveIntro}
             placeholder="Une phrase d'accroche pour démarrer le parchemin…"
             ariaLabel="Intro du parchemin"
-            className="w-full resize-y rounded-md border border-cyan-200/15 bg-cyan-200/[0.02] p-4 font-serif italic text-base text-[#F5F5F7]/90 caret-cyan-200 placeholder:text-white/30 focus:border-cyan-200/50 focus:outline-none md:text-lg"
+            className="w-full resize-y rounded-md border border-cyan-200/15 bg-cyan-200/[0.02] p-4 font-serif text-base italic text-[#F5F5F7]/90 caret-cyan-200 placeholder:text-white/30 focus:border-cyan-200/50 focus:outline-none md:text-lg"
           />
         </div>
 
@@ -588,8 +606,7 @@ export function PageEditor({
 
             {sections.length === 0 ? (
               <p className="rounded-xl border border-dashed border-cyan-200/20 bg-cyan-200/[0.02] p-8 text-center font-serif italic text-white/55">
-                Ce parchemin n&apos;a aucune section. Ajoute-en une
-                ci-dessous.
+                Ce parchemin n&apos;a aucune section. Ajoute-en une ci-dessous.
               </p>
             ) : (
               <DndContext
@@ -655,7 +672,7 @@ export function PageEditor({
 
         <div className="flex items-center pt-4">
           <Button
-            href={`/admin/clients/${clientId}/projects/${projectId}`}
+            href={`/admin/clients/${clientSlug}/projects/${projectId}`}
             variant="ghost"
           >
             ← Retour mission
@@ -822,8 +839,8 @@ function sameArrangement(a: Section[], b: Section[]): boolean {
   if (a.length !== b.length) return false;
   for (let i = 0; i < a.length; i++) {
     if (a[i].id !== b[i].id) return false;
-    const ac = a[i].type === "container" ? a[i].children ?? [] : [];
-    const bc = b[i].type === "container" ? b[i].children ?? [] : [];
+    const ac = a[i].type === "container" ? (a[i].children ?? []) : [];
+    const bc = b[i].type === "container" ? (b[i].children ?? []) : [];
     if (ac.length !== bc.length) return false;
     for (let j = 0; j < ac.length; j++) {
       if (ac[j].id !== bc[j].id) return false;

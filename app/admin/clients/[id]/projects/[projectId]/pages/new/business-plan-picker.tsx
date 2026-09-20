@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 /**
  * BusinessPlanPicker — écran de choix au moment de créer un parchemin
@@ -78,11 +79,11 @@ const OPTIONS: Option[] = [
 ];
 
 function buildHref(
-  clientId: string,
+  clientSlug: string,
   projectId: string,
   option: Option,
 ): string {
-  const base = `/admin/clients/${clientId}/projects/${projectId}/pages/new`;
+  const base = `/admin/clients/${clientSlug}/projects/${projectId}/pages/new`;
   if (option.kind === "structure") {
     // Le template `business_plan` retourne sur cet écran via la garde
     // côté server. On lève la garde avec un param `?mode=create`.
@@ -104,14 +105,13 @@ function buildHref(
 }
 
 export function BusinessPlanPicker({
-  clientId,
   projectId,
   projectName,
 }: {
-  clientId: string;
   projectId: string;
   projectName: string;
 }) {
+  const clientSlug = useClientSegment();
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
       <div
@@ -130,7 +130,7 @@ export function BusinessPlanPicker({
       {/* Header mobile */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${clientId}/projects/${projectId}/pages/new`}
+          href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
@@ -147,9 +147,7 @@ export function BusinessPlanPicker({
           <p className="text-[11px] uppercase tracking-[0.4em] text-cyan-200/65">
             Nouveau parchemin
             <span className="mx-3 text-cyan-200/20">·</span>
-            <span className="text-cyan-200/85">
-              Mission : {projectName}
-            </span>
+            <span className="text-cyan-200/85">Mission : {projectName}</span>
             <span className="mx-3 text-cyan-200/20">·</span>
             <span className="text-cyan-200/85">Business plan</span>
           </p>
@@ -159,16 +157,16 @@ export function BusinessPlanPicker({
             style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
           >
             Comment{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               démarrer
             </span>{" "}
             ?
           </h1>
 
           <p className="max-w-xl text-balance font-serif text-base italic text-white/55 md:text-lg">
-            Cinq voies pour forger un business plan : structure
-            pré-remplie, parchemin vierge, ou import d&apos;un document
-            existant (.docx, .md, HTML).
+            Cinq voies pour forger un business plan : structure pré-remplie,
+            parchemin vierge, ou import d&apos;un document existant (.docx, .md,
+            HTML).
           </p>
         </div>
 
@@ -176,14 +174,10 @@ export function BusinessPlanPicker({
         <ul className="grid grid-cols-1 gap-px overflow-hidden rounded-2xl bg-cyan-200/[0.1] md:grid-cols-2">
           {OPTIONS.map((opt) => {
             const isDisabled = opt.status === "phase-2";
-            const href = buildHref(clientId, projectId, opt);
+            const href = buildHref(clientSlug, projectId, opt);
             return (
               <li key={opt.id}>
-                <OptionCard
-                  option={opt}
-                  href={href}
-                  disabled={isDisabled}
-                />
+                <OptionCard option={opt} href={href} disabled={isDisabled} />
               </li>
             );
           })}
@@ -192,13 +186,13 @@ export function BusinessPlanPicker({
         {/* Cancel + retour picker */}
         <div className="flex items-center gap-6 pt-4">
           <Link
-            href={`/admin/clients/${clientId}/projects/${projectId}/pages/new`}
+            href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new`}
             className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
           >
             ← Choisir un autre blueprint
           </Link>
           <Link
-            href={`/admin/clients/${clientId}/projects/${projectId}`}
+            href={`/admin/clients/${clientSlug}/projects/${projectId}`}
             className="text-[11px] uppercase tracking-[0.32em] text-white/35 transition-colors hover:text-white/70"
           >
             Annuler
@@ -292,12 +286,7 @@ function OptionCard({
 
   if (disabled) {
     return (
-      <div
-        className={className}
-        role="button"
-        aria-disabled
-        tabIndex={-1}
-      >
+      <div className={className} role="button" aria-disabled tabIndex={-1}>
         {inner}
       </div>
     );

@@ -1,4 +1,8 @@
 "use server";
+import {
+  revalidateClientPath,
+  resolveClientSegment,
+} from "@/lib/admin/resolve-client";
 
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
@@ -153,9 +157,11 @@ export async function createPage(
     };
   }
 
-  revalidatePath(`/admin/clients/${profileId}/projects/${projectId}`);
+  await revalidateClientPath(profileId, `/projects/${projectId}`);
   revalidatePath(`/admin/clients`);
-  redirect(`/admin/clients/${profileId}/projects/${projectId}`);
+  redirect(
+    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${projectId}`,
+  );
 }
 
 /**
@@ -289,9 +295,11 @@ export async function createRawHtmlPage(
     };
   }
 
-  revalidatePath(`/admin/clients/${profileId}/projects/${projectId}`);
+  await revalidateClientPath(profileId, `/projects/${projectId}`);
   revalidatePath(`/admin/clients`);
-  redirect(`/admin/clients/${profileId}/projects/${projectId}`);
+  redirect(
+    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${projectId}`,
+  );
 }
 
 /* ─── Import de parchemin : .docx, .md ou HTML artifact Claude ──────── */
@@ -360,23 +368,22 @@ export async function createPageFromImport(
 
   let html: string;
   if (source === "docx") {
-    if (
-      !ALLOWED_DOCX_MIME.has(file.type) &&
-      !/\.docx?$/i.test(file.name)
-    ) {
+    if (!ALLOWED_DOCX_MIME.has(file.type) && !/\.docx?$/i.test(file.name)) {
       return {
         status: "error",
         error: `Format attendu : .docx (reçu : ${file.type || "inconnu"}).`,
       };
     }
     if (file.size > MAX_DOCX_SIZE) {
-      return { status: "error", error: "Fichier .docx trop volumineux (max 8 MB)." };
+      return {
+        status: "error",
+        error: "Fichier .docx trop volumineux (max 8 MB).",
+      };
     }
     try {
       const buffer = await file.arrayBuffer();
-      const { convertDocxToHtml } = await import(
-        "@/app/admin/clients/[id]/context/_lib/context-conversion"
-      );
+      const { convertDocxToHtml } =
+        await import("@/app/admin/clients/[id]/context/_lib/context-conversion");
       const result = await convertDocxToHtml(buffer, name);
       html = result.html;
     } catch (err) {
@@ -413,9 +420,8 @@ export async function createPageFromImport(
       };
     }
     try {
-      const { convertMarkdownToHtml } = await import(
-        "@/app/admin/clients/[id]/context/_lib/context-conversion"
-      );
+      const { convertMarkdownToHtml } =
+        await import("@/app/admin/clients/[id]/context/_lib/context-conversion");
       html = convertMarkdownToHtml(markdown, name);
     } catch (err) {
       console.error("[createPageFromImport] markdown convert:", err);
@@ -428,10 +434,7 @@ export async function createPageFromImport(
       };
     }
   } else {
-    if (
-      !ALLOWED_HTML_MIME.has(file.type) &&
-      !/\.html?$/i.test(file.name)
-    ) {
+    if (!ALLOWED_HTML_MIME.has(file.type) && !/\.html?$/i.test(file.name)) {
       return {
         status: "error",
         error: `Format attendu : .html (reçu : ${file.type || "inconnu"}).`,
@@ -445,7 +448,10 @@ export async function createPageFromImport(
     }
     html = await file.text();
     if (html.trim().length < 20) {
-      return { status: "error", error: "HTML trop court pour être exploitable." };
+      return {
+        status: "error",
+        error: "HTML trop court pour être exploitable.",
+      };
     }
   }
 
@@ -509,7 +515,9 @@ export async function createPageFromImport(
     };
   }
 
-  revalidatePath(`/admin/clients/${profileId}/projects/${projectId}`);
+  await revalidateClientPath(profileId, `/projects/${projectId}`);
   revalidatePath(`/admin/clients`);
-  redirect(`/admin/clients/${profileId}/projects/${projectId}`);
+  redirect(
+    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${projectId}`,
+  );
 }

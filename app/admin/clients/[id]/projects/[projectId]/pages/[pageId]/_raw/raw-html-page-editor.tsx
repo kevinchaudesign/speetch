@@ -6,11 +6,7 @@ import { useEffect, useMemo, useState, useTransition } from "react";
 import type { Page, PageContent } from "@/types/database";
 import { Button, ConfirmDialog, Eyebrow, StatusBadge } from "@/lib/ds";
 import { AutosaveField, type AutosaveResult } from "../autosave-input";
-import {
-  deletePage,
-  updatePageName,
-  updatePagePublished,
-} from "../actions";
+import { deletePage, updatePageName, updatePagePublished } from "../actions";
 import { saveRawHtmlOverrides } from "./actions";
 import { MediaLibraryModal } from "./media-library-modal";
 import { DirectionsEditor } from "./directions-editor";
@@ -21,6 +17,7 @@ import {
   replaceInHtml,
   type LeafField,
 } from "./named-object";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -40,7 +37,8 @@ type ParsedContent = {
 const COUNTER_PATTERN = /^\s*\d+\s*[\/\-–—]\s*\d+\s*$/;
 // Attributs/classes parentes qui trahissent un nœud dynamique
 const DYNAMIC_PARENT_ATTRS = ["data-counter", "data-count", "data-timer"];
-const DYNAMIC_CLASS_HINTS = /\b(counter|compteur|char-count|live-count|timer|countdown|word-count|status-text)\b/i;
+const DYNAMIC_CLASS_HINTS =
+  /\b(counter|compteur|char-count|live-count|timer|countdown|word-count|status-text)\b/i;
 const DYNAMIC_ID_HINTS = /\b(counter|compteur|countdown|timer|live-count)\b/i;
 
 function hasDynamicAncestor(node: Node): boolean {
@@ -163,6 +161,7 @@ export function RawHtmlPageEditor({
   clientName: string;
   publicHref: string | null;
 }) {
+  const clientSlug = useClientSegment();
   const [page, setPage] = useState<Page>(initialPage);
   const content = (page.content as PageContent) ?? {};
   const rawHtml = content.meta?.raw_html ?? "";
@@ -198,7 +197,10 @@ export function RawHtmlPageEditor({
     Record<string, unknown>
   > | null>(() =>
     tabsExtracted
-      ? (deepClone(tabsExtracted.value) as Record<string, Record<string, unknown>>)
+      ? (deepClone(tabsExtracted.value) as Record<
+          string,
+          Record<string, unknown>
+        >)
       : null,
   );
 
@@ -262,7 +264,8 @@ export function RawHtmlPageEditor({
     if (!directionsData) return set;
     function collect(value: unknown) {
       if (typeof value === "string") {
-        if (/\.(png|jpe?g|webp|gif|svg|avif)(\?.*)?$/i.test(value)) set.add(value);
+        if (/\.(png|jpe?g|webp|gif|svg|avif)(\?.*)?$/i.test(value))
+          set.add(value);
         return;
       }
       if (Array.isArray(value)) {
@@ -422,7 +425,7 @@ export function RawHtmlPageEditor({
       {/* Header mobile */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${clientId}/projects/${projectId}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectId}`}
           className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
           ← Mission
@@ -444,14 +447,14 @@ export function RawHtmlPageEditor({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${clientId}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${clientId}/projects/${projectId}`}
+              href={`/admin/clients/${clientSlug}/projects/${projectId}`}
               className="transition-colors hover:text-cyan-100"
             >
               {projectName}
@@ -522,14 +525,20 @@ export function RawHtmlPageEditor({
               {tabsExtracted && directionsData && (
                 <>
                   <span className="mx-3 text-amber-200/40">·</span>
-                  {Object.keys(directionsData).length} direction{Object.keys(directionsData).length > 1 ? "s" : ""} détectée{Object.keys(directionsData).length > 1 ? "s" : ""}
+                  {Object.keys(directionsData).length} direction
+                  {Object.keys(directionsData).length > 1 ? "s" : ""} détectée
+                  {Object.keys(directionsData).length > 1 ? "s" : ""}
                 </>
               )}
             </p>
             <p className="mt-2 font-serif text-sm italic text-white/65 md:text-base">
-              {parsed.textsOrdered.length} texte{parsed.textsOrdered.length > 1 ? "s" : ""} unique{parsed.textsOrdered.length > 1 ? "s" : ""} ·{" "}
-              {parsed.images.length} image{parsed.images.length > 1 ? "s" : ""} détecté{parsed.images.length > 1 ? "es" : "e"}{" "}
-              · Les modifications s&apos;appliquent automatiquement sur le parchemin public au prochain chargement.
+              {parsed.textsOrdered.length} texte
+              {parsed.textsOrdered.length > 1 ? "s" : ""} unique
+              {parsed.textsOrdered.length > 1 ? "s" : ""} ·{" "}
+              {parsed.images.length} image{parsed.images.length > 1 ? "s" : ""}{" "}
+              détecté{parsed.images.length > 1 ? "es" : "e"} · Les modifications
+              s&apos;appliquent automatiquement sur le parchemin public au
+              prochain chargement.
             </p>
           </div>
 
@@ -549,7 +558,8 @@ export function RawHtmlPageEditor({
           <div className="flex flex-col gap-5">
             <div className="flex items-baseline justify-between gap-4">
               <Eyebrow tracking="md">
-                {tabsExtracted.name} · {Object.keys(directionsData).length} directions
+                {tabsExtracted.name} · {Object.keys(directionsData).length}{" "}
+                directions
               </Eyebrow>
               <Eyebrow tracking="md" intensity="muted">
                 Édite chaque direction indépendamment
@@ -608,7 +618,9 @@ export function RawHtmlPageEditor({
                         loading="lazy"
                       />
                       <span className="absolute inset-x-0 bottom-0 bg-black/65 px-3 py-2 text-[10px] uppercase tracking-[0.28em] text-white/70 backdrop-blur-sm">
-                        {override ? "Remplacée · cliquer pour modifier" : "Cliquer pour remplacer"}
+                        {override
+                          ? "Remplacée · cliquer pour modifier"
+                          : "Cliquer pour remplacer"}
                       </span>
                       {img.count > 1 && (
                         <span className="absolute left-2 top-2 rounded-full bg-white/85 px-2 py-0.5 text-[9px] uppercase tracking-[0.28em] text-black">
@@ -752,7 +764,7 @@ export function RawHtmlPageEditor({
         </div>
 
         <Button
-          href={`/admin/clients/${clientId}/projects/${projectId}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectId}`}
           variant="ghost"
         >
           ← Retour mission
@@ -784,9 +796,8 @@ export function RawHtmlPageEditor({
                 cursor = (cursor as Record<string, unknown>)[parts[i]];
               }
               if (cursor && typeof cursor === "object") {
-                (cursor as Record<string, unknown>)[
-                  parts[parts.length - 1]
-                ] = url;
+                (cursor as Record<string, unknown>)[parts[parts.length - 1]] =
+                  url;
               }
               next[tabId] = cloned;
               setDirectionsData(next);

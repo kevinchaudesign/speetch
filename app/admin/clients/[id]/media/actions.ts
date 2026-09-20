@@ -1,6 +1,6 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
-import { revalidatePath } from "next/cache";
 import sharp from "sharp";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { MediaFolderRow, MediaRow } from "./_lib/types";
@@ -71,10 +71,7 @@ async function requireOwnerAndAdmin() {
 async function ensureProfileExists(
   admin: ReturnType<typeof createAdminClient>,
   profileId: string,
-): Promise<
-  | { ok: true; isOwner: boolean }
-  | { ok: false; error: string }
-> {
+): Promise<{ ok: true; isOwner: boolean } | { ok: false; error: string }> {
   const { data: profile } = await admin
     .from("profiles")
     .select("id, is_owner")
@@ -220,7 +217,10 @@ export async function createMediaFolder(input: {
     .from("client_media_folders" as never)
     .select("position")
     .eq("profile_id", input.profileId);
-  query = parentId === null ? query.is("parent_id", null) : query.eq("parent_id", parentId);
+  query =
+    parentId === null
+      ? query.is("parent_id", null)
+      : query.eq("parent_id", parentId);
   const { data: maxRow } = await query
     .order("position", { ascending: false })
     .limit(1)
@@ -241,11 +241,13 @@ export async function createMediaFolder(input: {
     console.error("[createMediaFolder] insert error:", error);
     return { ok: false, error: error?.message ?? "Création impossible." };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true, folderId: inserted.id };
 }
 
-export type RenameMediaFolderResult = { ok: true } | { ok: false; error: string };
+export type RenameMediaFolderResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
 export async function renameMediaFolder(input: {
   profileId: string;
@@ -272,11 +274,13 @@ export async function renameMediaFolder(input: {
     console.error("[renameMediaFolder] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true };
 }
 
-export type DeleteMediaFolderResult = { ok: true } | { ok: false; error: string };
+export type DeleteMediaFolderResult =
+  | { ok: true }
+  | { ok: false; error: string };
 
 export async function deleteMediaFolder(input: {
   profileId: string;
@@ -302,7 +306,7 @@ export async function deleteMediaFolder(input: {
     console.error("[deleteMediaFolder] delete error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true };
 }
 
@@ -343,7 +347,7 @@ export async function reorderMediaFolders(input: {
       return { ok: false, error: error.message };
     }
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true };
 }
 
@@ -500,7 +504,7 @@ export async function uploadClientMedia(
     .from(BUCKET)
     .getPublicUrl(storagePath);
 
-  revalidatePath(`/admin/clients/${profileId}/media`);
+  await revalidateClientPath(profileId, `/media`);
   return {
     ok: true,
     mediaId: inserted.id,
@@ -552,7 +556,7 @@ export async function deleteClientMedia(input: {
     console.error("[deleteClientMedia] delete error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true };
 }
 
@@ -597,7 +601,7 @@ export async function moveMediaToFolder(input: {
     console.error("[moveMediaToFolder] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true };
 }
 
@@ -691,7 +695,7 @@ export async function deleteClientMediaBatch(input: {
     return { ok: false, error: dbError.message };
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true, count: validIds.length };
 }
 
@@ -736,13 +740,11 @@ export async function moveClientMediaBatch(input: {
     console.error("[moveClientMediaBatch] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true, count: count ?? ids.length };
 }
 
-export type SetMediaPersonaResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type SetMediaPersonaResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Tagge un média avec un persona (ou retire le tag si personaId = null).
@@ -786,7 +788,7 @@ export async function setMediaPersona(input: {
     console.error("[setMediaPersona] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true };
 }
 
@@ -850,7 +852,7 @@ export async function setMediaFolderCover(input: {
     console.error("[setMediaFolderCover] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true };
 }
 
@@ -883,6 +885,6 @@ export async function renameClientMedia(input: {
     console.error("[renameClientMedia] update error:", error);
     return { ok: false, error: error.message };
   }
-  revalidatePath(`/admin/clients/${input.profileId}/media`);
+  await revalidateClientPath(input.profileId, `/media`);
   return { ok: true };
 }

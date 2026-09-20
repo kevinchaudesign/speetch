@@ -1,6 +1,6 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
-import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { generateClientPassword, hashPassword } from "@/lib/crypto";
 
@@ -89,6 +89,6 @@ export async function updateClientPassword(input: {
     return { ok: false, error: updateError.message };
   }
 
-  revalidatePath(`/admin/clients/${profileId}`);
+  await revalidateClientPath(profileId);
   return { ok: true, password };
 }

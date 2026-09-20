@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import {
   isValidTemplateId,
   MARKDOWN_VIRTUAL_TEMPLATE_ID,
@@ -64,11 +64,12 @@ export default async function NewPagePage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id")
+    .select("id, slug")
     .eq(clientLookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
   if (!profile) notFound();
+  const clientSlug = clientSegment(profile);
 
   const { data: project } = await admin
     .from("projects")
@@ -104,7 +105,7 @@ export default async function NewPagePage({
         source="markdown"
         templateId={MARKDOWN_VIRTUAL_TEMPLATE_ID}
         templateLabel="Nouveau parchemin"
-        backHref={`/admin/clients/${profile.id}/projects/${projectId}/pages/new`}
+        backHref={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new`}
       />
     );
   }
@@ -146,11 +147,7 @@ export default async function NewPagePage({
     }
     if (mode !== "create") {
       return (
-        <BusinessPlanPicker
-          clientId={profile.id}
-          projectId={projectId}
-          projectName={project.name}
-        />
+        <BusinessPlanPicker projectId={projectId} projectName={project.name} />
       );
     }
     // mode === "create" → continue vers le form standard avec template pré-rempli
@@ -198,7 +195,6 @@ export default async function NewPagePage({
     if (mode !== "create") {
       return (
         <MarketResearchPicker
-          clientId={profile.id}
           projectId={projectId}
           projectName={project.name}
         />
@@ -248,11 +244,7 @@ export default async function NewPagePage({
     }
     if (mode !== "create") {
       return (
-        <PitchDeckPicker
-          clientId={profile.id}
-          projectId={projectId}
-          projectName={project.name}
-        />
+        <PitchDeckPicker projectId={projectId} projectName={project.name} />
       );
     }
     // mode === "create" → continue vers le form standard avec template pré-rempli
@@ -280,7 +272,6 @@ export default async function NewPagePage({
 
   return (
     <TemplatePicker
-      clientId={profile.id}
       projectId={projectId}
       projectName={project.name}
       templates={templates}

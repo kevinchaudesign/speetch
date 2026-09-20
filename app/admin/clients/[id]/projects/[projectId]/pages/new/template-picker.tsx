@@ -1,17 +1,17 @@
 import Link from "next/link";
 import type { PageTemplate } from "@/lib/page-templates";
+import { useClientSegment } from "@/lib/admin/use-client-segment";
 
 export function TemplatePicker({
-  clientId,
   projectId,
   projectName,
   templates,
 }: {
-  clientId: string;
   projectId: string;
   projectName: string;
   templates: PageTemplate[];
 }) {
+  const clientSlug = useClientSegment();
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
       {/* Star field + scanlines + sabre — thème Conseil Jedi */}
@@ -31,7 +31,7 @@ export function TemplatePicker({
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${clientId}/projects/${projectId}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectId}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
@@ -56,7 +56,7 @@ export function TemplatePicker({
             style={{ fontSize: "clamp(2.5rem, 8vw, 6rem)" }}
           >
             Quel{" "}
-            <span className="sw-hologram-text sw-hologram-glitch font-serif italic font-normal">
+            <span className="sw-hologram-text sw-hologram-glitch font-serif font-normal italic">
               blueprint
             </span>{" "}
             ?
@@ -73,7 +73,7 @@ export function TemplatePicker({
           {templates.map((template, idx) => (
             <li key={template.id}>
               <Link
-                href={`/admin/clients/${clientId}/projects/${projectId}/pages/new?template=${template.id}`}
+                href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new?template=${template.id}`}
                 className="group relative flex h-full flex-col gap-6 bg-black p-7 transition-colors duration-500 ease-out hover:bg-cyan-200/[0.04] md:p-9"
               >
                 {/* Numéro + source */}
@@ -132,7 +132,7 @@ export function TemplatePicker({
         {/* Cancel */}
         <div className="flex items-center pt-4">
           <Link
-            href={`/admin/clients/${clientId}/projects/${projectId}`}
+            href={`/admin/clients/${clientSlug}/projects/${projectId}`}
             className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
           >
             ← Annuler

@@ -1,4 +1,5 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
 /**
  * Server actions pour les mockups Meta Ads.
@@ -10,7 +11,6 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import {
   isValidMetaAdFormat,
@@ -83,9 +83,10 @@ function cleanText(raw: unknown, maxLen: number): string | null {
   return trimmed;
 }
 
-function revalidateBoth(ctx: MetaAdsActionContext) {
-  revalidatePath(
-    `/admin/clients/${ctx.profileId}/projects/${ctx.projectId}/pages/${ctx.pageId}`,
+async function revalidateBoth(ctx: MetaAdsActionContext) {
+  await revalidateClientPath(
+    ctx.profileId,
+    `/projects/${ctx.projectId}/pages/${ctx.pageId}`,
   );
 }
 
@@ -113,9 +114,9 @@ async function loadPageContent(
     .maybeSingle();
   if (!page) return { ok: false, error: "Page introuvable." };
 
-  const project = (Array.isArray(page.projects) ? page.projects[0] : page.projects) as
-    | { id: string; profile_id: string }
-    | null;
+  const project = (
+    Array.isArray(page.projects) ? page.projects[0] : page.projects
+  ) as { id: string; profile_id: string } | null;
   if (!project || project.profile_id !== ctx.profileId) {
     return { ok: false, error: "Page introuvable pour ce client." };
   }
@@ -237,7 +238,7 @@ export async function createMetaAdMockup(input: {
   ]);
   if (!saved.ok) return saved;
 
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true, mockupId: id };
 }
 
@@ -348,7 +349,8 @@ export async function updateMetaAdMockup(input: {
       nextCopy.headline = cleanText(c.headline, MAX_HEADLINE_LEN) ?? "";
     }
     if (c.description !== undefined) {
-      nextCopy.description = cleanText(c.description, MAX_DESCRIPTION_LEN) ?? "";
+      nextCopy.description =
+        cleanText(c.description, MAX_DESCRIPTION_LEN) ?? "";
     }
     if (c.display_url !== undefined) {
       nextCopy.display_url =
@@ -381,7 +383,7 @@ export async function updateMetaAdMockup(input: {
     nextList,
   );
   if (!saved.ok) return saved;
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true };
 }
 
@@ -413,7 +415,7 @@ export async function deleteMetaAdMockup(input: {
     nextList,
   );
   if (!saved.ok) return saved;
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true };
 }
 
@@ -459,7 +461,7 @@ export async function reorderMetaAdMockups(input: {
     nextList,
   );
   if (!saved.ok) return saved;
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true };
 }
 
@@ -523,7 +525,7 @@ export async function addCarouselCard(input: {
     nextList,
   );
   if (!saved.ok) return saved;
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true, cardId: newCard.id };
 }
 
@@ -601,7 +603,7 @@ export async function updateCarouselCard(input: {
     nextList,
   );
   if (!saved.ok) return saved;
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true };
 }
 
@@ -638,6 +640,6 @@ export async function deleteCarouselCard(input: {
     nextList,
   );
   if (!saved.ok) return saved;
-  revalidateBoth(input.ctx);
+  await revalidateBoth(input.ctx);
   return { ok: true };
 }

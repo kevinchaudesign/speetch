@@ -1,12 +1,10 @@
 "use server";
+import { revalidateClientPath } from "@/lib/admin/resolve-client";
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { PageContent } from "@/types/database";
-import type {
-  ProjectLotInsert,
-  ProjectLotRow,
-} from "./_lib/lot-types";
+import type { ProjectLotInsert, ProjectLotRow } from "./_lib/lot-types";
 
 const UUID_REGEX =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -19,9 +17,7 @@ type DeleteProjectInput = {
   projectId: string;
 };
 
-export type DeleteProjectResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type DeleteProjectResult = { ok: true } | { ok: false; error: string };
 
 async function requireOwnerAndAdmin() {
   const supabase = await createClient();
@@ -139,7 +135,7 @@ export async function deleteProject(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/admin/clients");
-  revalidatePath(`/admin/clients/${input.profileId}/projects/${input.projectId}`);
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
@@ -202,10 +198,8 @@ export async function renameProject(input: {
   }
 
   revalidatePath("/admin/clients");
-  revalidatePath(`/admin/clients/${input.profileId}`);
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId);
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true, name };
 }
 
@@ -271,7 +265,8 @@ export async function reorderProjectPages(input: {
   if (existingIds.size !== input.pageIds.length) {
     return {
       ok: false,
-      error: "Liste incohérente avec les pages du projet (rechargement requis).",
+      error:
+        "Liste incohérente avec les pages du projet (rechargement requis).",
     };
   }
   for (const id of input.pageIds) {
@@ -292,7 +287,7 @@ export async function reorderProjectPages(input: {
     }
   }
 
-  revalidatePath(`/admin/clients/${input.profileId}/projects/${input.projectId}`);
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
@@ -359,7 +354,8 @@ export async function reorderProjectContexts(input: {
   if (existingIds.size !== input.contextIds.length) {
     return {
       ok: false,
-      error: "Liste incohérente avec les notes du projet (rechargement requis).",
+      error:
+        "Liste incohérente avec les notes du projet (rechargement requis).",
     };
   }
   for (const id of input.contextIds) {
@@ -397,15 +393,11 @@ export async function reorderProjectContexts(input: {
     }
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
-export type ReorderLotItemsResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type ReorderLotItemsResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Réordonne les éléments (pages + notes mélangés) d'un lot — ou du
@@ -453,9 +445,7 @@ export async function reorderLotItems(input: {
     }
   }
   const uniqueKey = (it: { kind: string; id: string }) => `${it.kind}:${it.id}`;
-  if (
-    new Set(input.items.map(uniqueKey)).size !== input.items.length
-  ) {
+  if (new Set(input.items.map(uniqueKey)).size !== input.items.length) {
     return { ok: false, error: "Doublons dans la liste." };
   }
 
@@ -594,9 +584,7 @@ export async function reorderLotItems(input: {
     }
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
@@ -687,12 +675,13 @@ export async function createProjectLot(input: {
 
   if (error || !inserted) {
     console.error("[createProjectLot] insert error:", error);
-    return { ok: false, error: error?.message ?? "Création du lot impossible." };
+    return {
+      ok: false,
+      error: error?.message ?? "Création du lot impossible.",
+    };
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true, lotId: inserted.id };
 }
 
@@ -742,9 +731,7 @@ export async function renameProjectLot(input: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
@@ -791,9 +778,7 @@ export async function deleteProjectLot(input: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
@@ -868,15 +853,11 @@ export async function reorderProjectLots(input: {
     }
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
-export type SetPageLotResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type SetPageLotResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Range une page dans un lot du projet, ou la sort de tout lot (lotId=null).
@@ -944,15 +925,11 @@ export async function setPageLot(input: {
     return { ok: false, error: error.message };
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }
 
-export type SetContextLotResult =
-  | { ok: true }
-  | { ok: false; error: string };
+export type SetContextLotResult = { ok: true } | { ok: false; error: string };
 
 /**
  * Range une note dans un lot du projet, ou la sort de tout lot (lotId=null).
@@ -1038,16 +1015,11 @@ export async function setContextLot(input: {
       .update({ lot_id: input.lotId } as never)
       .eq("id", ctx.published_page_id);
     if (pageError) {
-      console.error(
-        "[setContextLot] snapshot page update error:",
-        pageError,
-      );
+      console.error("[setContextLot] snapshot page update error:", pageError);
       return { ok: false, error: pageError.message };
     }
   }
 
-  revalidatePath(
-    `/admin/clients/${input.profileId}/projects/${input.projectId}`,
-  );
+  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
   return { ok: true };
 }

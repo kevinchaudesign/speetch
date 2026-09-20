@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { isDbTemplateId } from "@/lib/page-templates";
 import { Button, StatusBadge } from "@/lib/ds";
@@ -56,11 +56,15 @@ export default async function ProjectDetailPage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id")
+    .select("id, slug")
     .eq(clientLookupColumn(id), id)
     .eq("is_owner", false)
     .maybeSingle();
   if (!profile) notFound();
+  const clientSlug = clientSegment(profile);
+  // URL canonique : le segment porte le nom du client, jamais son UUID.
+  if (clientSlug !== id)
+    redirect(`/admin/clients/${clientSlug}/projects/${projectId}`);
 
   const { data: project } = await admin
     .from("projects")
@@ -190,7 +194,7 @@ export default async function ProjectDetailPage({
       {/* Header — mobile only */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${id}`}
+          href={`/admin/clients/${clientSlug}`}
           className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
           ← {clientName}
@@ -211,7 +215,7 @@ export default async function ProjectDetailPage({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${id}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
@@ -247,7 +251,7 @@ export default async function ProjectDetailPage({
             </div>
 
             <Button
-              href={`/admin/clients/${id}/projects/${projectId}/pages/new`}
+              href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new`}
               variant="primary"
             >
               + Nouveau parchemin
@@ -285,7 +289,7 @@ export default async function ProjectDetailPage({
         )}
 
         <div className="flex items-center gap-6 pt-4">
-          <Button href={`/admin/clients/${id}`} variant="ghost">
+          <Button href={`/admin/clients/${clientSlug}`} variant="ghost">
             ← Retour {clientName}
           </Button>
           <Button href="/admin/clients" variant="ghost">
@@ -306,13 +310,10 @@ function EmptyState({
 }) {
   return (
     <div className="relative flex flex-col items-start gap-8 pt-16">
-      <div
-        aria-hidden
-        className="sw-hologram-line absolute inset-x-0 top-0"
-      />
+      <div aria-hidden className="sw-hologram-line absolute inset-x-0 top-0" />
       <p className="max-w-md text-balance font-serif text-base italic text-white/55 md:text-lg">
-        Cette mission n&apos;a encore aucun parchemin. Démarre avec un
-        blueprint pour poser une première mise en forme.
+        Cette mission n&apos;a encore aucun parchemin. Démarre avec un blueprint
+        pour poser une première mise en forme.
       </p>
       <Button
         href={`/admin/clients/${clientId}/projects/${projectId}/pages/new`}

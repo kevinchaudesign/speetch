@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { clientLookupColumn } from "@/lib/admin/resolve-client";
+import { clientLookupColumn, clientSegment } from "@/lib/admin/resolve-client";
 import { Button } from "@/lib/ds";
 import { PersonaDetailEditor } from "../_components/persona-detail-editor";
 import type {
@@ -48,10 +48,13 @@ export default async function PersonaDetailPage({
 
   const { data: profile } = await admin
     .from("profiles")
-    .select("id, full_name, is_owner")
+    .select("id, full_name, slug, is_owner")
     .eq(clientLookupColumn(id), id)
     .maybeSingle();
   if (!profile || profile.is_owner) notFound();
+  const clientSlug = clientSegment(profile);
+  if (clientSlug !== id)
+    redirect(`/admin/clients/${clientSlug}/personas/${personaId}`);
 
   // Le persona doit appartenir à ce client — sinon 404 (évite l'énumération
   // de personas d'autres clients via l'URL).
@@ -165,14 +168,14 @@ export default async function PersonaDetailPage({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${id}`}
+              href={`/admin/clients/${clientSlug}`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               {clientName}
             </Link>
             <span className="mx-3 text-cyan-200/20">·</span>
             <Link
-              href={`/admin/clients/${id}/personas`}
+              href={`/admin/clients/${clientSlug}/personas`}
               className="text-cyan-200/85 transition-colors hover:text-cyan-100"
             >
               Audiences
@@ -188,7 +191,7 @@ export default async function PersonaDetailPage({
 
         <div className="flex items-center pt-4">
           <Button
-            href={`/admin/clients/${id}/personas`}
+            href={`/admin/clients/${clientSlug}/personas`}
             variant="ghost"
           >
             ← Retour Audiences
