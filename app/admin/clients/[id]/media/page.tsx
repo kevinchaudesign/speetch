@@ -77,7 +77,7 @@ export default async function ClientMediaPage({
   const { data: mediaData } = await admin
     .from("client_media" as never)
     .select(
-      "id, folder_id, persona_id, filename, storage_path, mime_type, size_bytes, width, height, duration_seconds, position, created_at",
+      "id, folder_id, persona_id, filename, storage_path, mime_type, size_bytes, width, height, duration_seconds, generation_prompt, generation_model, position, created_at",
     )
     .eq("profile_id", profile.id)
     .order("position", { ascending: true })
@@ -96,6 +96,8 @@ export default async function ClientMediaPage({
           | "width"
           | "height"
           | "duration_seconds"
+          | "generation_prompt"
+          | "generation_model"
           | "position"
           | "created_at"
         >
@@ -161,6 +163,8 @@ export default async function ClientMediaPage({
       width: m.width,
       height: m.height,
       duration_seconds: m.duration_seconds,
+      generation_prompt: m.generation_prompt,
+      generation_model: m.generation_model,
       created_at: m.created_at,
       public_url: pub.publicUrl,
     };

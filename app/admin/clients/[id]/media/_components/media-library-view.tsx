@@ -24,6 +24,7 @@ import {
   moveMediaToFolder,
   moveClientMediaBatch,
   renameClientMedia,
+  setMediaGeneration,
   setMediaPersona,
   setMediaFolderCover,
 } from "../actions";
@@ -81,7 +82,10 @@ function flattenFolderTree(
  * Télécharge un média via fetch + blob (contourne le fait que l'attribut
  * `download` est ignoré sur les URLs cross-origin par Chrome).
  */
-async function downloadSingleMedia(url: string, filename: string): Promise<void> {
+async function downloadSingleMedia(
+  url: string,
+  filename: string,
+): Promise<void> {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const blob = await res.blob();
@@ -134,6 +138,8 @@ export type MediaItem = {
   width: number | null;
   height: number | null;
   duration_seconds: number | null;
+  generation_prompt: string | null;
+  generation_model: string | null;
   created_at: string;
   public_url: string;
 };
@@ -218,16 +224,14 @@ export function MediaLibraryView({
   // Modal state
   // createFolderState : null = fermé, { parentId } = ouvert. parentId NULL =
   // top-level, string = sous-dossier de ce parent.
-  const [createFolderState, setCreateFolderState] = useState<
-    { parentId: string | null } | null
-  >(null);
+  const [createFolderState, setCreateFolderState] = useState<{
+    parentId: string | null;
+  } | null>(null);
   const createFolderOpen = createFolderState !== null;
-  const [renameFolderState, setRenameFolderState] = useState<MediaFolder | null>(
-    null,
-  );
-  const [deleteFolderState, setDeleteFolderState] = useState<MediaFolder | null>(
-    null,
-  );
+  const [renameFolderState, setRenameFolderState] =
+    useState<MediaFolder | null>(null);
+  const [deleteFolderState, setDeleteFolderState] =
+    useState<MediaFolder | null>(null);
   const [renameMediaState, setRenameMediaState] = useState<MediaItem | null>(
     null,
   );
@@ -235,6 +239,9 @@ export function MediaLibraryView({
     null,
   );
   const [moveMediaState, setMoveMediaState] = useState<MediaItem | null>(null);
+  const [generationState, setGenerationState] = useState<MediaItem | null>(
+    null,
+  );
   const [previewItem, setPreviewItem] = useState<MediaItem | null>(null);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
   // Modale "choisir l'image d'aperçu d'un dossier" — picker sur tous les
@@ -317,6 +324,25 @@ export function MediaLibraryView({
         return;
       }
       startTransition(() => router.refresh());
+    },
+    [profileId, router],
+  );
+
+  const handleSetGeneration = useCallback(
+    async (mediaId: string, prompt: string, model: string) => {
+      const res = await setMediaGeneration({
+        profileId,
+        mediaId,
+        prompt,
+        model,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return false;
+      }
+      setGenerationState(null);
+      startTransition(() => router.refresh());
+      return true;
     },
     [profileId, router],
   );
@@ -474,8 +500,7 @@ export function MediaLibraryView({
       setUploading(true);
       setUploadProgress({ done: 0, total: files.length });
       setError(null);
-      const targetFolderId =
-        selection.kind === "folder" ? selection.id : null;
+      const targetFolderId = selection.kind === "folder" ? selection.id : null;
       let done = 0;
       let firstError: string | null = null;
       for (const file of files) {
@@ -665,9 +690,7 @@ export function MediaLibraryView({
                     key={sf.id}
                     folder={sf}
                     count={counts.get(sf.id) ?? 0}
-                    onClick={() =>
-                      setSelection({ kind: "folder", id: sf.id })
-                    }
+                    onClick={() => setSelection({ kind: "folder", id: sf.id })}
                     onPickCover={() => setCoverPickerFolder(sf)}
                   />
                 ))}
@@ -713,6 +736,10 @@ export function MediaLibraryView({
                       onRename={() => {
                         setOpenMenuId(null);
                         setRenameMediaState(m);
+                      }}
+                      onEditGeneration={() => {
+                        setOpenMenuId(null);
+                        setGenerationState(m);
                       }}
                       onMove={() => {
                         setOpenMenuId(null);
@@ -880,6 +907,15 @@ export function MediaLibraryView({
         }}
       />
 
+      <GenerationModal
+        media={generationState}
+        onClose={() => setGenerationState(null)}
+        onSubmit={async (prompt, model) => {
+          if (!generationState) return false;
+          return handleSetGeneration(generationState.id, prompt, model);
+        }}
+      />
+
       <MoveMediaModal
         media={moveMediaState}
         folders={folders}
@@ -932,10 +968,7 @@ export function MediaLibraryView({
         }}
       />
 
-      <PreviewModal
-        item={previewItem}
-        onClose={() => setPreviewItem(null)}
-      />
+      <PreviewModal item={previewItem} onClose={() => setPreviewItem(null)} />
 
       <CoverPickerModal
         folder={coverPickerFolder}
@@ -978,7 +1011,9 @@ export function MediaLibraryView({
             await downloadBatchAsZip(profileId, Array.from(selectedIds));
           } catch (err) {
             setError(
-              err instanceof Error ? err.message : "Téléchargement ZIP impossible.",
+              err instanceof Error
+                ? err.message
+                : "Téléchargement ZIP impossible.",
             );
           } finally {
             setBatchPending(false);
@@ -1188,6 +1223,7 @@ function MediaTile({
   onPreview,
   onToggleSelect,
   onRename,
+  onEditGeneration,
   onMove,
   onDelete,
   onDownload,
@@ -1208,6 +1244,7 @@ function MediaTile({
   onPreview: () => void;
   onToggleSelect: (mode: "toggle" | "range") => void;
   onRename: () => void;
+  onEditGeneration: () => void;
   onMove: () => void;
   onDelete: () => void;
   onDownload: () => void;
@@ -1349,7 +1386,7 @@ function MediaTile({
               ? "border-white bg-white text-black opacity-100"
               : anySelected
                 ? "border-white/55 text-transparent opacity-100 hover:border-white"
-                : "border-white/45 text-transparent opacity-0 group-hover:opacity-100 hover:border-white",
+                : "border-white/45 text-transparent opacity-0 hover:border-white group-hover:opacity-100",
           )}
         >
           {selected && (
@@ -1399,6 +1436,7 @@ function MediaTile({
                 className="absolute right-0 top-full z-20 mt-1 flex w-40 flex-col overflow-hidden rounded-xl border border-white/10 bg-[#0a0a0a] shadow-2xl"
               >
                 <MenuItem onClick={onRename}>Renommer</MenuItem>
+                <MenuItem onClick={onEditGeneration}>Génération IA…</MenuItem>
                 <MenuItem onClick={onMove}>Déplacer…</MenuItem>
                 <MenuItem onClick={onDownload}>Télécharger</MenuItem>
                 <MenuItem
@@ -1432,6 +1470,14 @@ function MediaTile({
             {thumbBytes != null
               ? `· thumb ${formatSize(thumbBytes)}`
               : "· thumb …"}
+          </span>
+        )}
+        {item.generation_model && (
+          <span
+            className="min-w-0 truncate text-cyan-200/60"
+            title={item.generation_prompt ?? undefined}
+          >
+            · {item.generation_model}
           </span>
         )}
       </span>
@@ -1550,7 +1596,9 @@ function PersonaTagSelect({
       </span>
       <select
         value={value ?? ""}
-        onChange={(e) => onChange(e.target.value === "" ? null : e.target.value)}
+        onChange={(e) =>
+          onChange(e.target.value === "" ? null : e.target.value)
+        }
         aria-label={
           currentName ? `Persona : ${currentName}` : "Choisir un persona"
         }
@@ -1681,11 +1729,7 @@ function TextModal({
               />
             </Field>
             <div className="mt-2 flex items-center justify-end gap-6 border-t border-white/10 pt-6">
-              <Button
-                variant="ghost"
-                onClick={onClose}
-                disabled={submitting}
-              >
+              <Button variant="ghost" onClick={onClose} disabled={submitting}>
                 Annuler
               </Button>
               <Button
@@ -1719,7 +1763,9 @@ function CreateFolderModal({
   return (
     <TextModal
       open={open}
-      title={parentName ? `Sous-dossier de « ${parentName} »` : "Nouveau dossier"}
+      title={
+        parentName ? `Sous-dossier de « ${parentName} »` : "Nouveau dossier"
+      }
       label="Nom du dossier"
       initialValue=""
       submitLabel="Créer"
@@ -1773,6 +1819,118 @@ function RenameMediaModal({
   );
 }
 
+// ============================================================================
+// Provenance IA d'un média : prompt de génération + modèle
+// ============================================================================
+
+function GenerationModal({
+  media,
+  onClose,
+  onSubmit,
+}: {
+  media: MediaItem | null;
+  onClose: () => void;
+  onSubmit: (prompt: string, model: string) => Promise<boolean>;
+}) {
+  const open = !!media;
+  const [prompt, setPrompt] = useState("");
+  const [model, setModel] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setPrompt(media?.generation_prompt ?? "");
+      setModel(media?.generation_model ?? "");
+      setSubmitting(false);
+    }
+  }, [open, media]);
+
+  useEffect(() => {
+    if (!open) return;
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") onClose();
+    }
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[88] flex items-center justify-center bg-black/85 p-4 backdrop-blur-sm md:p-6"
+          onClick={(e) => {
+            if (e.target === e.currentTarget && !submitting) onClose();
+          }}
+        >
+          <motion.form
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.4, ease: EASE_OUT_EXPO }}
+            onSubmit={async (e) => {
+              e.preventDefault();
+              setSubmitting(true);
+              // Les deux champs peuvent être vidés : soumettre du vide efface
+              // la provenance au lieu de bloquer.
+              const ok = await onSubmit(prompt, model);
+              if (!ok) setSubmitting(false);
+            }}
+            className="relative flex w-full max-w-xl flex-col gap-6 rounded-2xl border border-white/10 bg-[#0a0a0a] px-6 py-8 md:px-8 md:py-10"
+          >
+            <Eyebrow tracking="md" intensity="strong">
+              Génération IA
+            </Eyebrow>
+            <p className="-mt-2 min-w-0 truncate font-mono text-[11px] text-white/35">
+              {media?.filename}
+            </p>
+            <Field label="Prompt">
+              <textarea
+                autoFocus
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                disabled={submitting}
+                rows={6}
+                maxLength={4000}
+                placeholder="Le prompt qui a servi à générer ce média…"
+                className="w-full resize-y rounded-lg border border-white/15 bg-white/[0.02] px-3 py-2 text-sm leading-relaxed text-white outline-none transition-colors placeholder:text-white/20 focus:border-white/45"
+              />
+            </Field>
+            <Field label="Modèle">
+              <input
+                type="text"
+                value={model}
+                onChange={(e) => setModel(e.target.value)}
+                disabled={submitting}
+                maxLength={120}
+                placeholder="Midjourney v7, Nano Banana Pro, Seedream 4…"
+                className="w-full border-b border-white/15 bg-transparent py-2 text-base text-white outline-none transition-colors placeholder:text-white/20 focus:border-white/45"
+              />
+            </Field>
+            <div className="mt-2 flex items-center justify-end gap-6 border-t border-white/10 pt-6">
+              <Button variant="ghost" onClick={onClose} disabled={submitting}>
+                Annuler
+              </Button>
+              <Button
+                type="submit"
+                variant="primary"
+                pending={submitting}
+                pendingLabel="En cours…"
+              >
+                Enregistrer
+              </Button>
+            </div>
+          </motion.form>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 function MoveMediaModal({
   media,
   folders,
@@ -1816,9 +1974,7 @@ function MoveMediaModal({
             <Eyebrow tracking="md" intensity="strong">
               Déplacer le média
             </Eyebrow>
-            <p className="font-mono text-xs text-white/55">
-              {media?.filename}
-            </p>
+            <p className="font-mono text-xs text-white/55">{media?.filename}</p>
             <ul className="flex max-h-72 flex-col gap-1 overflow-y-auto">
               <MoveTarget
                 label="Hors dossier"
@@ -2010,6 +2166,20 @@ function PreviewModal({
                 </p>
               )}
             </div>
+            {(item.generation_prompt || item.generation_model) && (
+              <div className="flex flex-col gap-2 rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-4">
+                {item.generation_model && (
+                  <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-cyan-200/70">
+                    {item.generation_model}
+                  </p>
+                )}
+                {item.generation_prompt && (
+                  <p className="max-h-32 overflow-y-auto whitespace-pre-wrap text-xs leading-relaxed text-white/60">
+                    {item.generation_prompt}
+                  </p>
+                )}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       )}
@@ -2363,11 +2533,7 @@ function MoveBatchModal({
               ))}
             </ul>
             <div className="mt-2 flex items-center justify-end border-t border-white/10 pt-6">
-              <Button
-                variant="ghost"
-                onClick={onClose}
-                disabled={pending}
-              >
+              <Button variant="ghost" onClick={onClose} disabled={pending}>
                 {pending ? "Déplacement…" : "Fermer"}
               </Button>
             </div>

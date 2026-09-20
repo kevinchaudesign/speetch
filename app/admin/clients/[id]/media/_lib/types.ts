@@ -30,6 +30,10 @@ export type MediaRow = {
   width: number | null;
   height: number | null;
   duration_seconds: number | null;
+  /** Prompt ayant servi à générer le média (IA). NULL pour un upload. */
+  generation_prompt: string | null;
+  /** Modèle ayant généré le média (texte libre). NULL pour un upload. */
+  generation_model: string | null;
   position: number;
   created_at: string;
 };

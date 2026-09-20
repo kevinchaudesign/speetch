@@ -11,6 +11,10 @@ const UUID_REGEX =
 const BUCKET = "page-media";
 const STORAGE_PREFIX = "clients";
 const MAX_NAME_LEN = 80;
+// Un prompt d'image tient largement dans 4000 caractères ; on cap surtout
+// pour éviter qu'un copier-coller accidentel remplisse la colonne.
+const MAX_GENERATION_PROMPT_LEN = 4000;
+const MAX_GENERATION_MODEL_LEN = 120;
 
 // Limites par type. On reste large mais on cap pour éviter qu'un upload
 // pète la requête (Hostinger / Supabase ont leur propre limite côté infra).
@@ -87,6 +91,17 @@ function normalizeName(raw: string | null | undefined): string | null {
   if (trimmed.length === 0) return null;
   if (trimmed.length > MAX_NAME_LEN) return trimmed.slice(0, MAX_NAME_LEN);
   return trimmed;
+}
+
+/** Trim + cap, avec NULL pour une saisie vide (champ non renseigné). */
+function normalizeText(
+  raw: string | null | undefined,
+  maxLen: number,
+): string | null {
+  if (raw == null) return null;
+  const trimmed = String(raw).trim();
+  if (trimmed.length === 0) return null;
+  return trimmed.length > maxLen ? trimmed.slice(0, maxLen) : trimmed;
 }
 
 function cleanExt(filename: string, mime: string): string {
@@ -883,6 +898,49 @@ export async function renameClientMedia(input: {
     .eq("profile_id", input.profileId);
   if (error) {
     console.error("[renameClientMedia] update error:", error);
+    return { ok: false, error: error.message };
+  }
+  await revalidateClientPath(input.profileId, `/media`);
+  return { ok: true };
+}
+
+export type SetMediaGenerationResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
+/**
+ * Renseigne la provenance IA d'un média : le prompt et le modèle qui l'ont
+ * produit. Une chaîne vide efface le champ (NULL) plutôt que d'écrire "",
+ * pour garder la distinction « non renseigné » / « renseigné ».
+ */
+export async function setMediaGeneration(input: {
+  profileId: string;
+  mediaId: string;
+  prompt: string;
+  model: string;
+}): Promise<SetMediaGenerationResult> {
+  const auth = await requireOwnerAndAdmin();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!UUID_REGEX.test(input.profileId)) {
+    return { ok: false, error: "Client invalide." };
+  }
+  if (!UUID_REGEX.test(input.mediaId)) {
+    return { ok: false, error: "Média invalide." };
+  }
+
+  const prompt = normalizeText(input.prompt, MAX_GENERATION_PROMPT_LEN);
+  const model = normalizeText(input.model, MAX_GENERATION_MODEL_LEN);
+
+  const { error } = await auth.admin
+    .from("client_media" as never)
+    .update({
+      generation_prompt: prompt,
+      generation_model: model,
+    } as never)
+    .eq("id", input.mediaId)
+    .eq("profile_id", input.profileId);
+  if (error) {
+    console.error("[setMediaGeneration] update error:", error);
     return { ok: false, error: error.message };
   }
   await revalidateClientPath(input.profileId, `/media`);
