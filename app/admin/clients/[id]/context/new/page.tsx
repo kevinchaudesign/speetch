@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/routes";
 import { NewContextForm } from "./new-context-form";
 
 export const metadata: Metadata = {

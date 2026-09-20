@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/routes";
 import { isValidProjectType } from "@/lib/project-types";
 import { NewProjectForm } from "./new-project-form";
 import { TypePicker } from "./type-picker";

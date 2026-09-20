@@ -1,5 +1,5 @@
 "use server";
-import { revalidateClientPath } from "@/lib/admin/resolve-client";
+import { revalidatePagePath } from "@/lib/admin/routes";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 
@@ -81,10 +81,7 @@ function cleanText(raw: unknown, maxLen: number): string | null {
 }
 
 async function revalidateBoth(ctx: DeliverableActionContext) {
-  await revalidateClientPath(
-    ctx.profileId,
-    `/projects/${ctx.projectId}/pages/${ctx.pageId}`,
-  );
+  await revalidatePagePath(ctx.profileId, ctx.projectId, ctx.pageId);
   // La page publique pourrait être revalidée si on connait son slug — mais on
   // ne le fetch pas ici. Le dynamic = "force-dynamic" côté route publique
   // garantit qu'elle est toujours fraîche au prochain GET.

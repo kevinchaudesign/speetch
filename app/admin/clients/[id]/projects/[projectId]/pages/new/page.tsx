@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/routes";
 import {
   isValidTemplateId,
   MARKDOWN_VIRTUAL_TEMPLATE_ID,
@@ -27,9 +27,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function NewPagePage({
   params,
   searchParams,
@@ -39,10 +36,6 @@ export default async function NewPagePage({
 }) {
   const { id, projectId } = await params;
   const { template, mode } = await searchParams;
-
-  if (!UUID_REGEX.test(projectId)) {
-    notFound();
-  }
 
   const supabase = await createClient();
   const {
@@ -73,8 +66,8 @@ export default async function NewPagePage({
 
   const { data: project } = await admin
     .from("projects")
-    .select("id, name, project_type, profile_id")
-    .eq("id", projectId)
+    .select("id, name, slug, project_type, profile_id")
+    .eq(lookupColumn(projectId), projectId)
     .eq("profile_id", profile.id)
     .maybeSingle();
 
@@ -87,7 +80,7 @@ export default async function NewPagePage({
     return (
       <NewRawHtmlPageForm
         clientId={profile.id}
-        projectId={projectId}
+        projectId={project.id}
         projectName={project.name}
       />
     );
@@ -100,7 +93,7 @@ export default async function NewPagePage({
     return (
       <NewPageImportForm
         clientId={profile.id}
-        projectId={projectId}
+        projectId={project.id}
         projectName={project.name}
         source="markdown"
         templateId={MARKDOWN_VIRTUAL_TEMPLATE_ID}
@@ -119,7 +112,7 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="docx"
         />
@@ -129,7 +122,7 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="html"
         />
@@ -139,16 +132,14 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="markdown"
         />
       );
     }
     if (mode !== "create") {
-      return (
-        <BusinessPlanPicker projectId={projectId} projectName={project.name} />
-      );
+      return <BusinessPlanPicker projectName={project.name} />;
     }
     // mode === "create" → continue vers le form standard avec template pré-rempli
   }
@@ -160,7 +151,7 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="docx"
           templateId="market_research"
@@ -172,7 +163,7 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="html"
           templateId="market_research"
@@ -184,7 +175,7 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="markdown"
           templateId="market_research"
@@ -193,12 +184,7 @@ export default async function NewPagePage({
       );
     }
     if (mode !== "create") {
-      return (
-        <MarketResearchPicker
-          projectId={projectId}
-          projectName={project.name}
-        />
-      );
+      return <MarketResearchPicker projectName={project.name} />;
     }
     // mode === "create" → continue vers le form standard avec template pré-rempli
   }
@@ -210,7 +196,7 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="docx"
           templateId="pitch_deck"
@@ -222,7 +208,7 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="html"
           templateId="pitch_deck"
@@ -234,7 +220,7 @@ export default async function NewPagePage({
       return (
         <NewPageImportForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           source="markdown"
           templateId="pitch_deck"
@@ -243,9 +229,7 @@ export default async function NewPagePage({
       );
     }
     if (mode !== "create") {
-      return (
-        <PitchDeckPicker projectId={projectId} projectName={project.name} />
-      );
+      return <PitchDeckPicker projectName={project.name} />;
     }
     // mode === "create" → continue vers le form standard avec template pré-rempli
   }
@@ -257,7 +241,7 @@ export default async function NewPagePage({
       return (
         <NewPageForm
           clientId={profile.id}
-          projectId={projectId}
+          projectId={project.id}
           projectName={project.name}
           initialTemplateId={template}
           templateLabel={resolved.label}
@@ -270,11 +254,5 @@ export default async function NewPagePage({
   // Étape 1 — sélecteur visuel (code presets + templates DB filtrés)
   const templates = await listTemplatesForProject(admin, project.project_type);
 
-  return (
-    <TemplatePicker
-      projectId={projectId}
-      projectName={project.name}
-      templates={templates}
-    />
-  );
+  return <TemplatePicker projectName={project.name} templates={templates} />;
 }

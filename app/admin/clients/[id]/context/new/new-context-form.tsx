@@ -6,7 +6,7 @@ import { useActionState, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { Field } from "@/lib/ds";
 import { createClientContext, type CreateContextState } from "../actions";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import { useClientSegment } from "@/lib/admin/use-route-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: CreateContextState = { status: "idle" };

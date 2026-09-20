@@ -1,5 +1,5 @@
 "use server";
-import { revalidateClientPath } from "@/lib/admin/resolve-client";
+import { revalidatePagePath } from "@/lib/admin/routes";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import type { PageContent } from "@/types/database";
@@ -118,10 +118,7 @@ export async function saveRawHtmlOverrides(input: {
     return { ok: false, error: updateError.message };
   }
 
-  await revalidateClientPath(
-    input.profileId,
-    `/projects/${input.projectId}/pages/${input.pageId}`,
-  );
+  await revalidatePagePath(input.profileId, input.projectId, input.pageId);
   return { ok: true };
 }
 

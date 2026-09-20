@@ -17,7 +17,10 @@ import {
   replaceInHtml,
   type LeafField,
 } from "./named-object";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import {
+  useClientSegment,
+  useProjectSegment,
+} from "@/lib/admin/use-route-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 
@@ -162,6 +165,7 @@ export function RawHtmlPageEditor({
   publicHref: string | null;
 }) {
   const clientSlug = useClientSegment();
+  const projectSlug = useProjectSegment();
   const [page, setPage] = useState<Page>(initialPage);
   const content = (page.content as PageContent) ?? {};
   const rawHtml = content.meta?.raw_html ?? "";
@@ -425,7 +429,7 @@ export function RawHtmlPageEditor({
       {/* Header mobile */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${clientSlug}/projects/${projectId}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectSlug}`}
           className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
           ← Mission
@@ -454,7 +458,7 @@ export function RawHtmlPageEditor({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${clientSlug}/projects/${projectId}`}
+              href={`/admin/clients/${clientSlug}/projects/${projectSlug}`}
               className="transition-colors hover:text-cyan-100"
             >
               {projectName}
@@ -764,7 +768,7 @@ export function RawHtmlPageEditor({
         </div>
 
         <Button
-          href={`/admin/clients/${clientSlug}/projects/${projectId}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectSlug}`}
           variant="ghost"
         >
           ← Retour mission

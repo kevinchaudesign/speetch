@@ -1,5 +1,5 @@
 "use server";
-import { revalidateClientPath } from "@/lib/admin/resolve-client";
+import { revalidatePagePath } from "@/lib/admin/routes";
 
 /**
  * Server actions pour les mockups Meta Ads.
@@ -84,10 +84,7 @@ function cleanText(raw: unknown, maxLen: number): string | null {
 }
 
 async function revalidateBoth(ctx: MetaAdsActionContext) {
-  await revalidateClientPath(
-    ctx.profileId,
-    `/projects/${ctx.projectId}/pages/${ctx.pageId}`,
-  );
+  await revalidatePagePath(ctx.profileId, ctx.projectId, ctx.pageId);
 }
 
 /**

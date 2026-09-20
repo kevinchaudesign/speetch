@@ -4,7 +4,7 @@ import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { Button, Eyebrow, StatusBadge } from "@/lib/ds";
-import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/routes";
 import { DeleteProjectButton } from "./projects/[projectId]/_components/delete-project-button";
 import { RenameProjectButton } from "./projects/[projectId]/_components/rename-project-button";
 import { PasswordEditCard } from "./_components/password-edit-card";
@@ -19,6 +19,7 @@ export const dynamic = "force-dynamic";
 type ProjectMini = {
   id: string;
   name: string;
+  slug: string | null;
   is_published: boolean;
   project_type: string | null;
   position: number;
@@ -61,7 +62,7 @@ export default async function ClientHubPage({
   const { data, error } = await admin
     .from("profiles")
     .select(
-      "id, full_name, slug, client_email, is_published, created_at, projects!profile_id(id, name, is_published, project_type, position, created_at)",
+      "id, full_name, slug, client_email, is_published, created_at, projects!profile_id(id, name, slug, is_published, project_type, position, created_at)",
     )
     .eq(lookupColumn(id), id)
     .eq("is_owner", false)
@@ -290,7 +291,7 @@ export default async function ClientHubPage({
                       />
                     )}
                     <Link
-                      href={`/admin/clients/${clientSlug}/projects/${project.id}`}
+                      href={`/admin/clients/${clientSlug}/projects/${routeSegment(project)}`}
                       className="inline-flex flex-1 items-baseline gap-x-4 transition-colors"
                     >
                       <span className="text-base font-light text-white/85 transition-colors group-hover:text-cyan-100 md:text-lg">

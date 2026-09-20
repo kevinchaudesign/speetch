@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { PROJECT_TYPES } from "@/lib/project-types";
 import { Button, Eyebrow, Hairline } from "@/lib/ds";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import { useClientSegment } from "@/lib/admin/use-route-segment";
 
 export function TypePicker({ clientName }: { clientName: string }) {
   const clientSlug = useClientSegment();

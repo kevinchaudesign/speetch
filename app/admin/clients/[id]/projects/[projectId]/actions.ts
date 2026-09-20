@@ -1,5 +1,8 @@
 "use server";
-import { revalidateClientPath } from "@/lib/admin/resolve-client";
+import {
+  revalidateClientPath,
+  revalidateProjectPath,
+} from "@/lib/admin/routes";
 
 import { revalidatePath } from "next/cache";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -135,7 +138,7 @@ export async function deleteProject(
   if (error) return { ok: false, error: error.message };
 
   revalidatePath("/admin/clients");
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -199,7 +202,7 @@ export async function renameProject(input: {
 
   revalidatePath("/admin/clients");
   await revalidateClientPath(input.profileId);
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true, name };
 }
 
@@ -287,7 +290,7 @@ export async function reorderProjectPages(input: {
     }
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -393,7 +396,7 @@ export async function reorderProjectContexts(input: {
     }
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -584,7 +587,7 @@ export async function reorderLotItems(input: {
     }
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -681,7 +684,7 @@ export async function createProjectLot(input: {
     };
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true, lotId: inserted.id };
 }
 
@@ -731,7 +734,7 @@ export async function renameProjectLot(input: {
     return { ok: false, error: error.message };
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -778,7 +781,7 @@ export async function deleteProjectLot(input: {
     return { ok: false, error: error.message };
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -853,7 +856,7 @@ export async function reorderProjectLots(input: {
     }
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -925,7 +928,7 @@ export async function setPageLot(input: {
     return { ok: false, error: error.message };
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -1020,6 +1023,6 @@ export async function setContextLot(input: {
     }
   }
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }

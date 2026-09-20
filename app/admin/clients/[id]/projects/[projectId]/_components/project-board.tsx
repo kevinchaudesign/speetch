@@ -35,7 +35,10 @@ import {
   setPageLot,
 } from "../actions";
 import { DetachPageButton } from "./detach-page-button";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import {
+  useClientSegment,
+  useProjectSegment,
+} from "@/lib/admin/use-route-segment";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -763,6 +766,7 @@ function SortablePageRow({
   sortable: SortableRenderArg;
 }) {
   const clientSlug = useClientSegment();
+  const projectSlug = useProjectSegment();
   const codeTemplate = getPageTemplate(page.template_id);
   const isDetached = page.template_id === CUSTOM_TEMPLATE_ID;
   const isRawHtmlDirect = page.template_id === RAW_HTML_VIRTUAL_TEMPLATE_ID;
@@ -791,7 +795,7 @@ function SortablePageRow({
           <DragDots />
         </button>
         <Link
-          href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/${page.id}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectSlug}/pages/${page.slug || page.id}`}
           className="group flex min-w-0 flex-1 flex-col gap-2"
         >
           <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
@@ -840,7 +844,7 @@ function SortablePageRow({
           />
         )}
         <Link
-          href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/${page.id}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectSlug}/pages/${page.slug || page.id}`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.32em] text-white/55 transition-colors hover:text-white"
         >
           <span>Affûter</span>

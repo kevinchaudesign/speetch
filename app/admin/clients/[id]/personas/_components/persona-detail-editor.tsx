@@ -6,7 +6,7 @@ import { Button, ConfirmDialog } from "@/lib/ds";
 import { cn } from "@/lib/utils";
 import { deletePersona, setPersonaCover, updatePersona } from "../actions";
 import type { PersonaItem, PersonaMedia } from "../_lib/persona-types";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import { useClientSegment } from "@/lib/admin/use-route-segment";
 
 type PatchableField = Exclude<keyof PersonaItem, "id" | "media">;
 

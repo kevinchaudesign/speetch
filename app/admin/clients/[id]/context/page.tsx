@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/routes";
 import { Button, Chip, Hairline } from "@/lib/ds";
 import type { ClientContextSummary } from "./_lib/types";
 import { DeleteContextButton } from "./_components/delete-context-button";

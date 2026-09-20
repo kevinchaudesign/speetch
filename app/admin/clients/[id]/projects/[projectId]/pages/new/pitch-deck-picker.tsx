@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import {
+  useClientSegment,
+  useProjectSegment,
+} from "@/lib/admin/use-route-segment";
 
 /**
  * PitchDeckPicker — écran de choix au moment de créer un parchemin
@@ -100,14 +103,9 @@ function buildHref(
   return "#";
 }
 
-export function PitchDeckPicker({
-  projectId,
-  projectName,
-}: {
-  projectId: string;
-  projectName: string;
-}) {
+export function PitchDeckPicker({ projectName }: { projectName: string }) {
   const clientSlug = useClientSegment();
+  const projectId = useProjectSegment();
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
       <div

@@ -6,7 +6,10 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { createPage, type CreatePageState } from "./actions";
 import { Field } from "@/lib/ds";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import {
+  useClientSegment,
+  useProjectSegment,
+} from "@/lib/admin/use-route-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: CreatePageState = { status: "idle" };
@@ -41,6 +44,7 @@ export function NewPageForm({
   templateTagline?: string;
 }) {
   const clientSlug = useClientSegment();
+  const projectSlug = useProjectSegment();
   const [state, formAction] = useActionState(createPage, INITIAL_STATE);
   const template = { label: templateLabel, tagline: templateTagline };
 
@@ -68,7 +72,7 @@ export function NewPageForm({
         className="flex items-center justify-between md:hidden"
       >
         <Link
-          href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new`}
+          href={`/admin/clients/${clientSlug}/projects/${projectSlug}/pages/new`}
           className="group inline-flex items-center gap-3 text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors duration-300 hover:text-cyan-100"
         >
           <span className="inline-block h-px w-6 bg-current transition-all duration-500 ease-out group-hover:w-10 group-hover:bg-cyan-200" />
@@ -96,7 +100,7 @@ export function NewPageForm({
           </p>
 
           <Link
-            href={`/admin/clients/${clientSlug}/projects/${projectId}/pages/new`}
+            href={`/admin/clients/${clientSlug}/projects/${projectSlug}/pages/new`}
             className="group inline-flex items-center gap-2 text-[10px] uppercase tracking-[0.32em] text-cyan-200/55 transition-colors hover:text-cyan-100"
           >
             <span className="inline-block h-px w-3 bg-current transition-all duration-500 ease-out group-hover:w-6 group-hover:bg-cyan-200" />
@@ -178,7 +182,7 @@ export function NewPageForm({
 
           <div className="flex items-center justify-between border-t border-cyan-200/15 pt-6">
             <Link
-              href={`/admin/clients/${clientSlug}/projects/${projectId}`}
+              href={`/admin/clients/${clientSlug}/projects/${projectSlug}`}
               className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55 hover:text-cyan-100"
             >
               Annuler

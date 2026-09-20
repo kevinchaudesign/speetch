@@ -1,5 +1,5 @@
 "use server";
-import { revalidateClientPath } from "@/lib/admin/resolve-client";
+import { revalidateClientPath } from "@/lib/admin/routes";
 
 import { createAdminClient, createClient } from "@/lib/supabase/server";
 

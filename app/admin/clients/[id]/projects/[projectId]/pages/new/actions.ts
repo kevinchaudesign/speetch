@@ -1,8 +1,9 @@
 "use server";
 import {
-  revalidateClientPath,
   resolveClientSegment,
-} from "@/lib/admin/resolve-client";
+  resolveProjectSegment,
+  revalidateProjectPath,
+} from "@/lib/admin/routes";
 
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
@@ -157,10 +158,10 @@ export async function createPage(
     };
   }
 
-  await revalidateClientPath(profileId, `/projects/${projectId}`);
+  await revalidateProjectPath(profileId, projectId);
   revalidatePath(`/admin/clients`);
   redirect(
-    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${projectId}`,
+    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${await resolveProjectSegment(profileId, projectId)}`,
   );
 }
 
@@ -295,10 +296,10 @@ export async function createRawHtmlPage(
     };
   }
 
-  await revalidateClientPath(profileId, `/projects/${projectId}`);
+  await revalidateProjectPath(profileId, projectId);
   revalidatePath(`/admin/clients`);
   redirect(
-    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${projectId}`,
+    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${await resolveProjectSegment(profileId, projectId)}`,
   );
 }
 
@@ -515,9 +516,9 @@ export async function createPageFromImport(
     };
   }
 
-  await revalidateClientPath(profileId, `/projects/${projectId}`);
+  await revalidateProjectPath(profileId, projectId);
   revalidatePath(`/admin/clients`);
   redirect(
-    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${projectId}`,
+    `/admin/clients/${await resolveClientSegment(profileId)}/projects/${await resolveProjectSegment(profileId, projectId)}`,
   );
 }

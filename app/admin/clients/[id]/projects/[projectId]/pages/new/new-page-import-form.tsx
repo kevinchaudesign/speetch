@@ -6,7 +6,10 @@ import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { Field } from "@/lib/ds";
 import { createPageFromImport, type CreatePageState } from "./actions";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import {
+  useClientSegment,
+  useProjectSegment,
+} from "@/lib/admin/use-route-segment";
 
 const EASE_OUT_EXPO: [number, number, number, number] = [0.22, 1, 0.36, 1];
 const INITIAL_STATE: CreatePageState = { status: "idle" };
@@ -93,12 +96,13 @@ export function NewPageImportForm({
   backHref?: string;
 }) {
   const clientSlug = useClientSegment();
+  const projectSlug = useProjectSegment();
   const [state, formAction] = useActionState(
     createPageFromImport,
     INITIAL_STATE,
   );
   const cfg = SOURCE_LABELS[source];
-  const base = `/admin/clients/${clientSlug}/projects/${projectId}/pages/new`;
+  const base = `/admin/clients/${clientSlug}/projects/${projectSlug}/pages/new`;
   const changeSourceHref = backHref ?? `${base}?template=${templateId}`;
 
   return (
@@ -249,7 +253,7 @@ export function NewPageImportForm({
 
           <div className="flex items-center justify-between border-t border-cyan-200/15 pt-6">
             <Link
-              href={`/admin/clients/${clientSlug}/projects/${projectId}`}
+              href={`/admin/clients/${clientSlug}/projects/${projectSlug}`}
               className="text-[11px] uppercase tracking-[0.32em] text-cyan-200/55 hover:text-cyan-100"
             >
               Annuler

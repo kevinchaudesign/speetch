@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { Button } from "@/lib/ds";
 import { createPersona, reorderPersonas } from "../actions";
 import type { PersonaItem } from "../_lib/persona-types";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import { useClientSegment } from "@/lib/admin/use-route-segment";
 
 export function PersonasList({
   profileId,

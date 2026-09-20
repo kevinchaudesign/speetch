@@ -1,9 +1,10 @@
 "use server";
 import {
+  resolveClientSegment,
   revalidateClientPath,
   revalidateContextPath,
-  resolveClientSegment,
-} from "@/lib/admin/resolve-client";
+  revalidateProjectPath,
+} from "@/lib/admin/routes";
 
 import { redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
@@ -999,7 +1000,7 @@ export async function setContextPublishing(input: {
   await revalidateClientPath(input.profileId, `/context`);
   await revalidateContextPath(input.profileId, input.contextId);
   if (finalProjectId) {
-    await revalidateClientPath(input.profileId, `/projects/${finalProjectId}`);
+    await revalidateProjectPath(input.profileId, finalProjectId);
   }
   return { ok: true, publishedPageId: newPageId };
 }

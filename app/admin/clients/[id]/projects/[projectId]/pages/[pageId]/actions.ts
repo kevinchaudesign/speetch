@@ -1,8 +1,10 @@
 "use server";
 import {
-  revalidateClientPath,
   resolveClientSegment,
-} from "@/lib/admin/resolve-client";
+  resolveProjectSegment,
+  revalidatePagePath,
+  revalidateProjectPath,
+} from "@/lib/admin/routes";
 
 import { randomUUID } from "node:crypto";
 import { redirect } from "next/navigation";
@@ -125,11 +127,8 @@ async function saveContent(
 }
 
 async function revalidateEditor(ctx: ActionContext) {
-  await revalidateClientPath(
-    ctx.profileId,
-    `/projects/${ctx.projectId}/pages/${ctx.pageId}`,
-  );
-  await revalidateClientPath(ctx.profileId, `/projects/${ctx.projectId}`);
+  await revalidatePagePath(ctx.profileId, ctx.projectId, ctx.pageId);
+  await revalidateProjectPath(ctx.profileId, ctx.projectId);
 }
 
 function makeEmptySection(type: SectionType): Section {
@@ -289,7 +288,7 @@ export async function detachPage(input: ActionContext): Promise<ActionResult> {
   if (error) return { ok: false, error: error.message };
 
   revalidateEditor(input);
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   return { ok: true };
 }
 
@@ -844,8 +843,8 @@ export async function deletePage(input: ActionContext): Promise<ActionResult> {
     .eq("id", input.pageId);
   if (error) return { ok: false, error: error.message };
 
-  await revalidateClientPath(input.profileId, `/projects/${input.projectId}`);
+  await revalidateProjectPath(input.profileId, input.projectId);
   redirect(
-    `/admin/clients/${await resolveClientSegment(input.profileId)}/projects/${input.projectId}`,
+    `/admin/clients/${await resolveClientSegment(input.profileId)}/projects/${await resolveProjectSegment(input.profileId, input.projectId)}`,
   );
 }

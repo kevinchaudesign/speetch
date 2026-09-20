@@ -1,17 +1,19 @@
 import Link from "next/link";
 import type { PageTemplate } from "@/lib/page-templates";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import {
+  useClientSegment,
+  useProjectSegment,
+} from "@/lib/admin/use-route-segment";
 
 export function TemplatePicker({
-  projectId,
   projectName,
   templates,
 }: {
-  projectId: string;
   projectName: string;
   templates: PageTemplate[];
 }) {
   const clientSlug = useClientSegment();
+  const projectId = useProjectSegment();
   return (
     <div className="relative min-h-svh w-full overflow-hidden px-6 py-10 md:px-16 md:py-14">
       {/* Star field + scanlines + sabre — thème Conseil Jedi */}

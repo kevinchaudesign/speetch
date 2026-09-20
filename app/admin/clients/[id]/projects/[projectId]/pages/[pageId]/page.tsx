@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/routes";
 import type { Page, PageContent } from "@/types/database";
 import { PageEditor } from "./page-editor";
 import { RawHtmlPageEditor } from "./_raw/raw-html-page-editor";
@@ -14,19 +14,12 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 export default async function EditPagePage({
   params,
 }: {
   params: Promise<{ id: string; projectId: string; pageId: string }>;
 }) {
   const { id, projectId, pageId } = await params;
-
-  if (!UUID_REGEX.test(projectId) || !UUID_REGEX.test(pageId)) {
-    notFound();
-  }
 
   const supabase = await createClient();
   const {
@@ -60,16 +53,34 @@ export default async function EditPagePage({
       `/admin/clients/${clientSlug}/projects/${projectId}/pages/${pageId}`,
     );
 
+  const { data: projectRow } = await admin
+    .from("projects")
+    .select("id, slug")
+    .eq(lookupColumn(projectId), projectId)
+    .eq("profile_id", clientProfile.id)
+    .maybeSingle();
+  if (!projectRow) notFound();
+  // URL canonique : le segment porte le nom de la mission, jamais son UUID.
+  if (projectRow.slug && projectRow.slug !== projectId)
+    redirect(
+      `/admin/clients/${clientSlug}/projects/${projectRow.slug}/pages/${pageId}`,
+    );
+
   const { data: pageData } = await admin
     .from("pages")
     .select(
       "id, project_id, name, slug, template_id, content, position, is_published, created_at, updated_at, projects!inner(id, name, slug, is_published, profile_id, profiles!profile_id(id, full_name, slug, is_published))",
     )
-    .eq("id", pageId)
-    .eq("project_id", projectId)
+    .eq(lookupColumn(pageId), pageId)
+    .eq("project_id", projectRow.id)
     .maybeSingle();
 
   if (!pageData) notFound();
+  // URL canonique : le segment porte le nom de la page, jamais son UUID.
+  if (pageData.slug && pageData.slug !== pageId)
+    redirect(
+      `/admin/clients/${clientSlug}/projects/${projectRow.slug}/pages/${pageData.slug}`,
+    );
 
   const project = pageData.projects as
     | {
@@ -158,7 +169,7 @@ export default async function EditPagePage({
       <RawHtmlPageEditor
         initialPage={page}
         clientId={clientProfile.id}
-        projectId={projectId}
+        projectId={projectRow.id}
         projectName={projectObj.name}
         clientName={profileObj?.full_name ?? "Client"}
         publicHref={publicHref}
@@ -352,7 +363,7 @@ export default async function EditPagePage({
     <PageEditor
       initialPage={page}
       clientId={clientProfile.id}
-      projectId={projectId}
+      projectId={projectRow.id}
       projectName={projectObj.name}
       clientName={profileObj?.full_name ?? "Client"}
       publicHref={publicHref}

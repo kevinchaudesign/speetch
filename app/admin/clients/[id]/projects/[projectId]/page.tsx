@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { createAdminClient, createClient } from "@/lib/supabase/server";
-import { lookupColumn, routeSegment } from "@/lib/admin/resolve-client";
+import { lookupColumn, routeSegment } from "@/lib/admin/routes";
 import { getProjectTypeLabel } from "@/lib/project-types";
 import { isDbTemplateId } from "@/lib/page-templates";
 import { Button, StatusBadge } from "@/lib/ds";
@@ -22,9 +22,6 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-const UUID_REGEX =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
 type PageRow = BoardPage;
 
 export default async function ProjectDetailPage({
@@ -33,10 +30,6 @@ export default async function ProjectDetailPage({
   params: Promise<{ id: string; projectId: string }>;
 }) {
   const { id, projectId } = await params;
-
-  if (!UUID_REGEX.test(projectId)) {
-    notFound();
-  }
 
   const supabase = await createClient();
   const {
@@ -69,22 +62,25 @@ export default async function ProjectDetailPage({
   const { data: project } = await admin
     .from("projects")
     .select(
-      "id, name, subtitle, project_type, is_published, profile_id, profiles!profile_id(full_name, slug)",
+      "id, name, slug, subtitle, project_type, is_published, profile_id, profiles!profile_id(full_name, slug)",
     )
-    .eq("id", projectId)
+    .eq(lookupColumn(projectId), projectId)
     .eq("profile_id", profile.id)
     .maybeSingle();
 
   if (!project) {
     notFound();
   }
+  // URL canonique : le segment porte le nom de la mission, jamais son UUID.
+  if (project.slug && project.slug !== projectId)
+    redirect(`/admin/clients/${clientSlug}/projects/${project.slug}`);
 
   const { data: pagesData } = await admin
     .from("pages")
     .select(
       "id, name, slug, template_id, position, is_published, created_at, lot_id" as never,
     )
-    .eq("project_id", projectId)
+    .eq("project_id", project.id)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true })
     .returns<BoardPage[]>();
@@ -97,7 +93,7 @@ export default async function ProjectDetailPage({
     .select(
       "id, title, slug, position, source_kind, created_at, lot_id, published_page_id",
     )
-    .eq("project_id", projectId)
+    .eq("project_id", project.id)
     .order("position", { ascending: true })
     .order("created_at", { ascending: true })
     .returns<
@@ -147,7 +143,7 @@ export default async function ProjectDetailPage({
   const { data: lotsData } = await admin
     .from("project_lots" as never)
     .select("id, name, position")
-    .eq("project_id", projectId)
+    .eq("project_id", project.id)
     .order("position", { ascending: true })
     .returns<Array<Pick<ProjectLotRow, "id" | "name" | "position">>>();
   const lots: BoardLot[] = (lotsData ?? []).map((l) => ({
@@ -280,7 +276,7 @@ export default async function ProjectDetailPage({
         ) : (
           <ProjectBoard
             profileId={profile.id}
-            projectId={projectId}
+            projectId={project.id}
             initialLots={lots}
             initialPages={pages}
             initialNotes={notes}

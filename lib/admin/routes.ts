@@ -94,3 +94,71 @@ export async function revalidateContextPath(
     await revalidateClientPath(profileId, `/context/${contextId}`);
   }
 }
+
+/**
+ * Segment d'URL canonique d'une mission : son slug (donc son nom). Unique par
+ * client, d'où le `profileId` en portée.
+ */
+export const resolveProjectSegment = cache(
+  async (profileId: string, projectId: string): Promise<string> => {
+    if (!isUuid(projectId)) return projectId;
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("projects")
+      .select("slug")
+      .eq("id", projectId)
+      .eq("profile_id", profileId)
+      .maybeSingle();
+    return (data?.slug as string | null) || projectId;
+  },
+);
+
+/**
+ * Segment d'URL canonique d'une page : son slug (donc son nom). Unique par
+ * mission, d'où le `projectId` en portée.
+ */
+export const resolvePageSegment = cache(
+  async (projectId: string, pageId: string): Promise<string> => {
+    if (!isUuid(pageId)) return pageId;
+    const admin = createAdminClient();
+    const { data } = await admin
+      .from("pages")
+      .select("slug")
+      .eq("id", pageId)
+      .eq("project_id", projectId)
+      .maybeSingle();
+    return (data?.slug as string | null) || pageId;
+  },
+);
+
+/**
+ * Revalide la fiche d'une mission depuis les UUID dont disposent les server
+ * actions.
+ */
+export async function revalidateProjectPath(
+  profileId: string,
+  projectId: string,
+  suffix = "",
+): Promise<void> {
+  const segment = await resolveProjectSegment(profileId, projectId);
+  await revalidateClientPath(profileId, `/projects/${segment}${suffix}`);
+  if (segment !== projectId) {
+    await revalidateClientPath(profileId, `/projects/${projectId}${suffix}`);
+  }
+}
+
+/**
+ * Revalide l'éditeur d'une page depuis les UUID dont disposent les server
+ * actions.
+ */
+export async function revalidatePagePath(
+  profileId: string,
+  projectId: string,
+  pageId: string,
+): Promise<void> {
+  const segment = await resolvePageSegment(projectId, pageId);
+  await revalidateProjectPath(profileId, projectId, `/pages/${segment}`);
+  if (segment !== pageId) {
+    await revalidateProjectPath(profileId, projectId, `/pages/${pageId}`);
+  }
+}

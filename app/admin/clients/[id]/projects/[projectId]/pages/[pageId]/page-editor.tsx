@@ -49,7 +49,10 @@ import {
 } from "./deliverables-admin-editor";
 import { MetaAdsAdminEditor } from "./meta-ads-admin-editor";
 import type { MetaAdMockup } from "@/types/database";
-import { useClientSegment } from "@/lib/admin/use-client-segment";
+import {
+  useClientSegment,
+  useProjectSegment,
+} from "@/lib/admin/use-route-segment";
 
 export function PageEditor({
   initialPage,
@@ -93,6 +96,7 @@ export function PageEditor({
 
   const content: PageContent = (page.content as PageContent) ?? {};
   const clientSlug = useClientSegment();
+  const projectSlug = useProjectSegment();
   const sections: Section[] = content.sections ?? [];
   const isRawHtml = content.meta?.style === "raw_html";
   const isDeliverables = content.meta?.style === "deliverables";
@@ -400,7 +404,7 @@ export function PageEditor({
       {/* Header mobile */}
       <header className="flex items-center justify-between md:hidden">
         <Link
-          href={`/admin/clients/${clientSlug}/projects/${projectId}`}
+          href={`/admin/clients/${clientSlug}/projects/${projectSlug}`}
           className="text-[11px] uppercase tracking-[0.28em] text-cyan-200/65 transition-colors hover:text-cyan-100"
         >
           ← Mission
@@ -429,7 +433,7 @@ export function PageEditor({
             </Link>
             <span className="mx-3 text-cyan-200/20">→</span>
             <Link
-              href={`/admin/clients/${clientSlug}/projects/${projectId}`}
+              href={`/admin/clients/${clientSlug}/projects/${projectSlug}`}
               className="transition-colors hover:text-cyan-100"
             >
               {projectName}
@@ -672,7 +676,7 @@ export function PageEditor({
 
         <div className="flex items-center pt-4">
           <Button
-            href={`/admin/clients/${clientSlug}/projects/${projectId}`}
+            href={`/admin/clients/${clientSlug}/projects/${projectSlug}`}
             variant="ghost"
           >
             ← Retour mission
